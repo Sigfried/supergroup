@@ -1,0 +1,541 @@
+<!DOCTYPE html><html lang="en" class="two-column-layout"><head><title>index</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content=""><meta name="groc-document-path" content="index"><meta name="groc-project-path" content="supergroup.js"><link rel="stylesheet" type="text/css" media="all" href="assets/style.css"><script type="text/javascript" src="assets/behavior.js"></script><body><div id="meta"><div class="file-path">supergroup.js</div></div><div id="document"><div class="segment"><div class="comments "><div class="wrapper"><h1 id="supergroupjs">supergroup.js</h1>
+
+<p>Author: <a href="http://sigfried.org">Sigfried Gold</a> <br />
+License: <a href="http://sigfried.mit-license.org/">MIT</a>  </p>
+
+<p>usage examples at <a href="http://sigfried.github.io/blog/supergroup">http://sigfried.github.io/blog/supergroup</a></p></div></div><div class="code"><div class="wrapper"><span class="p">;</span> <span class="c1">// jshint -W053</span>
+
+<span class="s1">&#39;use strict()&#39;</span><span class="p">;</span>
+<span class="k">if</span> <span class="p">(</span><span class="k">typeof</span><span class="p">(</span><span class="nx">require</span><span class="p">)</span> <span class="o">!==</span> <span class="s2">&quot;undefined&quot;</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// make it work in node or browsers or other contexts</span>
+    <span class="nx">_</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;underscore&#39;</span><span class="p">);</span> <span class="c1">// otherwise assume it was included by html file</span>
+    <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;underscore-unchained&#39;</span><span class="p">);</span> <span class="c1">// adds unchain as an Underscore mixin</span>
+    <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;1670507/underscoreAddon.js&#39;</span><span class="p">);</span> <span class="c1">// adds mean, median, etc. as mixins</span>
+<span class="p">}</span>
+<span class="kd">var</span> <span class="nx">supergroup</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">e</span> <span class="o">=</span> <span class="p">{};</span> <span class="c1">// local reference to supergroup namespace</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'> class List</span></p>
+
+<p>Native Array of groups with various added methods and properties.
+Methods described below.</p></div></div><div class="code"><div class="wrapper">    <span class="kd">function</span> <span class="nx">List</span><span class="p">()</span> <span class="p">{}</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'> class Value</span></p>
+
+<p>Supergroup Lists are composed of Values which are
+String or Number objects representing group values.
+Methods described below.</p></div></div><div class="code"><div class="wrapper">    <span class="kd">function</span> <span class="nx">Value</span><span class="p">()</span> <span class="p">{}</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'> exported function supergroup.group(recs, dim, opts)</span></p>
+
+<p>Parameters:</p>
+
+<ul>
+<li><p><strong>recs must be an Array of Objects.</strong><br/>(list of records to be grouped)</p></li>
+<li><p><strong>dim must be a string or Function.</strong><br/>(either the property name to group by or a function returning a group by string or number)</p></li>
+<li><p><strong>opts is optional and must be an Object.</strong></p>
+
+<ul><li><p><strong>opts.childProp must be a String and has a default value of 'children'.</strong><br/>(If group ends up being hierarchical, this will be the property name of any children)</p></li>
+<li><p><strong>opts.excludeValues is optional and must be an Array of Strings.</strong><br/>(to exlude specific group values)</p></li>
+<li><p><strong>opts.preListRecsHook is optional and must be a function.</strong><br/>(run recs through this function before continuing processing)</p></li>
+<li><p><strong>opts.dimName is optional and must be a function.</strong><br/>(defaults to the value of <code>dim</code>. If <code>dim</code> is a function, the dimName will be ugly.)</p></li></ul></li>
+</ul>
+
+<p><strong>Returns an Array of Values</strong><br/>(enhanced with all the List methods Avaailable as _.supergroup, Underscore mixin)</p></div></div><div class="code"><div class="wrapper">    <span class="nx">e</span><span class="p">.</span><span class="nx">group</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">recs</span><span class="p">,</span> <span class="nx">dim</span><span class="p">,</span> <span class="nx">opts</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nx">_</span><span class="p">(</span><span class="nx">dim</span><span class="p">).</span><span class="nx">isArray</span><span class="p">())</span> <span class="k">return</span> <span class="nx">e</span><span class="p">.</span><span class="nx">multiDimList</span><span class="p">(</span><span class="nx">recs</span><span class="p">,</span> <span class="nx">dim</span><span class="p">,</span> <span class="nx">opts</span><span class="p">);</span> <span class="c1">// handoff to multiDimmList if dim is an array</span>
+        <span class="nx">opts</span> <span class="o">=</span> <span class="nx">opts</span> <span class="o">||</span> <span class="p">{};</span>
+        <span class="nx">recs</span> <span class="o">=</span> <span class="nx">opts</span><span class="p">.</span><span class="nx">preListRecsHook</span> <span class="o">?</span> <span class="nx">opts</span><span class="p">.</span><span class="nx">preListRecsHook</span><span class="p">(</span><span class="nx">recs</span><span class="p">)</span> <span class="o">:</span> <span class="nx">recs</span><span class="p">;</span>
+        <span class="nx">childProp</span> <span class="o">=</span> <span class="nx">opts</span><span class="p">.</span><span class="nx">childProp</span> <span class="o">||</span> <span class="nx">childProp</span><span class="p">;</span>
+        <span class="kd">var</span> <span class="nx">groups</span> <span class="o">=</span> <span class="nx">_</span><span class="p">.</span><span class="nx">groupBy</span><span class="p">(</span><span class="nx">recs</span><span class="p">,</span> <span class="nx">dim</span><span class="p">);</span> <span class="c1">// use Underscore&#39;s groupBy: http://underscorejs.org/#groupBy</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nx">opts</span><span class="p">.</span><span class="nx">excludeValues</span><span class="p">)</span> <span class="p">{</span>
+            <span class="nx">_</span><span class="p">(</span><span class="nx">opts</span><span class="p">.</span><span class="nx">excludeValues</span><span class="p">).</span><span class="nx">each</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">d</span><span class="p">)</span> <span class="p">{</span>
+                <span class="k">delete</span> <span class="nx">groups</span><span class="p">[</span><span class="nx">d</span><span class="p">];</span>
+            <span class="p">});</span>
+        <span class="p">}</span>
+        <span class="kd">var</span> <span class="nx">isNumeric</span> <span class="o">=</span> <span class="nx">wholeListNumeric</span><span class="p">(</span><span class="nx">groups</span><span class="p">);</span> <span class="c1">// does every group Value look like a number or a missing value?</span>
+        <span class="kd">var</span> <span class="nx">groups</span> <span class="o">=</span> <span class="nx">_</span><span class="p">.</span><span class="nx">map</span><span class="p">(</span><span class="nx">_</span><span class="p">.</span><span class="nx">pairs</span><span class="p">(</span><span class="nx">groups</span><span class="p">),</span> <span class="kd">function</span><span class="p">(</span><span class="nx">pair</span><span class="p">,</span> <span class="nx">i</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// setup Values for each group in List</span>
+            <span class="kd">var</span> <span class="nx">rawVal</span> <span class="o">=</span> <span class="nx">pair</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+            <span class="kd">var</span> <span class="nx">val</span><span class="p">;</span>
+            <span class="k">if</span><span class="p">(</span><span class="nx">isNumeric</span><span class="p">)</span> <span class="p">{</span>
+                <span class="nx">val</span> <span class="o">=</span> <span class="nx">makeNumberValue</span><span class="p">(</span><span class="nx">rawVal</span><span class="p">);</span> <span class="c1">// either everything&#39;s a Number</span>
+            <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+                <span class="nx">val</span> <span class="o">=</span> <span class="nx">makeStringValue</span><span class="p">(</span><span class="nx">rawVal</span><span class="p">);</span> <span class="c1">// or everything&#39;s a String</span>
+            <span class="p">}</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>The original records in this group are stored as an Array in 
+the records property (should probably be a getter method).</p></div></div><div class="code"><div class="wrapper">            <span class="nx">val</span><span class="p">.</span><span class="nx">records</span> <span class="o">=</span> <span class="nx">pair</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>val.records is enhanced with Underscore methods for
+convenience, but also with the supergroup method that's
+been mixed in to Underscore. So you can group this specific
+subset like: val.records.supergroup
+on                                       FIX!!!!!!</p></div></div><div class="code"><div class="wrapper">            <span class="nx">_</span><span class="p">.</span><span class="nx">unchain</span><span class="p">(</span><span class="nx">val</span><span class="p">.</span><span class="nx">records</span><span class="p">);</span>
+            <span class="nx">val</span><span class="p">.</span><span class="nx">dim</span> <span class="o">=</span> <span class="p">(</span><span class="nx">opts</span><span class="p">.</span><span class="nx">dimName</span><span class="p">)</span> <span class="o">?</span> <span class="nx">opts</span><span class="p">.</span><span class="nx">dimName</span> <span class="o">:</span> <span class="nx">dim</span><span class="p">;</span>
+            <span class="nx">val</span><span class="p">.</span><span class="nx">records</span><span class="p">.</span><span class="nx">parentVal</span> <span class="o">=</span> <span class="nx">val</span><span class="p">;</span> <span class="c1">// NOT TESTED, NOT USED, PROBABLY WRONG</span>
+            <span class="k">if</span> <span class="p">(</span><span class="nx">opts</span><span class="p">.</span><span class="nx">parent</span><span class="p">)</span>
+                <span class="nx">val</span><span class="p">.</span><span class="nx">parent</span> <span class="o">=</span> <span class="nx">opts</span><span class="p">.</span><span class="nx">parent</span><span class="p">;</span>
+            <span class="k">if</span> <span class="p">(</span><span class="nx">val</span><span class="p">.</span><span class="nx">parent</span><span class="p">)</span> <span class="p">{</span>
+                <span class="k">if</span> <span class="p">(</span><span class="s1">&#39;depth&#39;</span> <span class="k">in</span> <span class="nx">val</span><span class="p">.</span><span class="nx">parent</span><span class="p">)</span> <span class="p">{</span>
+                    <span class="nx">val</span><span class="p">.</span><span class="nx">depth</span> <span class="o">=</span> <span class="nx">val</span><span class="p">.</span><span class="nx">parent</span><span class="p">.</span><span class="nx">depth</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+                <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+                    <span class="nx">val</span><span class="p">.</span><span class="nx">parent</span><span class="p">.</span><span class="nx">depth</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+                    <span class="nx">val</span><span class="p">.</span><span class="nx">depth</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+                <span class="p">}</span>
+            <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+                <span class="nx">val</span><span class="p">.</span><span class="nx">depth</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+            <span class="p">}</span>
+            <span class="k">return</span> <span class="nx">val</span><span class="p">;</span>
+        <span class="p">});</span>
+        <span class="nx">groups</span> <span class="o">=</span> <span class="nx">makeList</span><span class="p">(</span><span class="nx">groups</span><span class="p">);</span>
+        <span class="nx">groups</span><span class="p">.</span><span class="nx">records</span> <span class="o">=</span> <span class="nx">recs</span><span class="p">;</span> <span class="c1">// NOT TESTED, NOT USED, PROBABLY WRONG</span>
+        <span class="nx">groups</span><span class="p">.</span><span class="nx">dim</span> <span class="o">=</span> <span class="p">(</span><span class="nx">opts</span><span class="p">.</span><span class="nx">dimName</span><span class="p">)</span> <span class="o">?</span> <span class="nx">opts</span><span class="p">.</span><span class="nx">dimName</span> <span class="o">:</span> <span class="nx">dim</span><span class="p">;</span>
+        <span class="nx">groups</span><span class="p">.</span><span class="nx">isNumeric</span> <span class="o">=</span> <span class="nx">isNumeric</span><span class="p">;</span>
+        <span class="nx">_</span><span class="p">(</span><span class="nx">groups</span><span class="p">).</span><span class="nx">each</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">group</span><span class="p">)</span> <span class="p">{</span> 
+            <span class="nx">group</span><span class="p">.</span><span class="nx">parentList</span> <span class="o">=</span> <span class="nx">groups</span><span class="p">;</span>
+        <span class="p">});</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>pointless without recursion</p></div></div><div class="code"><div class="wrapper">        <span class="c1">//if (opts.postListListHook) groups = opts.postListListHook(groups);</span>
+        <span class="k">return</span> <span class="nx">groups</span><span class="p">;</span>
+    <span class="p">};</span>
+    <span class="nx">e</span><span class="p">.</span><span class="nx">multiDimList</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">recs</span><span class="p">,</span> <span class="nx">dims</span><span class="p">,</span> <span class="nx">opts</span><span class="p">)</span> <span class="p">{</span>
+        <span class="kd">var</span> <span class="nx">groups</span> <span class="o">=</span> <span class="nx">e</span><span class="p">.</span><span class="nx">group</span><span class="p">(</span><span class="nx">recs</span><span class="p">,</span> <span class="nx">dims</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nx">opts</span><span class="p">);</span>
+        <span class="nx">_</span><span class="p">.</span><span class="nx">chain</span><span class="p">(</span><span class="nx">dims</span><span class="p">).</span><span class="nx">rest</span><span class="p">().</span><span class="nx">each</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">dim</span><span class="p">)</span> <span class="p">{</span>
+            <span class="nx">groups</span><span class="p">.</span><span class="nx">addLevel</span><span class="p">(</span><span class="nx">dim</span><span class="p">,</span> <span class="nx">opts</span><span class="p">);</span>
+        <span class="p">});</span>
+        <span class="k">return</span> <span class="nx">groups</span><span class="p">;</span>
+    <span class="p">};</span>
+
+    <span class="nx">List</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">asRootVal</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">name</span><span class="p">,</span> <span class="nx">dimName</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">name</span> <span class="o">=</span> <span class="nx">name</span> <span class="o">||</span> <span class="s1">&#39;Root&#39;</span><span class="p">;</span>
+        <span class="kd">var</span> <span class="nx">val</span> <span class="o">=</span> <span class="nx">makeValue</span><span class="p">(</span><span class="nx">name</span><span class="p">);</span>
+        <span class="nx">val</span><span class="p">.</span><span class="nx">records</span> <span class="o">=</span> <span class="k">this</span><span class="p">;</span> <span class="c1">// is this wrong?</span>
+        <span class="nx">val</span><span class="p">[</span><span class="nx">childProp</span><span class="p">]</span><span class="o">=</span> <span class="k">this</span><span class="p">;</span>
+        <span class="nx">val</span><span class="p">.</span><span class="nx">descendants</span><span class="p">().</span><span class="nx">each</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">d</span><span class="p">)</span> <span class="p">{</span> <span class="nx">d</span><span class="p">.</span><span class="nx">depth</span> <span class="o">=</span> <span class="nx">d</span><span class="p">.</span><span class="nx">depth</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span> <span class="p">});</span>
+        <span class="nx">val</span><span class="p">.</span><span class="nx">depth</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="nx">val</span><span class="p">.</span><span class="nx">dim</span> <span class="o">=</span> <span class="nx">dimName</span> <span class="o">||</span> <span class="s1">&#39;root&#39;</span><span class="p">;</span>
+        <span class="k">return</span> <span class="nx">val</span><span class="p">;</span>
+    <span class="p">};</span>
+    <span class="nx">List</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">leafNodes</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">level</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">invoke</span><span class="p">(</span><span class="s1">&#39;leafNodes&#39;</span><span class="p">).</span><span class="nx">flatten</span><span class="p">();</span>
+    <span class="p">};</span>
+    <span class="nx">List</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">rawValues</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="nx">_</span><span class="p">(</span><span class="k">this</span><span class="p">).</span><span class="nx">map</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">d</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="nx">d</span><span class="p">.</span><span class="nx">toString</span><span class="p">();</span> <span class="p">});</span>
+    <span class="p">};</span>
+    <span class="nx">List</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">lookup</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">query</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nx">_</span><span class="p">.</span><span class="nx">isArray</span><span class="p">(</span><span class="nx">query</span><span class="p">))</span> <span class="p">{</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>if group has children, can search down the tree</p></div></div><div class="code"><div class="wrapper">            <span class="kd">var</span> <span class="nx">values</span> <span class="o">=</span> <span class="nx">query</span><span class="p">.</span><span class="nx">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+            <span class="kd">var</span> <span class="nx">list</span> <span class="o">=</span> <span class="k">this</span><span class="p">;</span>
+            <span class="kd">var</span> <span class="nx">ret</span><span class="p">;</span>
+            <span class="k">while</span><span class="p">(</span><span class="nx">values</span><span class="p">.</span><span class="nx">length</span><span class="p">)</span> <span class="p">{</span>
+                <span class="nx">ret</span> <span class="o">=</span> <span class="nx">list</span><span class="p">.</span><span class="nx">singleLookup</span><span class="p">(</span><span class="nx">values</span><span class="p">.</span><span class="nx">shift</span><span class="p">());</span>
+                <span class="nx">list</span> <span class="o">=</span> <span class="nx">ret</span><span class="p">[</span><span class="nx">childProp</span><span class="p">];</span>
+            <span class="p">}</span>
+            <span class="k">return</span> <span class="nx">ret</span><span class="p">;</span>
+        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+            <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">singleLookup</span><span class="p">(</span><span class="nx">query</span><span class="p">);</span>
+        <span class="p">}</span>
+    <span class="p">};</span>
+    <span class="nx">List</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">singleLookup</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">query</span><span class="p">)</span> <span class="p">{</span>
+        <span class="kd">var</span> <span class="nx">that</span> <span class="o">=</span> <span class="k">this</span><span class="p">;</span>
+        <span class="k">if</span> <span class="p">(</span><span class="o">!</span> <span class="p">(</span><span class="s1">&#39;lookupMap&#39;</span> <span class="k">in</span> <span class="k">this</span><span class="p">))</span> <span class="p">{</span>
+            <span class="k">this</span><span class="p">.</span><span class="nx">lookupMap</span> <span class="o">=</span> <span class="p">{};</span>
+            <span class="k">this</span><span class="p">.</span><span class="nx">forEach</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">d</span><span class="p">)</span> <span class="p">{</span>
+                <span class="nx">that</span><span class="p">.</span><span class="nx">lookupMap</span><span class="p">[</span><span class="nx">d</span><span class="p">]</span> <span class="o">=</span> <span class="nx">d</span><span class="p">;</span>
+            <span class="p">});</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nx">query</span> <span class="k">in</span> <span class="k">this</span><span class="p">.</span><span class="nx">lookupMap</span><span class="p">)</span>
+            <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">lookupMap</span><span class="p">[</span><span class="nx">query</span><span class="p">];</span>
+    <span class="p">};</span>
+    <span class="nx">List</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">flattenTree</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="nx">_</span><span class="p">.</span><span class="nx">chain</span><span class="p">(</span><span class="k">this</span><span class="p">)</span>
+                    <span class="p">.</span><span class="nx">map</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">d</span><span class="p">)</span> <span class="p">{</span>
+                        <span class="kd">var</span> <span class="nx">desc</span> <span class="o">=</span> <span class="nx">d</span><span class="p">.</span><span class="nx">descendants</span><span class="p">();</span>
+                        <span class="k">return</span> <span class="p">[</span><span class="nx">d</span><span class="p">].</span><span class="nx">concat</span><span class="p">(</span><span class="nx">desc</span><span class="p">);</span>
+                    <span class="p">})</span>
+                    <span class="p">.</span><span class="nx">flatten</span><span class="p">()</span>
+                    <span class="p">.</span><span class="nx">filter</span><span class="p">(</span><span class="nx">_</span><span class="p">.</span><span class="nx">identity</span><span class="p">)</span> <span class="c1">// expunge nulls</span>
+                    <span class="p">.</span><span class="nx">tap</span><span class="p">(</span><span class="nx">e</span><span class="p">.</span><span class="nx">addListMethods</span><span class="p">)</span>
+                    <span class="p">.</span><span class="nx">value</span><span class="p">();</span>
+    <span class="p">};</span>
+    <span class="nx">List</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">addLevel</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">dim</span><span class="p">,</span> <span class="nx">opts</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">_</span><span class="p">(</span><span class="k">this</span><span class="p">).</span><span class="nx">each</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">val</span><span class="p">)</span> <span class="p">{</span>
+            <span class="nx">val</span><span class="p">.</span><span class="nx">addLevel</span><span class="p">(</span><span class="nx">dim</span><span class="p">,</span> <span class="nx">opts</span><span class="p">);</span>
+        <span class="p">});</span>
+    <span class="p">};</span>
+    
+    <span class="kd">function</span> <span class="nx">makeList</span><span class="p">(</span><span class="nx">arr_arg</span><span class="p">)</span> <span class="p">{</span>
+        <span class="kd">var</span> <span class="nx">arr</span> <span class="o">=</span> <span class="p">[</span> <span class="p">];</span>
+        <span class="nx">arr</span><span class="p">.</span><span class="nx">push</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="nx">arr</span><span class="p">,</span> <span class="nx">arr_arg</span><span class="p">);</span>
+        <span class="c1">//arr.__proto__ = List.prototype;</span>
+        <span class="k">for</span><span class="p">(</span><span class="kd">var</span> <span class="nx">method</span> <span class="k">in</span> <span class="nx">List</span><span class="p">.</span><span class="nx">prototype</span><span class="p">)</span> <span class="p">{</span>
+            <span class="nb">Object</span><span class="p">.</span><span class="nx">defineProperty</span><span class="p">(</span><span class="nx">arr</span><span class="p">,</span> <span class="nx">method</span><span class="p">,</span> <span class="p">{</span>
+                <span class="nx">value</span><span class="o">:</span> <span class="nx">List</span><span class="p">.</span><span class="nx">prototype</span><span class="p">[</span><span class="nx">method</span><span class="p">]</span>
+            <span class="p">});</span>
+        <span class="p">}</span>
+        <span class="nx">_</span><span class="p">.</span><span class="nx">unchain</span><span class="p">(</span><span class="nx">arr</span><span class="p">);</span>
+        <span class="k">return</span> <span class="nx">arr</span><span class="p">;</span>
+    <span class="p">}</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'> memberof enlightenedData </p>
+
+<pre><code>e.addUnderscoreMethods = function(arr) {
+    _(e.underscoreMethodsToAddToArrays).each(function(methodName) {
+        if (_(arr).has(methodName)) return;
+        Object.defineProperty(arr, methodName, {
+            value: function() {
+                var part = _.partial(_[methodName], arr);
+                var result = part.apply(null, _.toArray(arguments));
+                if (_.isArray(result)) e.addListMethods(result);
+                return result;
+            }});
+    });
+    return arr;
+};
+e.underscoreMethodsToAddToArrays = [ 
+        "each",
+        "map",
+        "reduce",
+        "find",
+        "filter",
+        "reject",
+        "all",
+        "every",
+        "any",
+        "some",
+        "contains",
+        "invoke",
+        "pluck",
+        "where",
+        "findWhere",
+        "max",
+        "min",
+        "shuffle",
+        "sortBy",
+        "groupBy",
+        "countBy",
+        "sortedIndex",
+        "size",
+        "first",
+        "initial",
+        "last",
+        "rest",
+        "compact",
+        "flatten",
+        "without",
+        "uniq",
+        "union",
+        "intersection",
+        "difference",
+        "zip",
+        "unzip",
+        //"object",
+        "indexOf",
+        "lastIndexOf",
+        "chain",
+        "result"
+        ];&lt;/span&gt;
+</code></pre>
+
+<p>Enhance arrays with {@link http://underscorejs.org/ Underscore} functions 
+that work on arrays. </p>
+
+<p>Parameters:</p>
+
+<ul>
+<li><strong>arr must be an Array.</strong></li>
+</ul>
+
+<p><strong>Returns an Array</strong><br/>(now enhanced Now can call Underscore functions as methods on the array, and if the return value is an array, it will also be enhanced.)<br/><strong>and</strong> <strong>Returns a whatever the underscore function would return</strong></p>
+
+<p>Example:</p>
+
+<p>`enlightenedData.addUnderscoreMethods(['a','bb','ccc'])
+    .pluck('length')
+    .
+group.where({foo:bar}).invoke('baz')</p></div></div><div class="code"><div class="wrapper">    <span class="kd">function</span> <span class="nx">makeValue</span><span class="p">(</span><span class="nx">v_arg</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nb">isNaN</span><span class="p">(</span><span class="nx">v_arg</span><span class="p">))</span> <span class="p">{</span>
+            <span class="k">return</span> <span class="nx">makeStringValue</span><span class="p">(</span><span class="nx">v_arg</span><span class="p">);</span>
+        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+            <span class="k">return</span> <span class="nx">makeNumberValue</span><span class="p">(</span><span class="nx">v_arg</span><span class="p">);</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="kd">function</span> <span class="nx">StringValue</span><span class="p">()</span> <span class="p">{}</span>
+    <span class="c1">//StringValue.prototype = new String;</span>
+    <span class="kd">function</span> <span class="nx">makeStringValue</span><span class="p">(</span><span class="nx">s_arg</span><span class="p">)</span> <span class="p">{</span>
+        <span class="kd">var</span> <span class="nx">S</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">String</span><span class="p">(</span><span class="nx">s_arg</span><span class="p">);</span>
+        <span class="c1">//S.__proto__ = StringValue.prototype; // won&#39;t work in IE10</span>
+        <span class="k">for</span><span class="p">(</span><span class="kd">var</span> <span class="nx">method</span> <span class="k">in</span> <span class="nx">StringValue</span><span class="p">.</span><span class="nx">prototype</span><span class="p">)</span> <span class="p">{</span>
+            <span class="nb">Object</span><span class="p">.</span><span class="nx">defineProperty</span><span class="p">(</span><span class="nx">S</span><span class="p">,</span> <span class="nx">method</span><span class="p">,</span> <span class="p">{</span>
+                <span class="nx">value</span><span class="o">:</span> <span class="nx">StringValue</span><span class="p">.</span><span class="nx">prototype</span><span class="p">[</span><span class="nx">method</span><span class="p">]</span>
+            <span class="p">});</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="nx">S</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="kd">function</span> <span class="nx">NumberValue</span><span class="p">()</span> <span class="p">{}</span>
+    <span class="c1">//NumberValue.prototype = new Number;</span>
+    <span class="kd">function</span> <span class="nx">makeNumberValue</span><span class="p">(</span><span class="nx">n_arg</span><span class="p">)</span> <span class="p">{</span>
+        <span class="kd">var</span> <span class="nx">N</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Number</span><span class="p">(</span><span class="nx">n_arg</span><span class="p">);</span>
+        <span class="c1">//N.__proto__ = NumberValue.prototype;</span>
+        <span class="k">for</span><span class="p">(</span><span class="kd">var</span> <span class="nx">method</span> <span class="k">in</span> <span class="nx">NumberValue</span><span class="p">.</span><span class="nx">prototype</span><span class="p">)</span> <span class="p">{</span>
+            <span class="nb">Object</span><span class="p">.</span><span class="nx">defineProperty</span><span class="p">(</span><span class="nx">N</span><span class="p">,</span> <span class="nx">method</span><span class="p">,</span> <span class="p">{</span>
+                <span class="nx">value</span><span class="o">:</span> <span class="nx">NumberValue</span><span class="p">.</span><span class="nx">prototype</span><span class="p">[</span><span class="nx">method</span><span class="p">]</span>
+            <span class="p">});</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="nx">N</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="kd">function</span> <span class="nx">wholeListNumeric</span><span class="p">(</span><span class="nx">groups</span><span class="p">)</span> <span class="p">{</span>
+        <span class="kd">var</span> <span class="nx">isNumeric</span> <span class="o">=</span> <span class="nx">_</span><span class="p">.</span><span class="nx">every</span><span class="p">(</span><span class="nx">_</span><span class="p">.</span><span class="nx">keys</span><span class="p">(</span><span class="nx">groups</span><span class="p">),</span> <span class="kd">function</span><span class="p">(</span><span class="nx">k</span><span class="p">)</span> <span class="p">{</span>
+            <span class="k">return</span>      <span class="nx">k</span> <span class="o">===</span> <span class="kc">null</span> <span class="o">||</span>
+                        <span class="nx">k</span> <span class="o">===</span> <span class="kc">undefined</span> <span class="o">||</span>
+                        <span class="p">(</span><span class="o">!</span><span class="nb">isNaN</span><span class="p">(</span><span class="nb">Number</span><span class="p">(</span><span class="nx">k</span><span class="p">)))</span> <span class="o">||</span>
+                        <span class="p">[</span><span class="s2">&quot;null&quot;</span><span class="p">,</span> <span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="s2">&quot;undefined&quot;</span><span class="p">].</span><span class="nx">indexOf</span><span class="p">(</span><span class="nx">k</span><span class="p">.</span><span class="nx">toLowerCase</span><span class="p">())</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+        <span class="p">});</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nx">isNumeric</span><span class="p">)</span> <span class="p">{</span>
+            <span class="nx">_</span><span class="p">.</span><span class="nx">each</span><span class="p">(</span><span class="nx">_</span><span class="p">.</span><span class="nx">keys</span><span class="p">(</span><span class="nx">groups</span><span class="p">),</span> <span class="kd">function</span><span class="p">(</span><span class="nx">k</span><span class="p">)</span> <span class="p">{</span>
+                <span class="k">if</span> <span class="p">(</span><span class="nb">isNaN</span><span class="p">(</span><span class="nx">k</span><span class="p">))</span> <span class="p">{</span>
+                    <span class="k">delete</span> <span class="nx">groups</span><span class="p">[</span><span class="nx">k</span><span class="p">];</span>        <span class="c1">// getting rid of NULL values in dim list!!</span>
+                <span class="p">}</span>
+            <span class="p">});</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="nx">isNumeric</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="kd">var</span> <span class="nx">childProp</span> <span class="o">=</span> <span class="s1">&#39;children&#39;</span><span class="p">;</span>
+
+    <span class="nx">Value</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">extendGroupBy</span> <span class="o">=</span> <span class="c1">// backward compatibility</span>
+    <span class="nx">Value</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">addLevel</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">dim</span><span class="p">,</span> <span class="nx">opts</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">opts</span> <span class="o">=</span> <span class="nx">opts</span> <span class="o">||</span> <span class="p">{};</span>
+        <span class="nx">_</span><span class="p">.</span><span class="nx">each</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">leafNodes</span><span class="p">(),</span> <span class="kd">function</span><span class="p">(</span><span class="nx">d</span><span class="p">)</span> <span class="p">{</span>
+            <span class="nx">opts</span><span class="p">.</span><span class="nx">parent</span> <span class="o">=</span> <span class="nx">d</span><span class="p">;</span>
+            <span class="k">if</span> <span class="p">(</span><span class="nx">d</span><span class="p">.</span><span class="k">in</span> <span class="o">&amp;&amp;</span> <span class="nx">d</span><span class="p">.</span><span class="k">in</span> <span class="o">===</span> <span class="s2">&quot;both&quot;</span><span class="p">)</span> <span class="p">{</span>
+                <span class="nx">d</span><span class="p">[</span><span class="nx">childProp</span><span class="p">]</span> <span class="o">=</span> <span class="nx">e</span><span class="p">.</span><span class="nx">diffList</span><span class="p">(</span><span class="nx">d</span><span class="p">.</span><span class="nx">from</span><span class="p">,</span> <span class="nx">d</span><span class="p">.</span><span class="nx">to</span><span class="p">,</span> <span class="nx">dim</span><span class="p">,</span> <span class="nx">opts</span><span class="p">);</span>
+            <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+                <span class="nx">d</span><span class="p">[</span><span class="nx">childProp</span><span class="p">]</span> <span class="o">=</span> <span class="nx">e</span><span class="p">.</span><span class="nx">group</span><span class="p">(</span><span class="nx">d</span><span class="p">.</span><span class="nx">records</span><span class="p">,</span> <span class="nx">dim</span><span class="p">,</span> <span class="nx">opts</span><span class="p">);</span>
+                <span class="k">if</span> <span class="p">(</span><span class="nx">d</span><span class="p">.</span><span class="k">in</span> <span class="p">)</span> <span class="p">{</span>
+                    <span class="nx">_</span><span class="p">(</span><span class="nx">d</span><span class="p">[</span><span class="nx">childProp</span><span class="p">]).</span><span class="nx">each</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">c</span><span class="p">)</span> <span class="p">{</span>
+                        <span class="nx">c</span><span class="p">.</span><span class="k">in</span> <span class="o">=</span> <span class="nx">d</span><span class="p">.</span><span class="k">in</span><span class="p">;</span>
+                        <span class="nx">c</span><span class="p">[</span><span class="nx">d</span><span class="p">.</span><span class="k">in</span><span class="p">]</span> <span class="o">=</span> <span class="nx">d</span><span class="p">[</span><span class="nx">d</span><span class="p">.</span><span class="k">in</span><span class="p">];</span>
+                    <span class="p">});</span>
+                <span class="p">}</span>
+            <span class="p">}</span>
+            <span class="nx">d</span><span class="p">[</span><span class="nx">childProp</span><span class="p">].</span><span class="nx">parentVal</span> <span class="o">=</span> <span class="nx">d</span><span class="p">;</span> <span class="c1">// NOT TESTED, NOT USED, PROBABLY WRONG!!!</span>
+        <span class="p">});</span>
+    <span class="p">};</span>
+    <span class="nx">Value</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">leafNodes</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">level</span><span class="p">)</span> <span class="p">{</span>
+        <span class="kd">var</span> <span class="nx">ret</span> <span class="o">=</span> <span class="p">[</span><span class="k">this</span><span class="p">];</span>
+        <span class="k">if</span> <span class="p">(</span><span class="k">typeof</span> <span class="nx">level</span> <span class="o">===</span> <span class="s2">&quot;undefined&quot;</span><span class="p">)</span> <span class="p">{</span>
+            <span class="nx">level</span> <span class="o">=</span> <span class="kc">Infinity</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nx">level</span> <span class="o">!==</span> <span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="k">this</span><span class="p">[</span><span class="nx">childProp</span><span class="p">]</span> <span class="o">&amp;&amp;</span> <span class="p">(</span><span class="o">!</span><span class="nx">level</span> <span class="o">||</span> <span class="k">this</span><span class="p">.</span><span class="nx">depth</span> <span class="o">&lt;</span> <span class="nx">level</span><span class="p">))</span> <span class="p">{</span>
+            <span class="nx">ret</span> <span class="o">=</span> <span class="nx">_</span><span class="p">.</span><span class="nx">flatten</span><span class="p">(</span><span class="nx">_</span><span class="p">.</span><span class="nx">map</span><span class="p">(</span><span class="k">this</span><span class="p">[</span><span class="nx">childProp</span><span class="p">],</span> <span class="kd">function</span><span class="p">(</span><span class="nx">c</span><span class="p">)</span> <span class="p">{</span>
+                <span class="k">return</span> <span class="nx">c</span><span class="p">.</span><span class="nx">leafNodes</span><span class="p">(</span><span class="nx">level</span><span class="p">);</span>
+            <span class="p">}),</span> <span class="kc">true</span><span class="p">);</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="nx">makeList</span><span class="p">(</span><span class="nx">ret</span><span class="p">);</span>
+    <span class="p">};</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>didn't make this yet, just copied from above
+    Value.prototype.descendants = function(level) {
+        var ret = [this];
+        if (level !== 0 &amp;&amp; this[childProp] &amp;&amp; (!level || this.depth &lt; level))
+            ret = <em>.flatten(</em>.map(this[childProp], function(c) {
+                return c.leafNodes(level);
+            }), true);
+        return makeList(ret);
+    };</p></div></div><div class="code"><div class="wrapper">    <span class="kd">function</span> <span class="nx">delimOpts</span><span class="p">(</span><span class="nx">opts</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span><span class="k">typeof</span> <span class="nx">opts</span> <span class="o">===</span> <span class="s2">&quot;string&quot;</span><span class="p">)</span> <span class="nx">opts</span> <span class="o">=</span> <span class="p">{</span><span class="nx">delim</span><span class="o">:</span> <span class="nx">opts</span><span class="p">};</span>
+        <span class="nx">opts</span> <span class="o">=</span> <span class="nx">opts</span> <span class="o">||</span> <span class="p">{};</span>
+        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">_</span><span class="p">(</span><span class="nx">opts</span><span class="p">).</span><span class="nx">has</span><span class="p">(</span><span class="s1">&#39;delim&#39;</span><span class="p">))</span> <span class="nx">opts</span><span class="p">.</span><span class="nx">delim</span> <span class="o">=</span> <span class="s1">&#39;/&#39;</span><span class="p">;</span>
+        <span class="k">return</span> <span class="nx">opts</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="nx">Value</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">dimPath</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">opts</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">opts</span> <span class="o">=</span> <span class="nx">delimOpts</span><span class="p">(</span><span class="nx">opts</span><span class="p">);</span>
+        <span class="nx">opts</span><span class="p">.</span><span class="nx">dimName</span> <span class="o">=</span> <span class="kc">true</span><span class="p">;</span>
+        <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">namePath</span><span class="p">(</span><span class="nx">opts</span><span class="p">);</span>
+    <span class="p">};</span>
+    <span class="nx">Value</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">namePath</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">opts</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">opts</span> <span class="o">=</span> <span class="nx">delimOpts</span><span class="p">(</span><span class="nx">opts</span><span class="p">);</span>
+        <span class="kd">var</span> <span class="nx">path</span> <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="nx">pedigree</span><span class="p">(</span><span class="nx">opts</span><span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nx">opts</span><span class="p">.</span><span class="nx">noRoot</span><span class="p">)</span> <span class="nx">path</span><span class="p">.</span><span class="nx">shift</span><span class="p">();</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nx">opts</span><span class="p">.</span><span class="nx">backwards</span> <span class="o">||</span> <span class="k">this</span><span class="p">.</span><span class="nx">backwards</span><span class="p">)</span> <span class="nx">path</span><span class="p">.</span><span class="nx">reverse</span><span class="p">();</span> <span class="c1">//kludgy?</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nx">opts</span><span class="p">.</span><span class="nx">dimName</span><span class="p">)</span> <span class="nx">path</span> <span class="o">=</span> <span class="nx">_</span><span class="p">(</span><span class="nx">path</span><span class="p">).</span><span class="nx">pluck</span><span class="p">(</span><span class="s1">&#39;dim&#39;</span><span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nx">opts</span><span class="p">.</span><span class="nx">asArray</span><span class="p">)</span> <span class="k">return</span> <span class="nx">path</span><span class="p">;</span>
+        <span class="k">return</span> <span class="nx">path</span><span class="p">.</span><span class="nx">join</span><span class="p">(</span><span class="nx">opts</span><span class="p">.</span><span class="nx">delim</span><span class="p">);</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><pre><code>    var delim = opts.delim || '/';
+    return (this.parent ? 
+            this.parent.namePath(_.extend({},opts,{notLeaf:true})) : '') +
+        ((opts.noRoot &amp;&amp; this.depth===0) ? '' : 
+            (this + (opts.notLeaf ? delim : ''))
+         )
+</code></pre></div></div><div class="code"><div class="wrapper">    <span class="p">};</span>
+    <span class="nx">Value</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">pedigree</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">opts</span><span class="p">)</span> <span class="p">{</span>
+        <span class="kd">var</span> <span class="nx">path</span> <span class="o">=</span> <span class="p">[];</span>
+        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="p">(</span><span class="nx">opts</span> <span class="o">&amp;&amp;</span> <span class="nx">opts</span><span class="p">.</span><span class="nx">notThis</span><span class="p">))</span> <span class="nx">path</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="k">this</span><span class="p">);</span>
+        <span class="kd">var</span> <span class="nx">ptr</span> <span class="o">=</span> <span class="k">this</span><span class="p">;</span>
+        <span class="k">while</span> <span class="p">((</span><span class="nx">ptr</span> <span class="o">=</span> <span class="nx">ptr</span><span class="p">.</span><span class="nx">parent</span><span class="p">))</span> <span class="p">{</span>
+            <span class="nx">path</span><span class="p">.</span><span class="nx">unshift</span><span class="p">(</span><span class="nx">ptr</span><span class="p">);</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="nx">path</span><span class="p">;</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>CHANGING -- HOPE THIS DOESN'T BREAK STUFF (pedigree isn't
+documented yet)</p></div></div><div class="code"><div class="wrapper">        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="p">(</span><span class="nx">opts</span> <span class="o">&amp;&amp;</span> <span class="nx">opts</span><span class="p">.</span><span class="nx">asValues</span><span class="p">))</span> <span class="k">return</span> <span class="nx">_</span><span class="p">(</span><span class="nx">path</span><span class="p">).</span><span class="nx">invoke</span><span class="p">(</span><span class="s1">&#39;toString&#39;</span><span class="p">);</span>
+        <span class="k">return</span> <span class="nx">path</span><span class="p">;</span>
+    <span class="p">};</span>
+    <span class="nx">Value</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">descendants</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">opts</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="k">this</span><span class="p">[</span><span class="nx">childProp</span><span class="p">]</span> <span class="o">?</span> <span class="k">this</span><span class="p">[</span><span class="nx">childProp</span><span class="p">].</span><span class="nx">flattenTree</span><span class="p">()</span> <span class="o">:</span> <span class="kc">undefined</span><span class="p">;</span>
+    <span class="p">};</span>
+    <span class="nx">Value</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">lookup</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">query</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nx">_</span><span class="p">.</span><span class="nx">isArray</span><span class="p">(</span><span class="nx">query</span><span class="p">))</span> <span class="p">{</span>
+            <span class="k">if</span> <span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">toString</span><span class="p">()</span> <span class="o">===</span> <span class="nx">query</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="p">{</span>
+                <span class="nx">query</span> <span class="o">=</span> <span class="nx">query</span><span class="p">.</span><span class="nx">slice</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+                <span class="k">if</span> <span class="p">(</span><span class="nx">query</span><span class="p">.</span><span class="nx">length</span> <span class="o">===</span> <span class="mi">0</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="k">this</span><span class="p">;</span>
+            <span class="p">}</span>
+        <span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="nx">_</span><span class="p">.</span><span class="nx">isString</span><span class="p">(</span><span class="nx">query</span><span class="p">))</span> <span class="p">{</span>
+            <span class="k">if</span> <span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">toString</span><span class="p">()</span> <span class="o">===</span> <span class="nx">query</span><span class="p">)</span> <span class="p">{</span>
+                <span class="k">return</span> <span class="k">this</span><span class="p">;</span>
+            <span class="p">}</span>
+        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+            <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s2">&quot;invalid param: &quot;</span> <span class="o">+</span> <span class="nx">query</span><span class="p">);</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="k">this</span><span class="p">[</span><span class="nx">childProp</span><span class="p">])</span>
+            <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s2">&quot;can only call lookup on Values with kids&quot;</span><span class="p">);</span>
+        <span class="k">return</span> <span class="k">this</span><span class="p">[</span><span class="nx">childProp</span><span class="p">].</span><span class="nx">lookup</span><span class="p">(</span><span class="nx">query</span><span class="p">);</span>
+    <span class="p">};</span>
+    <span class="nx">Value</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">pct</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">records</span><span class="p">.</span><span class="nx">length</span> <span class="o">/</span> <span class="k">this</span><span class="p">.</span><span class="nx">parentList</span><span class="p">.</span><span class="nx">records</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span>
+    <span class="p">};</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'> memberof supergroup</span></p>
+
+<p>Summarize records by a dimension</p>
+
+<p>Parameters:</p>
+
+<ul>
+<li><p><strong>Records must be a list.</strong><br/>(to be summarized)</p></li>
+<li><p><strong>Dimension must be a numericDim.</strong><br/>(to summarize by)</p></li>
+</ul></div></div><div class="code"><div class="wrapper">    <span class="nx">e</span><span class="p">.</span><span class="nx">aggregate</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">list</span><span class="p">,</span> <span class="nx">numericDim</span><span class="p">)</span> <span class="p">{</span> 
+        <span class="k">if</span> <span class="p">(</span><span class="nx">numericDim</span><span class="p">)</span> <span class="p">{</span>
+            <span class="nx">list</span> <span class="o">=</span> <span class="nx">_</span><span class="p">(</span><span class="nx">list</span><span class="p">).</span><span class="nx">pluck</span><span class="p">(</span><span class="nx">numericDim</span><span class="p">);</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="nx">_</span><span class="p">(</span><span class="nx">list</span><span class="p">).</span><span class="nx">reduce</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">memo</span><span class="p">,</span><span class="nx">num</span><span class="p">){</span>
+                    <span class="nx">memo</span><span class="p">.</span><span class="nx">sum</span><span class="o">+=</span><span class="nx">num</span><span class="p">;</span>
+                    <span class="nx">memo</span><span class="p">.</span><span class="nx">cnt</span><span class="o">++</span><span class="p">;</span>
+                    <span class="nx">memo</span><span class="p">.</span><span class="nx">avg</span><span class="o">=</span><span class="nx">memo</span><span class="p">.</span><span class="nx">sum</span><span class="o">/</span><span class="nx">memo</span><span class="p">.</span><span class="nx">cnt</span><span class="p">;</span> 
+                    <span class="nx">memo</span><span class="p">.</span><span class="nx">max</span> <span class="o">=</span> <span class="nb">Math</span><span class="p">.</span><span class="nx">max</span><span class="p">(</span><span class="nx">memo</span><span class="p">.</span><span class="nx">max</span><span class="p">,</span> <span class="nx">num</span><span class="p">);</span>
+                    <span class="k">return</span> <span class="nx">memo</span><span class="p">;</span>
+                <span class="p">},{</span><span class="nx">sum</span><span class="o">:</span><span class="mi">0</span><span class="p">,</span><span class="nx">cnt</span><span class="o">:</span><span class="mi">0</span><span class="p">,</span><span class="nx">max</span><span class="o">:-</span><span class="kc">Infinity</span><span class="p">});</span>
+    <span class="p">};</span> </div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'> memberof supergroup</span></p>
+
+<p>Compare groups across two similar root notes</p>
+
+<p>Parameters:</p>
+
+<pre><code>* **... must be a from.**
+
+* **... must be a to.**
+
+* **... must be a dim.**
+
+* **... must be an opts.**&lt;br/&gt;(used by treelike and some earlier code)
+</code></pre></div></div><div class="code"><div class="wrapper">    <span class="nx">e</span><span class="p">.</span><span class="nx">diffList</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">from</span><span class="p">,</span> <span class="nx">to</span><span class="p">,</span> <span class="nx">dim</span><span class="p">,</span> <span class="nx">opts</span><span class="p">)</span> <span class="p">{</span>
+        <span class="kd">var</span> <span class="nx">fromList</span> <span class="o">=</span> <span class="nx">e</span><span class="p">.</span><span class="nx">group</span><span class="p">(</span><span class="nx">from</span><span class="p">.</span><span class="nx">records</span><span class="p">,</span> <span class="nx">dim</span><span class="p">,</span> <span class="nx">opts</span><span class="p">);</span>
+        <span class="kd">var</span> <span class="nx">toList</span> <span class="o">=</span> <span class="nx">e</span><span class="p">.</span><span class="nx">group</span><span class="p">(</span><span class="nx">to</span><span class="p">.</span><span class="nx">records</span><span class="p">,</span> <span class="nx">dim</span><span class="p">,</span> <span class="nx">opts</span><span class="p">);</span>
+        <span class="kd">var</span> <span class="nx">list</span> <span class="o">=</span> <span class="nx">makeList</span><span class="p">(</span><span class="nx">e</span><span class="p">.</span><span class="nx">compare</span><span class="p">(</span><span class="nx">fromList</span><span class="p">,</span> <span class="nx">toList</span><span class="p">,</span> <span class="nx">dim</span><span class="p">));</span>
+        <span class="nx">list</span><span class="p">.</span><span class="nx">dim</span> <span class="o">=</span> <span class="p">(</span><span class="nx">opts</span> <span class="o">&amp;&amp;</span> <span class="nx">opts</span><span class="p">.</span><span class="nx">dimName</span><span class="p">)</span> <span class="o">?</span> <span class="nx">opts</span><span class="p">.</span><span class="nx">dimName</span> <span class="o">:</span> <span class="nx">dim</span><span class="p">;</span>
+        <span class="k">return</span> <span class="nx">list</span><span class="p">;</span>
+    <span class="p">};</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'> memberof supergroup</span></p>
+
+<p>Compare two groups by a dimension</p>
+
+<p>Parameters:</p>
+
+<pre><code>* **... must be an A.**
+
+* **... must be a B.**
+
+* **... must be a dim.**
+</code></pre></div></div><div class="code"><div class="wrapper">    <span class="nx">e</span><span class="p">.</span><span class="nx">compare</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">A</span><span class="p">,</span> <span class="nx">B</span><span class="p">,</span> <span class="nx">dim</span><span class="p">)</span> <span class="p">{</span>
+        <span class="kd">var</span> <span class="nx">a</span> <span class="o">=</span> <span class="nx">_</span><span class="p">(</span><span class="nx">A</span><span class="p">).</span><span class="nx">map</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">d</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="nx">d</span><span class="o">+</span><span class="s1">&#39;&#39;</span><span class="p">;</span> <span class="p">});</span>
+        <span class="kd">var</span> <span class="nx">b</span> <span class="o">=</span> <span class="nx">_</span><span class="p">(</span><span class="nx">B</span><span class="p">).</span><span class="nx">map</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">d</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="nx">d</span><span class="o">+</span><span class="s1">&#39;&#39;</span><span class="p">;</span> <span class="p">});</span>
+        <span class="kd">var</span> <span class="nx">comp</span> <span class="o">=</span> <span class="p">{};</span>
+        <span class="nx">_</span><span class="p">(</span><span class="nx">A</span><span class="p">).</span><span class="nx">each</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">d</span><span class="p">,</span> <span class="nx">i</span><span class="p">)</span> <span class="p">{</span>
+            <span class="nx">comp</span><span class="p">[</span><span class="nx">d</span><span class="o">+</span><span class="s1">&#39;&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="nx">name</span><span class="o">:</span> <span class="nx">d</span><span class="o">+</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+                <span class="k">in</span><span class="o">:</span> <span class="s1">&#39;from&#39;</span><span class="p">,</span>
+                <span class="nx">from</span><span class="o">:</span> <span class="nx">d</span><span class="p">,</span>
+                <span class="nx">fromIdx</span><span class="o">:</span> <span class="nx">i</span><span class="p">,</span>
+                <span class="nx">dim</span><span class="o">:</span> <span class="nx">dim</span>
+            <span class="p">};</span>
+        <span class="p">});</span>
+        <span class="nx">_</span><span class="p">(</span><span class="nx">B</span><span class="p">).</span><span class="nx">each</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">d</span><span class="p">,</span> <span class="nx">i</span><span class="p">)</span> <span class="p">{</span>
+            <span class="k">if</span> <span class="p">((</span><span class="nx">d</span><span class="o">+</span><span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="k">in</span> <span class="nx">comp</span><span class="p">)</span> <span class="p">{</span>
+                <span class="kd">var</span> <span class="nx">c</span> <span class="o">=</span> <span class="nx">comp</span><span class="p">[</span><span class="nx">d</span><span class="o">+</span><span class="s1">&#39;&#39;</span><span class="p">];</span>
+                <span class="nx">c</span><span class="p">.</span><span class="k">in</span> <span class="o">=</span> <span class="s2">&quot;both&quot;</span><span class="p">;</span>
+                <span class="nx">c</span><span class="p">.</span><span class="nx">to</span> <span class="o">=</span> <span class="nx">d</span><span class="p">;</span>
+                <span class="nx">c</span><span class="p">.</span><span class="nx">toIdx</span> <span class="o">=</span> <span class="nx">i</span><span class="p">;</span>
+            <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+                <span class="nx">comp</span><span class="p">[</span><span class="nx">d</span><span class="o">+</span><span class="s1">&#39;&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="nx">name</span><span class="o">:</span> <span class="nx">d</span><span class="o">+</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+                    <span class="k">in</span><span class="o">:</span> <span class="s1">&#39;to&#39;</span><span class="p">,</span>
+                    <span class="nx">to</span><span class="o">:</span> <span class="nx">d</span><span class="p">,</span>
+                    <span class="nx">toIdx</span><span class="o">:</span> <span class="nx">i</span><span class="p">,</span>
+                    <span class="nx">dim</span><span class="o">:</span> <span class="nx">dim</span>
+                <span class="p">};</span>
+            <span class="p">}</span>
+        <span class="p">});</span>
+        <span class="kd">var</span> <span class="nx">list</span> <span class="o">=</span> <span class="nx">_</span><span class="p">(</span><span class="nx">comp</span><span class="p">).</span><span class="nx">values</span><span class="p">().</span><span class="nx">sort</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">a</span><span class="p">,</span><span class="nx">b</span><span class="p">)</span> <span class="p">{</span>
+            <span class="k">return</span> <span class="p">(</span><span class="nx">a</span><span class="p">.</span><span class="nx">fromIdx</span> <span class="o">-</span> <span class="nx">b</span><span class="p">.</span><span class="nx">fromIdx</span><span class="p">)</span> <span class="o">||</span> <span class="p">(</span><span class="nx">a</span><span class="p">.</span><span class="nx">toIdx</span> <span class="o">-</span> <span class="nx">b</span><span class="p">.</span><span class="nx">toIdx</span><span class="p">);</span>
+        <span class="p">}).</span><span class="nx">map</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">d</span><span class="p">)</span> <span class="p">{</span>
+            <span class="kd">var</span> <span class="nx">val</span> <span class="o">=</span> <span class="nx">makeValue</span><span class="p">(</span><span class="nx">d</span><span class="p">.</span><span class="nx">name</span><span class="p">);</span>
+            <span class="nx">_</span><span class="p">.</span><span class="nx">extend</span><span class="p">(</span><span class="nx">val</span><span class="p">,</span> <span class="nx">d</span><span class="p">);</span>
+            <span class="nx">val</span><span class="p">.</span><span class="nx">records</span> <span class="o">=</span> <span class="p">[];</span>
+            <span class="k">if</span> <span class="p">(</span><span class="s1">&#39;from&#39;</span> <span class="k">in</span> <span class="nx">d</span><span class="p">)</span>
+                <span class="nx">val</span><span class="p">.</span><span class="nx">records</span> <span class="o">=</span> <span class="nx">val</span><span class="p">.</span><span class="nx">records</span><span class="p">.</span><span class="nx">concat</span><span class="p">(</span><span class="nx">d</span><span class="p">.</span><span class="nx">from</span><span class="p">.</span><span class="nx">records</span><span class="p">);</span>
+            <span class="k">if</span> <span class="p">(</span><span class="s1">&#39;to&#39;</span> <span class="k">in</span> <span class="nx">d</span><span class="p">)</span>
+                <span class="nx">val</span><span class="p">.</span><span class="nx">records</span> <span class="o">=</span> <span class="nx">val</span><span class="p">.</span><span class="nx">records</span><span class="p">.</span><span class="nx">concat</span><span class="p">(</span><span class="nx">d</span><span class="p">.</span><span class="nx">to</span><span class="p">.</span><span class="nx">records</span><span class="p">);</span>
+            <span class="k">return</span> <span class="nx">val</span><span class="p">;</span>
+        <span class="p">});</span>
+        <span class="nx">_</span><span class="p">(</span><span class="nx">list</span><span class="p">).</span><span class="nx">map</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">d</span><span class="p">)</span> <span class="p">{</span>
+            <span class="nx">d</span><span class="p">.</span><span class="nx">parentList</span> <span class="o">=</span> <span class="nx">list</span><span class="p">;</span> <span class="c1">// NOT TESTED, NOT USED, PROBABLY WRONG</span>
+            <span class="nx">d</span><span class="p">.</span><span class="nx">records</span><span class="p">.</span><span class="nx">parentVal</span> <span class="o">=</span> <span class="nx">d</span><span class="p">;</span> <span class="c1">// NOT TESTED, NOT USED, PROBABLY WRONG</span>
+        <span class="p">});</span>
+        <span class="k">return</span> <span class="nx">list</span><span class="p">;</span>
+    <span class="p">};</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'> memberof supergroup</span></p>
+
+<p>Concatenate two Values into a new one (??)</p>
+
+<p>Parameters:</p>
+
+<pre><code>* **... must be a from.**
+
+* **... must be a to.**
+</code></pre></div></div><div class="code"><div class="wrapper">    <span class="nx">e</span><span class="p">.</span><span class="nx">compareValue</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">from</span><span class="p">,</span> <span class="nx">to</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nx">from</span><span class="p">.</span><span class="nx">dim</span> <span class="o">!==</span> <span class="nx">to</span><span class="p">.</span><span class="nx">dim</span><span class="p">)</span> <span class="p">{</span>
+            <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s2">&quot;not sure what you&#39;re trying to do&quot;</span><span class="p">);</span>
+        <span class="p">}</span>
+        <span class="kd">var</span> <span class="nx">name</span> <span class="o">=</span> <span class="nx">from</span> <span class="o">+</span> <span class="s1">&#39; to &#39;</span> <span class="o">+</span> <span class="nx">to</span><span class="p">;</span>
+        <span class="kd">var</span> <span class="nx">val</span> <span class="o">=</span> <span class="nx">makeValue</span><span class="p">(</span><span class="nx">name</span><span class="p">);</span>
+        <span class="nx">val</span><span class="p">.</span><span class="nx">from</span> <span class="o">=</span> <span class="nx">from</span><span class="p">;</span>
+        <span class="nx">val</span><span class="p">.</span><span class="nx">to</span> <span class="o">=</span> <span class="nx">to</span><span class="p">;</span>
+        <span class="nx">val</span><span class="p">.</span><span class="nx">depth</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="nx">val</span><span class="p">.</span><span class="k">in</span> <span class="o">=</span> <span class="s2">&quot;both&quot;</span><span class="p">;</span>
+        <span class="nx">val</span><span class="p">.</span><span class="nx">records</span> <span class="o">=</span> <span class="p">[].</span><span class="nx">concat</span><span class="p">(</span><span class="nx">from</span><span class="p">.</span><span class="nx">records</span><span class="p">,</span><span class="nx">to</span><span class="p">.</span><span class="nx">records</span><span class="p">);</span>
+        <span class="nx">val</span><span class="p">.</span><span class="nx">records</span><span class="p">.</span><span class="nx">parentVal</span> <span class="o">=</span> <span class="nx">val</span><span class="p">;</span> <span class="c1">// NOT TESTED, NOT USED, PROBABLY WRONG</span>
+        <span class="nx">val</span><span class="p">.</span><span class="nx">dim</span> <span class="o">=</span> <span class="nx">from</span><span class="p">.</span><span class="nx">dim</span><span class="p">;</span>
+        <span class="k">return</span> <span class="nx">val</span><span class="p">;</span>
+    <span class="p">};</span>
+    <span class="nx">_</span><span class="p">.</span><span class="nx">extend</span><span class="p">(</span><span class="nx">StringValue</span><span class="p">.</span><span class="nx">prototype</span><span class="p">,</span> <span class="nx">Value</span><span class="p">.</span><span class="nx">prototype</span><span class="p">);</span>
+    <span class="nx">_</span><span class="p">.</span><span class="nx">extend</span><span class="p">(</span><span class="nx">NumberValue</span><span class="p">.</span><span class="nx">prototype</span><span class="p">,</span> <span class="nx">Value</span><span class="p">.</span><span class="nx">prototype</span><span class="p">);</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'> memberof supergroup</span></p>
+
+<p>Sometimes a List gets turned into a standard array,
+ e.g., through slicing or sorting or filtering. 
+ addListMethods turns it back into a List</p>
+
+<p><code>List</code> would be a constructor if IE10 supported
+__proto__, so it pretends to be one instead.</p>
+
+<p>Parameters:</p>
+
+<ul>
+<li><strong>Array must be an Array.</strong><br/>(to be extended)</li>
+</ul></div></div><div class="code"><div class="wrapper">    <span class="nx">e</span><span class="p">.</span><span class="nx">addListMethods</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">arr</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">for</span><span class="p">(</span><span class="kd">var</span> <span class="nx">method</span> <span class="k">in</span> <span class="nx">List</span><span class="p">.</span><span class="nx">prototype</span><span class="p">)</span> <span class="p">{</span>
+            <span class="nb">Object</span><span class="p">.</span><span class="nx">defineProperty</span><span class="p">(</span><span class="nx">arr</span><span class="p">,</span> <span class="nx">method</span><span class="p">,</span> <span class="p">{</span>
+                <span class="nx">value</span><span class="o">:</span> <span class="nx">List</span><span class="p">.</span><span class="nx">prototype</span><span class="p">[</span><span class="nx">method</span><span class="p">]</span>
+            <span class="p">});</span>
+        <span class="p">}</span>
+        <span class="nx">_</span><span class="p">.</span><span class="nx">unchain</span><span class="p">(</span><span class="nx">arr</span><span class="p">);</span>
+        <span class="k">return</span> <span class="nx">arr</span><span class="p">;</span>
+    <span class="p">};</span>
+    <span class="k">return</span> <span class="nx">e</span><span class="p">;</span>
+<span class="p">}());</span>
+
+<span class="nx">_</span><span class="p">.</span><span class="nx">mixin</span><span class="p">({</span><span class="nx">supergroup</span><span class="o">:</span> <span class="nx">supergroup</span><span class="p">.</span><span class="nx">group</span><span class="p">});</span>
+
+<span class="k">if</span> <span class="p">(</span><span class="k">typeof</span> <span class="nx">exports</span> <span class="o">!==</span> <span class="s1">&#39;undefined&#39;</span><span class="p">)</span> <span class="p">{</span>   <span class="c1">// not sure if this is all right</span>
+    <span class="k">if</span> <span class="p">(</span><span class="k">typeof</span> <span class="nx">module</span> <span class="o">!==</span> <span class="s1">&#39;undefined&#39;</span> <span class="o">&amp;&amp;</span> <span class="nx">module</span><span class="p">.</span><span class="nx">exports</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">module</span><span class="p">.</span><span class="nx">exports</span> <span class="o">=</span> <span class="nx">_</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="nx">exports</span><span class="p">.</span><span class="nx">_</span> <span class="o">=</span> <span class="nx">_</span><span class="p">;</span>
+<span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="k">typeof</span> <span class="nx">define</span> <span class="o">===</span> <span class="s1">&#39;function&#39;</span> <span class="o">&amp;&amp;</span> <span class="nx">define</span><span class="p">.</span><span class="nx">amd</span><span class="p">)</span> <span class="p">{</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Register as a named module with AMD.</p></div></div><div class="code"><div class="wrapper">    <span class="nx">define</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="nx">nester</span><span class="p">;</span>
+    <span class="p">});</span>
+<span class="p">}</span></div></div></div></div></body></html>
