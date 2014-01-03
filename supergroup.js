@@ -71,7 +71,7 @@ var supergroup = (function() {
              * subset like: val.records.supergroup
              * on                                       FIX!!!!!!
              */
-            _.unchain(val.records);
+            _.unchain(val.records, {cloneFrozenVals:true});
             val.dim = (opts.dimName) ? opts.dimName : dim;
             val.records.parentVal = val; // NOT TESTED, NOT USED, PROBABLY WRONG
             if (opts.parent)
