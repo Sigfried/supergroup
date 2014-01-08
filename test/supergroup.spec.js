@@ -4,10 +4,12 @@
 describe('_.supergroup', function() {
     var self = this;
     var gradeBook = [
-        {firstName: 'Sigfried', lastName: 'Gold', class: 'Remedial Programming', grade: 'C', num: 2},
-        {firstName: 'Sigfried', lastName: 'Gold', class: 'Literary Posturing', grade: 'B', num: 3},
-        {firstName: 'Sigfried', lastName: 'Gold', class: 'Documenting with Pretty Colors', grade: 'B', num: 3},
-        {firstName: 'Someone', lastName: 'Else', class: 'Remedial Programming', grade: 'B', num:3}];
+        {lastName: "Gold",    firstName: "Sigfried", class: "Remedial Programming",           grade: "C", num: 2},
+        {lastName: "Gold",    firstName: "Sigfried", class: "Literary Posturing",             grade: "B", num: 3},
+        {lastName: "Gold",    firstName: "Sigfried", class: "Documenting with Pretty Colors", grade: "B", num: 3},
+        {lastName: "Sassoon", firstName: "Sigfried", class: "Remedial Programming",           grade: "A", num: 3},
+        {lastName: "Androy",  firstName: "Sigfried", class: "Remedial Programming",           grade: "B", num: 3}
+    ];
 
     beforeEach(function() {
         self.gradesByLastName = _.supergroup(gradeBook, 'lastName');
@@ -16,7 +18,7 @@ describe('_.supergroup', function() {
                 {dimName: 'fullName'});
         self.gradesByGradeLastName = _.supergroup(gradeBook, ['grade','lastName']);
 
-        self.groups = enlightenedData.addGroupMethods([]); // for tests Gemma wrote
+        self.groups = supergroup.addListMethods([]); // for tests Gemma wrote
     });
 
     it('should apply Groups methods to arrays', function() {
@@ -28,13 +30,13 @@ describe('_.supergroup', function() {
         // other methods ?
     });
     it('should group stuff into an array', function() {
-        expect(JSON.stringify(self.gradesByLastName)).toEqual('["Gold","Else"]');
-        expect(JSON.stringify(self.gradesByName)).toEqual('["Sigfried Gold","Someone Else"]');
-        expect(JSON.stringify(self.gradesByGradeLastName.sort())).toEqual('["B","C"]');
+        expect(JSON.stringify(self.gradesByLastName)).toEqual('["Gold","Sassoon","Androy"]');
+        expect(JSON.stringify(self.gradesByName)).toEqual('["Sigfried Gold","Sigfried Sassoon","Sigfried Androy"]');
+        expect(JSON.stringify(self.gradesByGradeLastName.sort())).toEqual('["A","B","C"]');
     });
     it('should assign records to the right groups', function() {
         expect(JSON.stringify(self.gradesByLastName[0].records)).toEqual(
-            '[{"firstName":"Sigfried","lastName":"Gold","class":"Remedial Programming","grade":"C","num":2},{"firstName":"Sigfried","lastName":"Gold","class":"Literary Posturing","grade":"B","num":3},{"firstName":"Sigfried","lastName":"Gold","class":"Documenting with Pretty Colors","grade":"B","num":3}]');
+            '[{"lastName":"Gold","firstName":"Sigfried","class":"Remedial Programming","grade":"C","num":2},{"lastName":"Gold","firstName":"Sigfried","class":"Literary Posturing","grade":"B","num":3},{"lastName":"Gold","firstName":"Sigfried","class":"Documenting with Pretty Colors","grade":"B","num":3}]'); 
     });
 
 
@@ -45,12 +47,10 @@ describe('_.supergroup', function() {
         });
 
         it('should assign its records to the current group', function() {
-            var root = self.groups.asRootVal();
-            expect(root.records).toEqual(self.groups);
-
-            var groups = enlightenedData.addGroupMethods([1, 2, true, 'herp']);
-            root = groups.asRootVal();
-            expect(root.records).toEqual(groups);
+            expect(JSON.stringify(self.gradesByName.lookup('Sigfried Gold').records
+                    .sort(function(a,b){return a.class < b.class ? -1 : b.class < a.class ? 1 : 0;})))
+                .toEqual(JSON.stringify(gradeBook.slice(0,3)
+                    .sort(function(a,b){return a.class < b.class ? -1 : b.class < a.class ? 1 : 0;})))
         });
 
         xit('should set its name to a provided value, or "Root"', function() {
@@ -60,7 +60,7 @@ describe('_.supergroup', function() {
 
     describe('rawValues', function() {
         function get_raw(array) {
-            var groups = enlightenedData.addGroupMethods(array);
+            var groups = supergroup.addListMethods(array);
             return groups.rawValues();
         }
 
@@ -80,21 +80,13 @@ describe('_.supergroup', function() {
             expect(get_raw([true, false])).toEqual(['true', 'false']);
         });
     });
+    /*
     describe('underscoreMethods', function() {
         //var arr;
         function addMethods(array) {
-            var groups = enlightenedData.addGroupMethods(array);
+            var groups = supergroup.addListMethods(array);
             return groups;
         }
-        /*
-        beforeEach(function() {
-            arr = addMethods([1,2,3]);
-            _(enlightenedData.underscoreMethods).each(function(method) {
-                spyOn(arr, method);
-                arr[method]();
-            })
-        })
-        */
         it('should add all the methods', function() {
             var arr = addMethods([1,2,3]);
             _(enlightenedData.underscoreMethods).each(function(method) {
@@ -102,4 +94,5 @@ describe('_.supergroup', function() {
             });
         });
     });
+    */
 });

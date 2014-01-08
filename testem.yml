@@ -1,0 +1,10 @@
+launch_in_dev:
+    - Chrome
+src_files:
+    - 'temp/underscore/underscore.js'
+    - 'temp/1670507/underscoreAddon.js'
+    - 'temp/underscore-unchained/src/underscore-unchained.js'
+    - 'supergroup.js'
+    - 'node_modules/d3/d3.js'
+    - 'bower_components/momentjs/moment.js'
+    - 'test/*.js'
