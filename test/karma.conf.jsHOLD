@@ -17,7 +17,7 @@ module.exports = function(config) {
       //'../node_modules/d3/d3.js',
       '../bower_components/underscore/underscore.js',
       '../bower_components/1670507/underscoreAddon.js',
-      '../bower_components/underscore-unchained/src/underscore-unchained.js',
+      '../bower_components/underscore-unchained/underscore-unchained.js',
       '../supergroup.js',
       '*.js'
     ],
