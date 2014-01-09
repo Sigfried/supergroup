@@ -327,7 +327,7 @@ var supergroup = (function() {
         if (typeof level === "undefined") {
             level = Infinity;
         }
-        if (level !== 0 && this[childProp] && (!level || this.depth < level)) {
+        if (level !== 0 && this[childProp] && this[childProp].length && (!level || this.depth < level)) {
             ret = _.flatten(_.map(this[childProp], function(c) {
                 return c.leafNodes(level);
             }), true);
