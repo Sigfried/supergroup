@@ -121,7 +121,7 @@ var supergroup = (function() {
         return this.invoke('leafNodes').flatten();
     };
     List.prototype.rawValues = function() {
-        return _(this).map(function(d) { return d.toString(); });
+        return _(this).map(function(d) { return d.valueOf(); });
     };
     List.prototype.lookup = function(query) {
         if (_.isArray(query)) {
@@ -382,7 +382,7 @@ var supergroup = (function() {
         return path;
         // CHANGING -- HOPE THIS DOESN'T BREAK STUFF (pedigree isn't
         // documented yet)
-        if (!(opts && opts.asValues)) return _(path).invoke('toString');
+        if (!(opts && opts.asValues)) return _(path).invoke('valueOf');
         return path;
     };
     Value.prototype.descendants = function(opts) {
@@ -390,13 +390,13 @@ var supergroup = (function() {
     };
     Value.prototype.lookup = function(query) {
         if (_.isArray(query)) {
-            if (this.toString() === query[0]) {
+            if (this.valueOf() == query[0]) { // allow string/num comparison to succeed?
                 query = query.slice(1);
                 if (query.length === 0)
                     return this;
             }
         } else if (_.isString(query)) {
-            if (this.toString() === query) {
+            if (this.valueOf() == query) {
                 return this;
             }
         } else {
