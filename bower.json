@@ -1,5 +1,6 @@
 {
   "name": "supergroup",
+  "main": "bundle.js",
   "description": "A super-charged cross between d3.nest and underscore.groupBy tailored for D3 use. Returns an array of String or Number objects immediately usable as data, but having access to every piece of related data you could want.",
   "keywords": [
     "groups",
@@ -25,6 +26,6 @@
   "dependencies": {
     "1670507": "https://gist.github.com/1670507.git",
     "underscore": "1.4.4",
-    "underscore-unchained": "~0.1.1"
+    "underscore-unchained": "~0.1.2"
   }
 }
