@@ -1,6 +1,7 @@
 {
   "name": "supergroup",
-  "version": "0.0.1",
+  "main": "supergroup.js",
+  "version": "0.0.2",
   "description": "Nested groups on arrays of objects where groups are Strings that know what you want them to know about themselves and their relatives.",
   "keywords": [
     "groups",
@@ -20,11 +21,7 @@
     "type": "git",
     "url": "git@github.com:Sigfried/supergroup.git"
   },
-  "dependencies": {
-    "d3": "3.1.6",
-    "underscore": "1.4.4",
-    "underscore-unchained": "0.0.1"
-  },
+  "dependencies": {},
   "devDependencies": {
     "karma-script-launcher": "~0.1.0",
     "karma-chrome-launcher": "~0.1.1",

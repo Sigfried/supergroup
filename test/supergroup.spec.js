@@ -2,6 +2,8 @@
 
 /* global: describe */
 describe('_.supergroup', function() {
+    var _ = require('../supergroup.js');
+    //var _ = require('../bundle.js');
     var self = this;
     var gradeBook = [
         {lastName: "Gold",    firstName: "Sigfried", class: "Remedial Programming",           grade: "C", num: 2},
@@ -18,7 +20,7 @@ describe('_.supergroup', function() {
                 {dimName: 'fullName'});
         self.gradesByGradeLastName = _.supergroup(gradeBook, ['grade','lastName']);
 
-        self.groups = supergroup.addListMethods([]); // for tests Gemma wrote
+        //self.groups = supergroup.addListMethods([]); // for tests Gemma wrote
     });
 
     it('should apply Groups methods to arrays', function() {
@@ -41,10 +43,12 @@ describe('_.supergroup', function() {
 
 
     describe('asRootVal', function() {
+        /*
         it('should set its dimension as "root"', function() {
             var root = self.groups.asRootVal();
             expect(root.dim).toBe('root');
         });
+        */
 
         it('should assign its records to the current group', function() {
             expect(JSON.stringify(self.gradesByName.lookup('Sigfried Gold').records
@@ -58,6 +62,7 @@ describe('_.supergroup', function() {
         });
     });
 
+    /*
     describe('rawValues', function() {
         function get_raw(array) {
             var groups = supergroup.addListMethods(array);
@@ -80,6 +85,7 @@ describe('_.supergroup', function() {
             expect(get_raw([true, false])).toEqual(['true', 'false']);
         });
     });
+    */
     /*
     describe('underscoreMethods', function() {
         //var arr;

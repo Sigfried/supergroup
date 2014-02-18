@@ -24,8 +24,6 @@
     "url": "git@github.com:Sigfried/supergroup.git"
   },
   "dependencies": {
-    "1670507": "https://gist.github.com/1670507.git",
-    "underscore": "1.4.4",
-    "underscore-unchained": "~0.1.2"
+    "lodash": "~2.4.1"
   }
 }

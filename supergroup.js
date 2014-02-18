@@ -2,17 +2,16 @@
  * # supergroup.js
  * Author: [Sigfried Gold](http://sigfried.org)  
  * License: [MIT](http://sigfried.mit-license.org/)  
+ * Version: 0.0.2
  *
  * usage examples at [http://sigfried.github.io/blog/supergroup](http://sigfried.github.io/blog/supergroup)
  */
 ; // jshint -W053
 
 'use strict()';
-if (typeof(require) !== "undefined") { // make it work in node or browsers or other contexts
-    _ = require('underscore'); // otherwise assume it was included by html file
-    require('underscore-unchained'); // adds unchain as an Underscore mixin
-    require('1670507/underscoreAddon.js'); // adds mean, median, etc. as mixins
-}
+var _ = require('lodash');
+_ = require('./underscoreAddon.js'); // adds mean, median, etc. as mixins
+
 var supergroup = (function() {
     var e = {}; // local reference to supergroup namespace
     // @class List
@@ -71,7 +70,7 @@ var supergroup = (function() {
              * subset like: val.records.supergroup
              * on                                       FIX!!!!!!
              */
-            _.unchain(val.records, {cloneFrozenVals:true});
+            //_.unchain(val.records, {cloneFrozenVals:true});
             val.dim = (opts.dimName) ? opts.dimName : dim;
             val.records.parentVal = val; // NOT TESTED, NOT USED, PROBABLY WRONG
             if (opts.parent)
@@ -112,16 +111,18 @@ var supergroup = (function() {
         var val = makeValue(name);
         val.records = this; // is this wrong?
         val[childProp]= this;
-        val.descendants().each(function(d) { d.depth = d.depth + 1; });
+        _(val.descendants()).each(function(d) { d.depth = d.depth + 1; });
         val.depth = 0;
         val.dim = dimName || 'root';
         return val;
     };
     List.prototype.leafNodes = function(level) {
-        return this.invoke('leafNodes').flatten();
+        return _(this).invoke('leafNodes').flatten()
+            .addSupergroupMethods()
+            .value();
     };
     List.prototype.rawValues = function() {
-        return _(this).map(function(d) { return d.valueOf(); });
+        return _(this).map(function(d) { return d.valueOf(); }).value();
     };
     List.prototype.lookup = function(query) {
         if (_.isArray(query)) {
@@ -175,7 +176,7 @@ var supergroup = (function() {
                 value: List.prototype[method]
             });
         }
-        _.unchain(arr);
+        //_.unchain(arr);
         return arr;
     }
 
@@ -382,7 +383,7 @@ var supergroup = (function() {
         return path;
         // CHANGING -- HOPE THIS DOESN'T BREAK STUFF (pedigree isn't
         // documented yet)
-        if (!(opts && opts.asValues)) return _(path).invoke('valueOf');
+        if (!(opts && opts.asValues)) return _(path).invoke('valueOf').value();
         return path;
     };
     Value.prototype.descendants = function(opts) {
@@ -457,8 +458,8 @@ var supergroup = (function() {
      * @memberof supergroup
      */
     e.compare = function(A, B, dim) {
-        var a = _(A).map(function(d) { return d+''; });
-        var b = _(B).map(function(d) { return d+''; });
+        var a = _(A).map(function(d) { return d+''; }).value();
+        var b = _(B).map(function(d) { return d+''; }).value();
         var comp = {};
         _(A).each(function(d, i) {
             comp[d+''] = {
@@ -496,11 +497,11 @@ var supergroup = (function() {
             if ('to' in d)
                 val.records = val.records.concat(d.to.records);
             return val;
-        });
+        }).value();
         _(list).map(function(d) {
             d.parentList = list; // NOT TESTED, NOT USED, PROBABLY WRONG
             d.records.parentVal = d; // NOT TESTED, NOT USED, PROBABLY WRONG
-        });
+        }).value();
         return list;
     };
 
@@ -540,28 +541,19 @@ var supergroup = (function() {
      *
      * @memberof supergroup
      */
+    e.addSupergroupMethods =
     e.addListMethods = function(arr) {
         for(var method in List.prototype) {
             Object.defineProperty(arr, method, {
                 value: List.prototype[method]
             });
         }
-        _.unchain(arr);
+        //_.unchain(arr);
         return arr;
     };
     return e;
 }());
 
-_.mixin({supergroup: supergroup.group});
-
-if (typeof exports !== 'undefined') {   // not sure if this is all right
-    if (typeof module !== 'undefined' && module.exports) {
-        module.exports = _;
-    }
-    exports._ = _;
-} else if (typeof define === 'function' && define.amd) {
-    // Register as a named module with AMD.
-    define('_', [], function() {
-        return nester;
-    });
-}
+_.mixin({supergroup: supergroup.group, 
+    addSupergroupMethods: supergroup.addSupergroupMethods});
+module.exports = _;

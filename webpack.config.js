@@ -7,7 +7,7 @@ module.exports = {
     resolve: {
         modulesDirectories: ['node_modules', 'bower_components'],
     },
-    watch: true,
+    //watch: true,
     colors: true,
     progress: true,
     cache: true,

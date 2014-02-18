@@ -2,17 +2,18 @@ module.exports = function(grunt) {
   grunt.initConfig({
     pkg: grunt.file.readJSON("package.json"),
     browserify: {
-      "./supergroupBundled.js": [ "./supergroup.js" ]
+      "./bundle.js": [ "./supergroup.js" ],
+      "./test/bundle.js": [ "./test/supergroup.spec.js" ]
       , options: { 
             transform: ["debowerify", "decomponentify", "deamdify", "deglobalify"],
       }
     },
     watch: {
-      files: [ "./supergroup.js","./README.md"],
+      files: [ "./supergroup.js", "./test/supergroup.spec.js","./README.md"],
       tasks: [ "browserify" ]
     },
     groc: {
-        javascript: [ "./supergroup.js", "README.md" ],
+        javascript: [ "./supergroup.js", "./test/supergroup.spec.js","./README.md"],
         options: { "out": "doc/" }
     },
     jshint: {
@@ -24,5 +25,5 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks("grunt-contrib-watch");
   grunt.loadNpmTasks("grunt-contrib-jshint");
   grunt.loadNpmTasks("grunt-groc");
-  grunt.registerTask("default", ["browserify", "jshint", "groc"]);
+  grunt.registerTask("default", ["browserify" /*, "jshint", "groc" */]);
 };
