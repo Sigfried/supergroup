@@ -9,8 +9,6 @@
 ; // jshint -W053
 
 'use strict()';
-var _ = require('lodash');
-_ = require('./underscoreAddon.js'); // adds mean, median, etc. as mixins
 
 var supergroup = (function() {
     var e = {}; // local reference to supergroup namespace
@@ -117,12 +115,12 @@ var supergroup = (function() {
         return val;
     };
     List.prototype.leafNodes = function(level) {
-        return _(this).invoke('leafNodes').flatten()
+        return _.chain(this).invoke('leafNodes').flatten()
             .addSupergroupMethods()
             .value();
     };
     List.prototype.rawValues = function() {
-        return _(this).map(function(d) { return d.valueOf(); }).value();
+        return _.chain(this).map(function(d) { return d.valueOf(); }).value();
     };
     List.prototype.lookup = function(query) {
         if (_.isArray(query)) {
@@ -383,7 +381,7 @@ var supergroup = (function() {
         return path;
         // CHANGING -- HOPE THIS DOESN'T BREAK STUFF (pedigree isn't
         // documented yet)
-        if (!(opts && opts.asValues)) return _(path).invoke('valueOf').value();
+        if (!(opts && opts.asValues)) return _.chain(path).invoke('valueOf').value();
         return path;
     };
     Value.prototype.descendants = function(opts) {
@@ -458,8 +456,8 @@ var supergroup = (function() {
      * @memberof supergroup
      */
     e.compare = function(A, B, dim) {
-        var a = _(A).map(function(d) { return d+''; }).value();
-        var b = _(B).map(function(d) { return d+''; }).value();
+        var a = _.chain(A).map(function(d) { return d+''; }).value();
+        var b = _.chain(B).map(function(d) { return d+''; }).value();
         var comp = {};
         _(A).each(function(d, i) {
             comp[d+''] = {
@@ -486,7 +484,7 @@ var supergroup = (function() {
                 };
             }
         });
-        var list = _(comp).values().sort(function(a,b) {
+        var list = _.chain(comp).values().sort(function(a,b) {
             return (a.fromIdx - b.fromIdx) || (a.toIdx - b.toIdx);
         }).map(function(d) {
             var val = makeValue(d.name);
@@ -498,7 +496,7 @@ var supergroup = (function() {
                 val.records = val.records.concat(d.to.records);
             return val;
         }).value();
-        _(list).map(function(d) {
+        _.chain(list).map(function(d) {
             d.parentList = list; // NOT TESTED, NOT USED, PROBABLY WRONG
             d.records.parentVal = d; // NOT TESTED, NOT USED, PROBABLY WRONG
         }).value();
@@ -556,4 +554,3 @@ var supergroup = (function() {
 
 _.mixin({supergroup: supergroup.group, 
     addSupergroupMethods: supergroup.addSupergroupMethods});
-module.exports = _;
