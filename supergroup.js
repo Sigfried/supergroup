@@ -43,13 +43,17 @@ var supergroup = (function() {
         opts = opts || {};
         recs = opts.preListRecsHook ? opts.preListRecsHook(recs) : recs;
         childProp = opts.childProp || childProp;
-        var groups = _.groupBy(recs, dim); // use Underscore's groupBy: http://underscorejs.org/#groupBy
+        var groups = opts.multiValuedGroup ?
+            multiValuedGroupBy(recs, dim) :
+            _.groupBy(recs, dim); // use Underscore's groupBy: http://underscorejs.org/#groupBy
         if (opts.excludeValues) {
             _(opts.excludeValues).each(function(d) {
                 delete groups[d];
             });
         }
-        var isNumeric = wholeListNumeric(groups); // does every group Value look like a number or a missing value?
+        var isNumeric = _(opts).has('isNumeric') ? 
+                            opts.isNumeric :
+                            wholeListNumeric(groups); // does every group Value look like a number or a missing value?
         var groups = _.map(_.pairs(groups), function(pair, i) { // setup Values for each group in List
             var rawVal = pair[0];
             var val;
@@ -68,7 +72,10 @@ var supergroup = (function() {
              * subset like: val.records.supergroup
              * on                                       FIX!!!!!!
              */
+
             //_.unchain(val.records, {cloneFrozenVals:true});
+            e.addSupergroupMethods(val.records);
+
             val.dim = (opts.dimName) ? opts.dimName : dim;
             val.records.parentVal = val; // NOT TESTED, NOT USED, PROBABLY WRONG
             if (opts.parent)
@@ -89,8 +96,11 @@ var supergroup = (function() {
         groups.records = recs; // NOT TESTED, NOT USED, PROBABLY WRONG
         groups.dim = (opts.dimName) ? opts.dimName : dim;
         groups.isNumeric = isNumeric;
-        _(groups).each(function(group) { 
+
+        _(groups).each(function(group, i) { 
             group.parentList = groups;
+            //group.idxInParentList = i; // maybe a good idea, but don't need it yet
+
         });
         // pointless without recursion
         //if (opts.postListListHook) groups = opts.postListListHook(groups);
@@ -109,7 +119,9 @@ var supergroup = (function() {
         var val = makeValue(name);
         val.records = this; // is this wrong?
         val[childProp]= this;
+
         _(val.descendants()).each(function(d) { d.depth = d.depth + 1; });
+
         val.depth = 0;
         val.dim = dimName || 'root';
         return val;
@@ -137,6 +149,14 @@ var supergroup = (function() {
             return this.singleLookup(query);
         }
     };
+
+    List.prototype.lookupMany = function(query) {
+        var list = this;
+        return e.addSupergroupMethods(_(query).map(function(d) { 
+            return list.singleLookup(d)
+        }).compact().value());
+    };
+
     List.prototype.singleLookup = function(query) {
         var that = this;
         if (! ('lookupMap' in this)) {
@@ -174,7 +194,9 @@ var supergroup = (function() {
                 value: List.prototype[method]
             });
         }
+
         //_.unchain(arr);
+
         return arr;
     }
 
@@ -495,11 +517,13 @@ var supergroup = (function() {
             if ('to' in d)
                 val.records = val.records.concat(d.to.records);
             return val;
+
         }).value();
         _.chain(list).map(function(d) {
             d.parentList = list; // NOT TESTED, NOT USED, PROBABLY WRONG
             d.records.parentVal = d; // NOT TESTED, NOT USED, PROBABLY WRONG
         }).value();
+
         return list;
     };
 
@@ -539,18 +563,114 @@ var supergroup = (function() {
      *
      * @memberof supergroup
      */
+
     e.addSupergroupMethods =
+
     e.addListMethods = function(arr) {
         for(var method in List.prototype) {
             Object.defineProperty(arr, method, {
                 value: List.prototype[method]
             });
         }
+
         //_.unchain(arr);
+
         return arr;
     };
     return e;
 }());
 
+
+    // lodash createAggregator function, which lodash makes private
+    /**
+     * Creates a function that aggregates a collection, creating an object or
+     * array composed from the results of running each element of the collection
+     * through a callback. The given setter function sets the keys and values
+     * of the composed object or array.
+     *
+     * @private
+     * @param {Function} setter The setter function.
+     * @param {boolean} [retArray=false] A flag to indicate that the aggregator
+     *  function should return an array.
+     * @returns {Function} Returns the new aggregator function.
+     */
+    function createAggregator(setter, retArray) {
+      return function(collection, callback, thisArg) {
+        var result = retArray ? [[], []] : {};
+
+        callback = _.createCallback(callback, thisArg, 3);
+        if (_.isArray(collection)) {    // using _.isArray instead of private isArray
+          var index = -1,
+              length = collection.length;
+
+          while (++index < length) {
+            var value = collection[index];
+            setter(result, value, callback(value, index, collection), collection);
+          }
+        } else {
+          baseEach(collection, function(value, key, collection) {
+            setter(result, value, callback(value, key, collection), collection);
+          });
+        }
+        return result;
+      };
+    }
+    /**
+     * Creates an object composed of keys generated from the results of running
+     * each element of a collection through the callback. The corresponding value
+     * of each key is an array of the elements responsible for generating the key.
+     * The callback is bound to `thisArg` and invoked with three arguments;
+     * (value, index|key, collection).
+     *
+     * If a property name is provided for `callback` the created "_.pluck" style
+     * callback will return the property value of the given element.
+     *
+     * If an object is provided for `callback` the created "_.where" style callback
+     * will return `true` for elements that have the properties of the given object,
+     * else `false`.
+     *
+     * @static
+     * @memberOf _
+     * @category Collections
+     * @param {Array|Object|string} collection The collection to iterate over.
+     * @param {Function|Object|string} [callback=identity] The function called
+     *  per iteration. If a property name or object is provided it will be used
+     *  to create a "_.pluck" or "_.where" style callback, respectively.
+     * @param {*} [thisArg] The `this` binding of `callback`.
+     * @returns {Object} Returns the composed aggregate object.
+     * @example
+     *
+     * _.groupBy([4.2, 6.1, 6.4], function(num) { return Math.floor(num); });
+     * // => { '4': [4.2], '6': [6.1, 6.4] }
+     *
+     * _.groupBy([4.2, 6.1, 6.4], function(num) { return this.floor(num); }, Math);
+     * // => { '4': [4.2], '6': [6.1, 6.4] }
+     *
+     * // using "_.pluck" callback shorthand
+     * _.groupBy(['one', 'two', 'three'], 'length');
+     * // => { '3': ['one', 'two'], '5': ['three'] }
+     */
+    var groupBy = createAggregator(function(result, value, key) {
+      if (hasOwnProperty.call(result, key)) {
+        result[key].push(value);
+      } else {
+        result[key] = [value];
+      }
+    });
+
+    // allows grouping by a field that contains an array of strings rather than just a string
+    var multiValuedGroupBy = createAggregator(function(result, value, keys) {
+      _.each(keys, function(key) {
+        if (hasOwnProperty.call(result, key)) {
+            result[key].push(value);
+        } else {
+            result[key] = [value];
+        }
+      });
+    });
+
 _.mixin({supergroup: supergroup.group, 
-    addSupergroupMethods: supergroup.addSupergroupMethods});
+    addSupergroupMethods: supergroup.addSupergroupMethods,
+    multiValuedGroupBy: multiValuedGroupBy
+});
+
