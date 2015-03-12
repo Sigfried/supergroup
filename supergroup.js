@@ -184,6 +184,21 @@ var supergroup = (function() {
             val.addLevel(dim, opts);
         });
     };
+    // apply a function to the records of each group
+    // 
+    List.prototype.groupRecordsApply = function(fun, field, ret) {
+        if (field)
+            var results = _.chain(this)
+                           .pluck('records')
+                           .map(function(recs) { 
+                               return fun(_.pluck(recs,field)) 
+                           }).value();
+        else
+            var results = fun(_.pluck(this,'records'));
+        if (ret === 'dict')
+            return _.object(this, results);
+        return results;
+    };
     
     function makeList(arr_arg) {
         var arr = [ ];
