@@ -73,7 +73,6 @@ var supergroup = (function() {
              * on                                       FIX!!!!!!
              */
 
-            //_.unchain(val.records, {cloneFrozenVals:true});
             e.addSupergroupMethods(val.records);
 
             val.dim = (opts.dimName) ? opts.dimName : dim;
@@ -92,7 +91,7 @@ var supergroup = (function() {
             }
             return val;
         });
-        groups = makeList(groups);
+        groups = makeList(groups); // turns groups into a List object
         groups.records = recs; // NOT TESTED, NOT USED, PROBABLY WRONG
         groups.dim = (opts.dimName) ? opts.dimName : dim;
         groups.isNumeric = isNumeric;
@@ -100,12 +99,12 @@ var supergroup = (function() {
         _(groups).each(function(group, i) { 
             group.parentList = groups;
             //group.idxInParentList = i; // maybe a good idea, but don't need it yet
-
         });
         // pointless without recursion
         //if (opts.postListListHook) groups = opts.postListListHook(groups);
         return groups;
     };
+    // nested groups, each dim is a level in hierarchy
     e.multiDimList = function(recs, dims, opts) {
         var groups = e.group(recs, dims[0], opts);
         _.chain(dims).rest().each(function(dim) {
@@ -114,6 +113,7 @@ var supergroup = (function() {
         return groups;
     };
 
+    // sometimes a root value is needed as the top of a hierarchy
     List.prototype.asRootVal = function(name, dimName) {
         name = name || 'Root';
         var val = makeValue(name);
@@ -134,6 +134,8 @@ var supergroup = (function() {
     List.prototype.rawValues = function() {
         return _.chain(this).map(function(d) { return d.valueOf(); }).value();
     };
+    // lookup a value in a list, or, if query is an array
+    //      it is interpreted as a path down the group hierarchy
     List.prototype.lookup = function(query) {
         if (_.isArray(query)) {
             // if group has children, can search down the tree
@@ -150,13 +152,6 @@ var supergroup = (function() {
         }
     };
 
-    List.prototype.lookupMany = function(query) {
-        var list = this;
-        return e.addSupergroupMethods(_(query).map(function(d) { 
-            return list.singleLookup(d)
-        }).compact().value());
-    };
-
     List.prototype.singleLookup = function(query) {
         var that = this;
         if (! ('lookupMap' in this)) {
@@ -167,6 +162,14 @@ var supergroup = (function() {
         }
         if (query in this.lookupMap)
             return this.lookupMap[query];
+    };
+
+    // lookup more than one thing at a time
+    List.prototype.lookupMany = function(query) {
+        var list = this;
+        return e.addSupergroupMethods(_.chain(query).map(function(d) { 
+            return list.singleLookup(d)
+        }).compact().value());
     };
     List.prototype.flattenTree = function() {
         return _.chain(this)
@@ -199,21 +202,6 @@ var supergroup = (function() {
             return _.object(this, results);
         return results;
     };
-    
-    function makeList(arr_arg) {
-        var arr = [ ];
-        arr.push.apply(arr, arr_arg);
-        //arr.__proto__ = List.prototype;
-        for(var method in List.prototype) {
-            Object.defineProperty(arr, method, {
-                value: List.prototype[method]
-            });
-        }
-
-        //_.unchain(arr);
-
-        return arr;
-    }
 
     /** Enhance arrays with {@link http://underscorejs.org/ Underscore} functions 
      * that work on arrays. 
@@ -587,11 +575,25 @@ var supergroup = (function() {
                 value: List.prototype[method]
             });
         }
-
-        //_.unchain(arr);
-
         return arr;
     };
+    
+    // can't easily subclass Array, so this explicitly puts the List
+    // methods on an Array that's supposed to be a List
+    function makeList(arr_arg) {
+        var arr = [ ];
+        arr.push.apply(arr, arr_arg);
+        e.addListMethods(arr);
+        /*
+        //arr.__proto__ = List.prototype;
+        for(var method in List.prototype) {
+            Object.defineProperty(arr, method, {
+                value: List.prototype[method]
+            });
+        }
+        */
+        return arr;
+    }
     return e;
 }());
 
