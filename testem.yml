@@ -1,5 +1,8 @@
-launch_in_dev:
-    - Chrome
-src_files:
-    - 'bundle.js'
-    - 'test/bundle.js'
+{
+  "framework": "jasmine",
+  "src_files": [
+    "./node_modules/underscore/underscore.js",
+    "./supergroup.js",
+    "./supergroup_spec.js"
+  ]
+}

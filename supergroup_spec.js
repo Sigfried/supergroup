@@ -2,8 +2,6 @@
 
 /* global: describe */
 describe('_.supergroup', function() {
-    var _ = require('../supergroup.js');
-    //var _ = require('../bundle.js');
     var self = this;
     var gradeBook = [
         {lastName: "Gold",    firstName: "Sigfried", class: "Remedial Programming",           grade: "C", num: 2},
@@ -13,15 +11,11 @@ describe('_.supergroup', function() {
         {lastName: "Androy",  firstName: "Sigfried", class: "Remedial Programming",           grade: "B", num: 3}
     ];
 
-    beforeEach(function() {
-        self.gradesByLastName = _.supergroup(gradeBook, 'lastName');
-        self.gradesByName = _.supergroup(gradeBook,  
-                function(d) { return d.firstName + ' ' + d.lastName; },  
-                {dimName: 'fullName'});
-        self.gradesByGradeLastName = _.supergroup(gradeBook, ['grade','lastName']);
-
-        //self.groups = supergroup.addListMethods([]); // for tests Gemma wrote
-    });
+    self.gradesByLastName = _.supergroup(gradeBook, 'lastName');
+    self.gradesByName = _.supergroup(gradeBook,  
+            function(d) { return d.firstName + ' ' + d.lastName; },  
+            {dimName: 'fullName'});
+    self.gradesByGradeLastName = _.supergroup(gradeBook, ['grade','lastName']);
 
     it('should apply Groups methods to arrays', function() {
         expect(self.gradesByLastName.asRootVal).toBeDefined();
@@ -32,13 +26,17 @@ describe('_.supergroup', function() {
         // other methods ?
     });
     it('should group stuff into an array', function() {
-        expect(JSON.stringify(self.gradesByLastName)).toEqual('["Gold","Sassoon","Androy"]');
-        expect(JSON.stringify(self.gradesByName)).toEqual('["Sigfried Gold","Sigfried Sassoon","Sigfried Androy"]');
-        expect(JSON.stringify(self.gradesByGradeLastName.sort())).toEqual('["A","B","C"]');
+        expect(self.gradesByLastName.rawValues()).toEqual(["Gold","Sassoon","Androy"]);
+        expect(self.gradesByLastName.rawValues()).toEqual(["Gold","Sassoon","Androy"]);
+        expect(self.gradesByName.rawValues()).toEqual(["Sigfried Gold","Sigfried Sassoon","Sigfried Androy"]);
+        expect(self.gradesByGradeLastName.rawValues().sort()).toEqual(["A","B","C"]);
     });
     it('should assign records to the right groups', function() {
-        expect(JSON.stringify(self.gradesByLastName[0].records)).toEqual(
-            '[{"lastName":"Gold","firstName":"Sigfried","class":"Remedial Programming","grade":"C","num":2},{"lastName":"Gold","firstName":"Sigfried","class":"Literary Posturing","grade":"B","num":3},{"lastName":"Gold","firstName":"Sigfried","class":"Documenting with Pretty Colors","grade":"B","num":3}]'); 
+        expect(self.gradesByLastName[0].records.slice(0)).toEqual( [
+            {"lastName":"Gold","firstName":"Sigfried","class":"Remedial Programming","grade":"C","num":2},
+            {"lastName":"Gold","firstName":"Sigfried","class":"Literary Posturing","grade":"B","num":3},
+            {"lastName":"Gold","firstName":"Sigfried","class":"Documenting with Pretty Colors","grade":"B","num":3}
+        ]); 
     });
 
 

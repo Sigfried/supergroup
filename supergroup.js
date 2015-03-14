@@ -11,16 +11,8 @@
 'use strict()';
 
 var supergroup = (function() {
-    var e = {}; // local reference to supergroup namespace
-    // @class List
-    // @description Native Array of groups with various added methods and properties.
-    // Methods described below.
-    function List() {}
-    // @class Value
-    // @description Supergroup Lists are composed of Values which are
-    // String or Number objects representing group values.
-    // Methods described below.
-    function Value() {}
+    // @description local reference to supergroup namespace 
+    var sg = {};
 
     /* @exported function supergroup.group(recs, dim, opts)
      * @param {Object[]} recs list of records to be grouped
@@ -38,11 +30,13 @@ var supergroup = (function() {
      *
      * Avaailable as _.supergroup, Underscore mixin
      */
-    e.group = function(recs, dim, opts) {
-        if (_(dim).isArray()) return e.multiDimList(recs, dim, opts); // handoff to multiDimmList if dim is an array
+    sg.group = function(recs, dim, opts) {
+        // if dim is an array, use multiDimList to create hierarchical grouping
+        if (_(dim).isArray()) return sg.multiDimList(recs, dim, opts);
         opts = opts || {};
         recs = opts.preListRecsHook ? opts.preListRecsHook(recs) : recs;
         childProp = opts.childProp || childProp;
+        // opts.multiValuedGroup is expected to be set automatically
         var groups = opts.multiValuedGroup ?
             multiValuedGroupBy(recs, dim) :
             _.groupBy(recs, dim); // use Underscore's groupBy: http://underscorejs.org/#groupBy
@@ -73,7 +67,7 @@ var supergroup = (function() {
              * on                                       FIX!!!!!!
              */
 
-            e.addSupergroupMethods(val.records);
+            sg.addSupergroupMethods(val.records);
 
             val.dim = (opts.dimName) ? opts.dimName : dim;
             val.records.parentVal = val; // NOT TESTED, NOT USED, PROBABLY WRONG
@@ -105,13 +99,22 @@ var supergroup = (function() {
         return groups;
     };
     // nested groups, each dim is a level in hierarchy
-    e.multiDimList = function(recs, dims, opts) {
-        var groups = e.group(recs, dims[0], opts);
+    sg.multiDimList = function(recs, dims, opts) {
+        var groups = sg.group(recs, dims[0], opts);
         _.chain(dims).rest().each(function(dim) {
             groups.addLevel(dim, opts);
         });
         return groups;
     };
+    // @class List
+    // @description Native Array of groups with various added methods and properties.
+    // Methods described below.
+    function List() {}
+    // @class Value
+    // @description Supergroup Lists are composed of Values which are
+    // String or Number objects representing group values.
+    // Methods described below.
+    function Value() {}
 
     // sometimes a root value is needed as the top of a hierarchy
     List.prototype.asRootVal = function(name, dimName) {
@@ -167,7 +170,7 @@ var supergroup = (function() {
     // lookup more than one thing at a time
     List.prototype.lookupMany = function(query) {
         var list = this;
-        return e.addSupergroupMethods(_.chain(query).map(function(d) { 
+        return sg.addSupergroupMethods(_.chain(query).map(function(d) { 
             return list.singleLookup(d)
         }).compact().value());
     };
@@ -179,7 +182,7 @@ var supergroup = (function() {
                     })
                     .flatten()
                     .filter(_.identity) // expunge nulls
-                    .tap(e.addListMethods)
+                    .tap(sg.addListMethods)
                     .value();
     };
     List.prototype.addLevel = function(dim, opts) {
@@ -189,18 +192,21 @@ var supergroup = (function() {
     };
     // apply a function to the records of each group
     // 
-    List.prototype.groupRecordsApply = function(fun, field, ret) {
+    List.prototype.groupRecordsApply = function(func, field, ret) {
         if (field)
             var results = _.chain(this)
                            .pluck('records')
                            .map(function(recs) { 
-                               return fun(_.pluck(recs,field)) 
+                               return func(_.pluck(recs,field)) 
                            }).value();
         else
-            var results = fun(_.pluck(this,'records'));
+            var results = func(_.pluck(this,'records'));
         if (ret === 'dict')
             return _.object(this, results);
         return results;
+    };
+    // returns an identical list with different group names 
+    List.prototype.useSynonym = function(altDimName, func) {
     };
 
     /** Enhance arrays with {@link http://underscorejs.org/ Underscore} functions 
@@ -221,20 +227,20 @@ var supergroup = (function() {
      * @memberof enlightenedData 
      */
     /*
-    e.addUnderscoreMethods = function(arr) {
-        _(e.underscoreMethodsToAddToArrays).each(function(methodName) {
+    sg.addUnderscoreMethods = function(arr) {
+        _(sg.underscoreMethodsToAddToArrays).each(function(methodName) {
             if (_(arr).has(methodName)) return;
             Object.defineProperty(arr, methodName, {
                 value: function() {
                     var part = _.partial(_[methodName], arr);
                     var result = part.apply(null, _.toArray(arguments));
-                    if (_.isArray(result)) e.addListMethods(result);
+                    if (_.isArray(result)) sg.addListMethods(result);
                     return result;
                 }});
         });
         return arr;
     };
-    e.underscoreMethodsToAddToArrays = [ 
+    sg.underscoreMethodsToAddToArrays = [ 
             "each",
             "map",
             "reduce",
@@ -333,9 +339,9 @@ var supergroup = (function() {
         _.each(this.leafNodes(), function(d) {
             opts.parent = d;
             if (d.in && d.in === "both") {
-                d[childProp] = e.diffList(d.from, d.to, dim, opts);
+                d[childProp] = sg.diffList(d.from, d.to, dim, opts);
             } else {
-                d[childProp] = e.group(d.records, dim, opts);
+                d[childProp] = sg.group(d.records, dim, opts);
                 if (d.in ) {
                     _(d[childProp]).each(function(c) {
                         c.in = d.in;
@@ -441,7 +447,7 @@ var supergroup = (function() {
      *
      * @memberof supergroup
      */
-    e.aggregate = function(list, numericDim) { 
+    sg.aggregate = function(list, numericDim) { 
         if (numericDim) {
             list = _(list).pluck(numericDim);
         }
@@ -464,10 +470,10 @@ var supergroup = (function() {
      *
      * @memberof supergroup
      */
-    e.diffList = function(from, to, dim, opts) {
-        var fromList = e.group(from.records, dim, opts);
-        var toList = e.group(to.records, dim, opts);
-        var list = makeList(e.compare(fromList, toList, dim));
+    sg.diffList = function(from, to, dim, opts) {
+        var fromList = sg.group(from.records, dim, opts);
+        var toList = sg.group(to.records, dim, opts);
+        var list = makeList(sg.compare(fromList, toList, dim));
         list.dim = (opts && opts.dimName) ? opts.dimName : dim;
         return list;
     };
@@ -480,7 +486,7 @@ var supergroup = (function() {
      *
      * @memberof supergroup
      */
-    e.compare = function(A, B, dim) {
+    sg.compare = function(A, B, dim) {
         var a = _.chain(A).map(function(d) { return d+''; }).value();
         var b = _.chain(B).map(function(d) { return d+''; }).value();
         var comp = {};
@@ -537,7 +543,7 @@ var supergroup = (function() {
      *
      * @memberof supergroup
      */
-    e.compareValue = function(from, to) {
+    sg.compareValue = function(from, to) {
         if (from.dim !== to.dim) {
             throw new Error("not sure what you're trying to do");
         }
@@ -556,7 +562,7 @@ var supergroup = (function() {
     _.extend(NumberValue.prototype, Value.prototype);
 
     /** Sometimes a List gets turned into a standard array,
-     *  e.g., through slicing or sorting or filtering. 
+     *  sg.g., through slicing or sorting or filtering. 
      *  addListMethods turns it back into a List
      *
      * `List` would be a constructor if IE10 supported
@@ -567,9 +573,9 @@ var supergroup = (function() {
      * @memberof supergroup
      */
 
-    e.addSupergroupMethods =
+    sg.addSupergroupMethods =
 
-    e.addListMethods = function(arr) {
+    sg.addListMethods = function(arr) {
         for(var method in List.prototype) {
             Object.defineProperty(arr, method, {
                 value: List.prototype[method]
@@ -583,7 +589,7 @@ var supergroup = (function() {
     function makeList(arr_arg) {
         var arr = [ ];
         arr.push.apply(arr, arr_arg);
-        e.addListMethods(arr);
+        sg.addListMethods(arr);
         /*
         //arr.__proto__ = List.prototype;
         for(var method in List.prototype) {
@@ -594,7 +600,7 @@ var supergroup = (function() {
         */
         return arr;
     }
-    return e;
+    return sg;
 }());
 
 
