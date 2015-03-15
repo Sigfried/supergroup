@@ -205,8 +205,13 @@ var supergroup = (function() {
             return _.object(this, results);
         return results;
     };
-    // returns an identical list with different group names 
-    List.prototype.useSynonym = function(altDimName, func) {
+
+    List.prototype.entries = function() {
+        return _.map(this, function(val) {
+            if (childProp in val)
+                return {key: val.toString(), values: val[childProp].entries()};
+            return {key: val.toString(), values: val.records};
+        });
     };
 
     /** Enhance arrays with {@link http://underscorejs.org/ Underscore} functions 
