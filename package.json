@@ -31,6 +31,9 @@
     "underscore": "^1.8.2"
   },
   "devDependencies": {
-    "jasmine": "^2.2.1"
+    "d3": "^3.5.5",
+    "jasmine": "^2.2.1",
+    "vows": "^0.8.1",
+    "xhr2": "^0.1.2"
   }
 }
