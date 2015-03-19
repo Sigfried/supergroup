@@ -293,7 +293,8 @@ sigfried.records.length; // 3
 var sigfriedGPA = sigfried.records.reduce(function(result,rec) { return result+rec.num }, 0) / sigfried.records.length;
 (it does much much more, will explain below)
 ```
-{% include_code supergroup-test.js %}
+{ old % include_code supergroup-test.js %
+}
 -->
 </section>
 </div>
