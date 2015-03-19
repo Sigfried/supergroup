@@ -146,7 +146,8 @@ byClassGrade.leafNodes().invoke('namePath'); // ["Remedial Programming/C", "Reme
 
 
 <!--
-{% jsfiddle us9k9/2 %}
+{ old stuff % jsfiddle us9k9/2 %
+}
 In a SQL group by query you get one record for each resulting group and
 you can calculate values based on the aggregate of the rows comprised by
 each group. Another step is needed to go back from the group to
