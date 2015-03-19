@@ -8,7 +8,7 @@
 	<meta name="categories" content="[repo]"/>
 	<meta name="source" content="https://github.com/Sigfried/supergroup"/>
 	<link type="text/css" rel="stylesheet" href="./style.css"/>
-	<link type="text/css" rel="stylesheet" href="./examples_gist/prism.css"/>
+	<link type="text/css" rel="stylesheet" href="./assets/prism.css"/>
 </head>
 <body>
 
@@ -53,22 +53,22 @@ your fingertips.</p>
 <p>Just to be clear about the problem&mdash;you start with tabular data from a CSV
 file, a SQL query, or some AJAX call:
 <p><span class="iframe">Some very fake hospital data in a CSV file&#8230;</span>
-<iframe width="100%" height="70px" src="examples_gist/examples.html?data">
+<iframe width="100%" height="70px" src="examples/examples.html?data">
 </iframe></p></p>
 
 <p><span class="iframe">...turned into canonical array of Objects (using d3.csv, for instance)</span>
-<iframe width="100%" height="80px" src="examples_gist/examples.html?json">
+<iframe width="100%" height="80px" src="examples/examples.html?json">
 </iframe></p>
 
 <p>Without Supergroup, you&#8217;d group the records on the values of one or more fields
 with a standard grouping function, giving you data like:</p>
 
 <p><span class="iframe">d3.nest().key(function(d) { return d.Physician; }).key(function(d) { return d.Unit; }).map(data)</span>
-<iframe width="100%" height="150px" src="examples_gist/examples.html?d3map">
+<iframe width="100%" height="150px" src="examples/examples.html?d3map">
 </iframe></p>
 
 <p><span class="iframe">d3.nest().key(function(d) { return d.Physician; }).key(function(d) { return d.Unit; }).entries(data)</span>
-<iframe width="100%" height="150px" src="examples_gist/examples.html?d3nest">
+<iframe width="100%" height="150px" src="examples/examples.html?d3nest">
 </iframe></p>
 
 <p>To my mind, these are awkward data structures (not to mention the awkwardness
@@ -130,7 +130,7 @@ dimension was being grouped at that level. </p>
 
 <p><a id='sgphysunit'></a>
  <p><span class="iframe">Supergroup on physician and unit</span>
- <iframe width="100%" height="400px" src="examples_gist/examples.html?sgphysunit">
+ <iframe width="100%" height="400px" src="examples/examples.html?sgphysunit">
  </iframe></p></p>
 
 <p>It does a bunch more I still need to document.</p>
@@ -182,7 +182,8 @@ byClassGrade.leafNodes().invoke('namePath'); // [&quot;Remedial Programming/C&qu
 </code></p>
 
 <!--
-{% jsfiddle us9k9/2 %}
+{ old stuff % jsfiddle us9k9/2 %
+}
 In a SQL group by query you get one record for each resulting group and
 you can calculate values based on the aggregate of the rows comprised by
 each group. Another step is needed to go back from the group to
@@ -328,12 +329,13 @@ sigfried.records.length; // 3
 var sigfriedGPA = sigfried.records.reduce(function(result,rec) { return result+rec.num }, 0) / sigfried.records.length;
 (it does much much more, will explain below)
 ```
-{% include_code supergroup-test.js %}
+{ old % include_code supergroup-test.js %
+}
 -->
 </section>
 </div>
 
-<script src="examples_gist/prism.js"></script>
+<script src="assets/prism.js"></script>
 
 </body>
 </html>
