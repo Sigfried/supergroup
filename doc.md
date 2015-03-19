@@ -5,7 +5,7 @@ comments: true
 categories: [repo]
 source: https://github.com/Sigfried/supergroup
 CSS: ./style.css
-CSS: ./examples_gist/prism.css
+CSS: ./assets/prism.css
 ---
 
 
@@ -21,21 +21,21 @@ CSS: ./examples_gist/prism.css
 Just to be clear about the problem&mdash;you start with tabular data from a CSV
 file, a SQL query, or some AJAX call:
 <p><span class="iframe">Some very fake hospital data in a CSV file...</span>
-<iframe width="100%" height="70px" src="examples_gist/examples.html?data">
+<iframe width="100%" height="70px" src="examples/examples.html?data">
 </iframe></p>
 
 <p><span class="iframe">...turned into canonical array of Objects (using d3.csv, for instance)</span>
-<iframe width="100%" height="80px" src="examples_gist/examples.html?json">
+<iframe width="100%" height="80px" src="examples/examples.html?json">
 </iframe></p>
 
 Without Supergroup, you'd group the records on the values of one or more fields
 with a standard grouping function, giving you data like:
 
 <p><span class="iframe">d3.nest().key(function(d) { return d.Physician; }).key(function(d) { return d.Unit; }).map(data)</span>
-<iframe width="100%" height="150px" src="examples_gist/examples.html?d3map">
+<iframe width="100%" height="150px" src="examples/examples.html?d3map">
 </iframe></p>
 <p><span class="iframe">d3.nest().key(function(d) { return d.Physician; }).key(function(d) { return d.Unit; }).entries(data)</span>
-<iframe width="100%" height="150px" src="examples_gist/examples.html?d3nest">
+<iframe width="100%" height="150px" src="examples/examples.html?d3nest">
 </iframe></p>
 
 To my mind, these are awkward data structures (not to mention the awkwardness
@@ -92,7 +92,7 @@ Supergroup gives you almost everything you'd want for every item in your nest
 
   <a id='sgphysunit'></a>
   <p><span class="iframe">Supergroup on physician and unit</span>
-  <iframe width="100%" height="400px" src="examples_gist/examples.html?sgphysunit">
+  <iframe width="100%" height="400px" src="examples/examples.html?sgphysunit">
   </iframe></p>
   
   It does a bunch more I still need to document.
@@ -298,4 +298,4 @@ var sigfriedGPA = sigfried.records.reduce(function(result,rec) { return result+r
 -->
 </section>
 </div>
-<script src="examples_gist/prism.js"></script>
+<script src="assets/prism.js"></script>
