@@ -139,6 +139,27 @@ Supergroup gives you almost everything you'd want for every item in your nest
   <p><iframe width="100%" height="370px" src="examples/examples.html?sghierarchy">
   </iframe></p>
 
+## Multi-valued Groups
+  Sometimes it makes sense to group on multi-valued fields, which leads
+  to the result that records with multiple values in a grouped field end up 
+  in more than one group. It doesn't happen often, but when it does, good
+  luck getting underscore or lodash or d3.nest or anything to help you with
+  the grouping. 
+
+  One of our fake data records has two values separated by a semicolon in the
+  Insurance field. We turn that field into an array. First we show that by
+  default, Supergroup rejoins the array (with commas) and groups as usual,
+  giving us four Insurance groups. But when we ask for multiValuedGroups,
+  we only get three groups. And that one record will show up in both of
+  them.
+
+  <a id='sgmultval'></a>
+  <p><iframe width="100%" height="200px" src="examples/examples.html?sgmultval">
+  </iframe></p>
+  
+  (In order to get this to work, I exposed an internal function
+  of lodash. You can see the tiny change in my [lodash fork](https://github.com/Sigfried/lodash/commit/e158039d54d69e1362b15e8478885c4aaa23c9b2).)
+
 ## License ##
   MIT: [http://sigfried.mit-license.org/](http://sigfried.mit-license.org/)
 

@@ -146,16 +146,24 @@ d3.xhr('./fake-patient_data.csv', function(err, resp) {
                 ].join('\n\n'))
     }
     if (window.location.search === '?sgmultval') {
-        //var mvg = _.supergroup(data, ['Insurace','Patient']);
         _.each(data, function(d) { d.Insurance = d.Insurance.split(';')})
-        var m = _.supergroup(data, ['Insurance','Patient'], {multiValuedGroups: ['Insurance']});
+        var mvg = _.supergroup(data, 'Insurance', {multiValuedGroup: true});
+        var mvnest = _.supergroup(data, ['Insurance','Patient'], {multiValuedGroups: ['Insurance']});
         d3.select('#output')
             .text(
                 [
-                'sg.lookup("Feldman") ==> ' + JSON.stringify(sg.lookup("Feldman")),
-                'sg.lookup("Feldman").aggregate(d3.sum,"Charge") ==> ' + JSON.stringify(sg.lookup("Feldman").aggregate(d3.sum,"Charge")),
-                'sg.lookup(["Gupta", "pediatrics"]).namePath() ==> ' + JSON.stringify(sg.lookup(["Gupta", "pediatrics"]).namePath()),
-                'sg.lookupMany(["Baker", "Doom", "Feldman","A Name With No Match"]) ==> ' + JSON.stringify(sg.lookupMany(["Baker","Doom","Feldman","A Name With No Match"])),
+                '_.each(data, function(d) { d.Insurance = d.Insurance.split(";")}) // make Insurance field an array instead of ;-delimited string',
+                '_.supergroup(data, "Insurance",) ==> ' + 
+                    JSON.stringify(_.supergroup(data, 'Insurance')) +
+                    '\n   // supergroup by default just makes the array back into a string, joined with comma. so, 4 Insurance groups',
+                'var mvg = _.supergroup(data, "Insurance", {multiValuedGroup: true}) \n   ==> ' +
+                    JSON.stringify(mvg) + "  // now only 3 Insurance groups!",
+                /*
+                'var mvnest = _.supergroup(data, ["Insurance","Patient"], {multiValuedGroups: ["Insurance"]}) \n   ' +
+                    JSON.stringify(mvnest),
+                JSON.stringify( _.invoke(mvnest.leafNodes(),'namePath')),
+                */
+
                 ].join('\n\n'))
     }
     Prism.highlightAll();
