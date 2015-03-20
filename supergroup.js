@@ -192,15 +192,10 @@ var supergroup = (function() {
     };
     // apply a function to the records of each group
     // 
-    List.prototype.groupRecordsApply = function(func, field, ret) {
-        if (field)
-            var results = _.chain(this)
-                           .pluck('records')
-                           .map(function(recs) { 
-                               return func(_.pluck(recs,field)) 
-                           }).value();
-        else
-            var results = func(_.pluck(this,'records'));
+    List.prototype.aggregates = function(func, field, ret) {
+        var results = _.map(this, function(val) {
+            return val.aggregate(func, field);
+        });
         if (ret === 'dict')
             return _.object(this, results);
         return results;
@@ -369,6 +364,11 @@ var supergroup = (function() {
         }
         return makeList(ret);
     };
+    Value.prototype.addRecordsAsChildrenToLeafNodes = function() {
+        _(this.leafNodes()).each(function(node) {
+            node.children = node.records;
+        });
+    };
     /*  didn't make this yet, just copied from above
     Value.prototype.descendants = function(level) {
         var ret = [this];
@@ -443,6 +443,11 @@ var supergroup = (function() {
     };
     Value.prototype.pct = function() {
         return this.records.length / this.parentList.records.length;
+    };
+    Value.prototype.aggregate = function(func, field) {
+        if (_.isFunction(field))
+            return func(_.map(this.records, field));
+        return func(_.pluck(this.records, field));
     };
 
     /** Summarize records by a dimension
