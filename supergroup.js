@@ -37,13 +37,27 @@ var supergroup = (function() {
         recs = opts.preListRecsHook ? opts.preListRecsHook(recs) : recs;
         childProp = opts.childProp || childProp;
 
-        var groups = opts.multiValuedGroup ?  // allow grouping by multivalued fields
-            _.multiValuedGroupBy(recs, dim) :
-            _.groupBy(recs, dim); // use Underscore's groupBy: http://underscorejs.org/#groupBy
+        if (opts.multiValuedGroup || opts.multiValuedGroups) {
+            if (opts.wasMultiDim) {
+                if (opts.multiValuedGroups) {
+                    if (_(opts.multiValuedGroups).contains(dim)) {
+                        var groups = _.multiValuedGroupBy(recs, dim);
+                    } else {
+                        var groups = _.groupBy(recs, dim);
+                    }
+                } else {
+                    throw new Error("If you want multValuedGroups on multi-level groupings, you have to say which dims get multiValued: opts: { multiValuedGroups:[dim1,dim2] }");
+                }
+            } else {
+                var groups = _.multiValuedGroupBy(recs, dim);
+            }
+        } else {
+            var groups = _.groupBy(recs, dim); // use Underscore's groupBy: http://underscorejs.org/#groupBy
+        }
         if (opts.excludeValues) {
             _(opts.excludeValues).each(function(d) {
                 delete groups[d];
-            });
+            }).value();
         }
         var isNumeric = _(opts).has('isNumeric') ? 
                             opts.isNumeric :
@@ -93,17 +107,18 @@ var supergroup = (function() {
         _(groups).each(function(group, i) { 
             group.parentList = groups;
             //group.idxInParentList = i; // maybe a good idea, but don't need it yet
-        });
+        }).value();
         // pointless without recursion
         //if (opts.postListListHook) groups = opts.postListListHook(groups);
         return groups;
     };
     // nested groups, each dim is a level in hierarchy
     sg.multiDimList = function(recs, dims, opts) {
+        opts.wasMultiDim = true;  // pretty kludgy
         var groups = sg.group(recs, dims[0], opts);
         _.chain(dims).rest().each(function(dim) {
             groups.addLevel(dim, opts);
-        });
+        }).value();
         return groups;
     };
     // @class List
@@ -188,7 +203,7 @@ var supergroup = (function() {
     List.prototype.addLevel = function(dim, opts) {
         _(this).each(function(val) {
             val.addLevel(dim, opts);
-        });
+        }).value();
     };
     // apply a function to the records of each group
     // 
@@ -346,7 +361,7 @@ var supergroup = (function() {
                     _(d[childProp]).each(function(c) {
                         c.in = d.in;
                         c[d.in] = d[d.in];
-                    });
+                    }).value();
                 }
             }
             d[childProp].parentVal = d; // NOT TESTED, NOT USED, PROBABLY WRONG!!!
@@ -367,7 +382,7 @@ var supergroup = (function() {
     Value.prototype.addRecordsAsChildrenToLeafNodes = function() {
         _(this.leafNodes()).each(function(node) {
             node.children = node.records;
-        });
+        }).value();
     };
     /*  didn't make this yet, just copied from above
     Value.prototype.descendants = function(level) {
@@ -395,7 +410,7 @@ var supergroup = (function() {
         var path = this.pedigree(opts);
         if (opts.noRoot) path.shift();
         if (opts.backwards || this.backwards) path.reverse(); //kludgy?
-        if (opts.dimName) path = _(path).pluck('dim');
+        if (opts.dimName) path = _.pluck(path, 'dim');
         if (opts.asArray) return path;
         return path.join(opts.delim);
         /*
@@ -459,9 +474,9 @@ var supergroup = (function() {
      */
     sg.aggregate = function(list, numericDim) { 
         if (numericDim) {
-            list = _(list).pluck(numericDim);
+            list = _.pluck(list, numericDim);
         }
-        return _(list).reduce(function(memo,num){
+        return _.reduce(list, function(memo,num){
                     memo.sum+=num;
                     memo.cnt++;
                     memo.avg=memo.sum/memo.cnt; 
@@ -508,7 +523,7 @@ var supergroup = (function() {
                 fromIdx: i,
                 dim: dim
             };
-        });
+        }).value();
         _(B).each(function(d, i) {
             if ((d+'') in comp) {
                 var c = comp[d+''];
@@ -524,7 +539,7 @@ var supergroup = (function() {
                     dim: dim
                 };
             }
-        });
+        }).value();
         var list = _.chain(comp).values().sort(function(a,b) {
             return (a.fromIdx - b.fromIdx) || (a.toIdx - b.toIdx);
         }).map(function(d) {
@@ -618,11 +633,11 @@ var supergroup = (function() {
 if (_.createAggregator) {
     var multiValuedGroupBy = _.createAggregator(function(result, value, keys) {
         _.each(keys, function(key) {
-        if (hasOwnProperty.call(result, key)) {
-            result[key].push(value);
-        } else {
-            result[key] = [value];
-        }
+            if (hasOwnProperty.call(result, key)) {
+                result[key].push(value);
+            } else {
+                result[key] = [value];
+            }
         });
     });
 } else {
