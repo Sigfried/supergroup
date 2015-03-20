@@ -47,9 +47,10 @@ d3.xhr('./fake-patient_data.csv', function(err, resp) {
         d3.select('#output')
             .text(
                 [
-                    "var root = _.supergroup(data, ['Physician','Unit']).asRootVal('All Physicians')" +
-                        " // that's all we need for a root value",
-                    "var nodes = d3.layout.hierarchy()(root) ==> " + JSON.stringify(nodes),
+                    "var root = _.supergroup(data, ['Physician','Unit']).asRootVal('All Physicians');",
+                    "root.addRecordsAsChildrenToLeafNodes();",
+                    //"d3.layout.hierarchy()(root) \n   ==> " + JSON.stringify(nodes),
+                    ""
                 ].join('\n\n'))
         var color = d3.scale.category20c();
         var treemap = d3.layout.treemap()

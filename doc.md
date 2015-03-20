@@ -132,9 +132,19 @@ Supergroup gives you almost everything you'd want for every item in your nest
   I'll demonstrate using Supergroup in a D3 hierarchy with code from 
   [this basic div-based treemap example](https://gist.github.com/mbostock/4063582).
 
-  D3 wants a root value at the top of its hierarchies. To create one of those,
-  just call ```sg.asRootVal()```.
-  
+  The kind of tree D3 wants for its hierarchy layouts has a single root node and
+  at the leaf level are the raw records. Except for the leaves, every node has
+  a children array. On upper levels, a group node's children are other group nodes.
+  At the next-to-bottom level, the children are raw records. Supergroup generally
+  considers records and children to be two different things, and the children
+  of a group value are other group values. 
+
+  So, for D3 hierarchies, we get a root node by calling ```root = sg.asRootVal()```.
+  Then we add a final level of raw records by calling 
+  ```root.addRecordsAsChildrenToLeafNodes()```. Now root is ready to be used
+  in a treemap. To see details, inspect code 
+  [here](./examples/examples.html?sghierarchy).
+
   <a id='sghierarchy'></a>
   <p><iframe width="100%" height="370px" src="examples/examples.html?sghierarchy">
   </iframe></p>
