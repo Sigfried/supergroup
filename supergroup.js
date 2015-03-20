@@ -32,8 +32,8 @@ var supergroup = (function() {
      */
     sg.group = function(recs, dim, opts) {
         // if dim is an array, use multiDimList to create hierarchical grouping
-        if (_(dim).isArray()) return sg.multiDimList(recs, dim, opts);
         opts = opts || {};
+        if (_(dim).isArray()) return sg.multiDimList(recs, dim, opts);
         recs = opts.preListRecsHook ? opts.preListRecsHook(recs) : recs;
         childProp = opts.childProp || childProp;
 
