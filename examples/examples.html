@@ -5,12 +5,27 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.2/underscore.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.js"></script>
         <script src="../supergroup.js"></script>
-        <script src="examples.js"></script>
         <script src="../assets/prism.js"></script>
+        <script src="examples.js"></script>
         <link rel="stylesheet" href="../assets/prism.css">
+        <style>
+            .treemapnode {
+                border: solid 1px white;
+                font: 10px sans-serif;
+                line-height: 12px;
+                overflow: hidden;
+                position: absolute;
+                text-indent: 2px;
+                //padding: 3px;
+            }
+            div#viz {
+                position: relative;
+            }
+        </style>
     </head>
     <body style="background: #f5f2f0;">
         <code class="language-javascript" id="output">
         </code>
+        <div id='viz'></div>
     </body>
 </html>

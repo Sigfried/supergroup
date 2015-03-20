@@ -32,6 +32,7 @@ body {
 	font: 100%/1.5 Questrial, sans-serif;
 	tab-size: 4;
 	hyphens: auto;
+    background-color: #F6F6E0;
 }
 
 a {
@@ -418,4 +419,11 @@ iframe {
     -webkit-box-shadow: 4px 4px 14px #000;
     overflow: scroll;
     //border: 1px dashed brown;
+}
+p > code {
+    border: 1px gray dotted;
+    background-color: #F0F0D0;
+}
+p > a {
+    color: darkred;
 }

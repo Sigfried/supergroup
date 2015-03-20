@@ -1,4 +1,4 @@
-Patient,Patient Age,PatientVisit,Date,Time,Unit,Physician,Cost,Copay,Insurance,Inpatient
+Patient,Patient Age,PatientVisit,Date,Time,Unit,Physician,Charge,Copay,Insurance,Inpatient
 Alice,46,1,2014-01-07,9:30 AM,preop,Adams,0,0,Aetna PPO,TRUE
 Alice,46,1,2014-01-07,10:30 AM,operating room,Adams,1200,0,Aetna PPO,TRUE
 Alice,46,1,2014-01-07,12:15 PM,ICU,Adams,0,0,Aetna PPO,TRUE
