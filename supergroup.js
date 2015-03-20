@@ -138,7 +138,7 @@ var supergroup = (function() {
         val.records = this; // is this wrong?
         val[childProp]= this;
 
-        _(val.descendants()).each(function(d) { d.depth = d.depth + 1; });
+        _.each(val.descendants(), function(d) { d.depth = d.depth + 1; });
 
         val.depth = 0;
         val.dim = dimName || 'root';
@@ -307,6 +307,15 @@ var supergroup = (function() {
     Value.prototype.addRecordsAsChildrenToLeafNodes = function() {
         _(this.leafNodes()).each(function(node) {
             node.children = node.records;
+            _.each(node.children, function(rec) {
+                rec.parent = node;
+                rec.depth = node.depth + 1;
+                for(var method in Value.prototype) {
+                    Object.defineProperty(rec, method, {
+                        value: Value.prototype[method]
+                    });
+                }
+            });
         }).value();
     };
     /*  didn't make this yet, just copied from above
