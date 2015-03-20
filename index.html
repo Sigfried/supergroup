@@ -86,30 +86,27 @@ dimension was being grouped at that level. </p>
 (or in your single array if you have a one-level grouping):</p>
 
 <ul>
-<li>An array of the values grouped on (could be strings, numbers, or dates) (<a href="#sgphysunit">example</a>)</li>
-<li>The records associated with each group (<a href="#records">example</a>)</li>
-<li>Information about the values at any level
-
-<ul>
-<li>Parent group if any</li>
+<li>An array of the values grouped on (could be strings, numbers, or dates) (<a href="#basics:aplainarrayofstringsenhancedwithchildrenandrecords">Basics</a>)</li>
+<li>The records associated with each group</li>
+<li>Parents of nested groups (<a href="#dimensionnamesandpaths">Dimension Names and Paths</a>)</li>
 <li>Immediate child groups if any</li>
-<li>All descendant groups</li>
+<li>All descendant groups (<a href="#retrievingsetsofvalues">Retrieving sets of values</a>)</li>
 <li>Only descendant groups at the leaf level</li>
-<li>Aggregate calculations on records for that group and its descendants</li>
+<li>For a group at any level, the name of the dimension (attribute, column, property, etc.) grouped on</li>
 <li>Path of group names from root to current group</li>
 <li>Path of group dimension names from root to current group</li>
-</ul></li>
-<li>Information about the groupings at any level</li>
-<li>For a group at any level, the name of the dimension (attribute, column, property, etc.) grouped on</li>
-<li>Any of these in a format D3 or some other tool expects</li>
+<li>Aggregate calculations on records for that group and its descendants (<a href="#aggregates">Aggregates</a>)</li>
+<li>Ability to look up specific values (<a href="#findingspecificvalues">Finding specific values</a>)</li>
+<li>Any of these in a format D3 or some other tool expects (<a href="#usingsupergroupford3hierarchylayouts">Using Supergroup for D3 hierarchy layouts</a>)</li>
+<li>Ability to include records in multipl groups if appropriate (<a href="#multi-valuedgroups">Multi-valued Groups</a>)</li>
 </ul>
 
 <h2 id="supergroup">Supergroup</h2>
 
-<p>Works as an Underscore (or Lo-Dash) mixin: </p>
+<p>Works as an Underscore (or <a href="https://lodash.com/">Lo-Dash</a>) mixin: </p>
  <pre class="language-markup" data-src="mixin_example.html"></pre>
 
-<h2 id="aplainarrayofstringsenhancedwithchildrenandrecords">A plain Array of Strings, enhanced with children and records</h2>
+<h2 id="basics:aplainarrayofstringsenhancedwithchildrenandrecords">Basics: A plain Array of Strings, enhanced with children and records</h2>
 
 <p><code>_.supergroup(data, fieldname)</code> returns an array whose elements are the
  distinct values of <code>&lt;fieldname&gt;</code> in the original data records. These elements,

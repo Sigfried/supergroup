@@ -424,6 +424,6 @@ p > code {
     border: 1px gray dotted;
     background-color: #F0F0D0;
 }
-p > a {
+a {
     color: darkred;
 }

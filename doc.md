@@ -53,26 +53,26 @@ dimension was being grouped at that level.
 Supergroup gives you almost everything you'd want for every item in your nest
 (or in your single array if you have a one-level grouping):
 
-  - An array of the values grouped on (could be strings, numbers, or dates) ([example](#sgphysunit))
-  - The records associated with each group ([example](#records))
-  - Information about the values at any level
-    - Parent group if any
-    - Immediate child groups if any
-    - All descendant groups
-    - Only descendant groups at the leaf level
-    - Aggregate calculations on records for that group and its descendants
-    - Path of group names from root to current group
-    - Path of group dimension names from root to current group
-  - Information about the groupings at any level
+  - An array of the values grouped on (could be strings, numbers, or dates) ([Basics](#basics:aplainarrayofstringsenhancedwithchildrenandrecords))
+  - The records associated with each group
+  - Parents of nested groups ([Dimension Names and Paths](#dimensionnamesandpaths))
+  - Immediate child groups if any
+  - All descendant groups ([Retrieving sets of values](#retrievingsetsofvalues))
+  - Only descendant groups at the leaf level
   - For a group at any level, the name of the dimension (attribute, column, property, etc.) grouped on
-  - Any of these in a format D3 or some other tool expects
+  - Path of group names from root to current group
+  - Path of group dimension names from root to current group
+  - Aggregate calculations on records for that group and its descendants ([Aggregates](#aggregates))
+  - Ability to look up specific values ([Finding specific values](#findingspecificvalues))
+  - Any of these in a format D3 or some other tool expects ([Using Supergroup for D3 hierarchy layouts](#usingsupergroupford3hierarchylayouts))
+  - Ability to include records in multipl groups if appropriate ([Multi-valued Groups](#multi-valuedgroups))
   
 ## Supergroup
-  Works as an Underscore (or Lo-Dash) mixin: 
+  Works as an Underscore (or [Lo-Dash](https://lodash.com/)) mixin: 
 
   <pre class="language-markup" data-src="mixin_example.html"></pre>
 
-## A plain Array of Strings, enhanced with children and records
+## Basics: A plain Array of Strings, enhanced with children and records
 
   ```_.supergroup(data, fieldname)``` returns an array whose elements are the
   distinct values of ```<fieldname>``` in the original data records. These elements,
