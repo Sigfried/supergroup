@@ -145,6 +145,19 @@ d3.xhr('./fake-patient_data.csv', function(err, resp) {
                 JSON.stringify(physunitNest.map(data),null,2)//.fixJSON('nest'),
                 ].join('\n\n'))
     }
+    if (window.location.search === '?sgmultval') {
+        //var mvg = _.supergroup(data, ['Insurace','Patient']);
+        _.each(data, function(d) { d.Insurance = d.Insurance.split(';')})
+        var m = _.supergroup(data, ['Insurance','Patient'], {multiValuedGroups: ['Insurance']});
+        d3.select('#output')
+            .text(
+                [
+                'sg.lookup("Feldman") ==> ' + JSON.stringify(sg.lookup("Feldman")),
+                'sg.lookup("Feldman").aggregate(d3.sum,"Charge") ==> ' + JSON.stringify(sg.lookup("Feldman").aggregate(d3.sum,"Charge")),
+                'sg.lookup(["Gupta", "pediatrics"]).namePath() ==> ' + JSON.stringify(sg.lookup(["Gupta", "pediatrics"]).namePath()),
+                'sg.lookupMany(["Baker", "Doom", "Feldman","A Name With No Match"]) ==> ' + JSON.stringify(sg.lookupMany(["Baker","Doom","Feldman","A Name With No Match"])),
+                ].join('\n\n'))
+    }
     Prism.highlightAll();
 });
 String.prototype.fixJSON = function(which) {
