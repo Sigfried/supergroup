@@ -580,6 +580,9 @@ if (_.createAggregator) {
 
 _.mixin({supergroup: supergroup.group, 
     addSupergroupMethods: supergroup.addSupergroupMethods,
-    multiValuedGroupBy: multiValuedGroupBy
+    multiValuedGroupBy: multiValuedGroupBy,
+    sgDiffList: supergroup.diffList,
+    sgCompare: supergroup.compare,
+    sgCompareValue: supergroup.compareValue,
 });
 
