@@ -55,9 +55,9 @@ var supergroup = (function() {
             var groups = _.groupBy(recs, dim); // use Underscore's groupBy: http://underscorejs.org/#groupBy
         }
         if (opts.excludeValues) {
-            _(opts.excludeValues).each(function(d) {
+            _.each(opts.excludeValues, function(d) {
                 delete groups[d];
-            }).value();
+            });
         }
         var isNumeric = _(opts).has('isNumeric') ? 
                             opts.isNumeric :
@@ -104,10 +104,10 @@ var supergroup = (function() {
         groups.dim = (opts.dimName) ? opts.dimName : dim;
         groups.isNumeric = isNumeric;
 
-        _(groups).each(function(group, i) { 
+        _.each(groups, function(group, i) { 
             group.parentList = groups;
             //group.idxInParentList = i; // maybe a good idea, but don't need it yet
-        }).value();
+        });
         // pointless without recursion
         //if (opts.postListListHook) groups = opts.postListListHook(groups);
         return groups;
@@ -201,9 +201,9 @@ var supergroup = (function() {
                     .value();
     };
     List.prototype.addLevel = function(dim, opts) {
-        _(this).each(function(val) {
+        _.each(this, function(val) {
             val.addLevel(dim, opts);
-        }).value();
+        });
     };
     // apply a function to the records of each group
     // 
@@ -283,10 +283,10 @@ var supergroup = (function() {
             } else {
                 d[childProp] = sg.group(d.records, dim, opts);
                 if (d.in ) {
-                    _(d[childProp]).each(function(c) {
+                    _.each(d[childProp], function(c) {
                         c.in = d.in;
                         c[d.in] = d[d.in];
-                    }).value();
+                    });
                 }
             }
             d[childProp].parentVal = d; // NOT TESTED, NOT USED, PROBABLY WRONG!!!
@@ -305,7 +305,7 @@ var supergroup = (function() {
         return makeList(ret);
     };
     Value.prototype.addRecordsAsChildrenToLeafNodes = function() {
-        _(this.leafNodes()).each(function(node) {
+        _.each(this.leafNodes(), function(node) {
             node.children = node.records;
             _.each(node.children, function(rec) {
                 rec.parent = node;
@@ -316,7 +316,7 @@ var supergroup = (function() {
                     });
                 }
             });
-        }).value();
+        });
     };
     /*  didn't make this yet, just copied from above
     Value.prototype.descendants = function(level) {
@@ -449,7 +449,7 @@ var supergroup = (function() {
         var a = _.chain(A).map(function(d) { return d+''; }).value();
         var b = _.chain(B).map(function(d) { return d+''; }).value();
         var comp = {};
-        _(A).each(function(d, i) {
+        _.each(A, function(d, i) {
             comp[d+''] = {
                 name: d+'',
                 in: 'from',
@@ -457,8 +457,8 @@ var supergroup = (function() {
                 fromIdx: i,
                 dim: dim
             };
-        }).value();
-        _(B).each(function(d, i) {
+        });
+        _.each(B, function(d, i) {
             if ((d+'') in comp) {
                 var c = comp[d+''];
                 c.in = "both";
@@ -473,7 +473,7 @@ var supergroup = (function() {
                     dim: dim
                 };
             }
-        }).value();
+        });
         var list = _.chain(comp).values().sort(function(a,b) {
             return (a.fromIdx - b.fromIdx) || (a.toIdx - b.toIdx);
         }).map(function(d) {
