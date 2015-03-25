@@ -394,6 +394,93 @@ label a.owner:not(:hover) {
 }
 
 
+div.label {
+    margin: 0px 5px 0px 0px;
+    padding: 2px 3px 2px 3px;
+    //-moz-box-shadow: 4px 4px 4px #666;
+    //-webkit-box-shadow: 4px 4px 4px #666;
+    //float: left;
+    white-space: nowrap;
+    font-weight: bold;
+    font-family: sans-serif;
+    font-size: 80%;
+    display: inline;
+    background: #f5f2f0;
+    border-top: 1px dashed brown;
+    border-left: 1px dashed brown;
+    border-right: 1px dashed brown;
+}
+ul>li {
+    margin-left: 50px;
+}
+iframe, code.rendercode, div.runcode, div.showcode, div.rendercode {
+    margin-top:0px;
+    margin-bottom: 18px;
+    padding-top: 0px;
+    -moz-box-shadow: 4px 4px 14px #000;
+    -webkit-box-shadow: 4px 4px 14px #000;
+    overflow: scroll;
+    //border: 1px dashed brown;
+}
+/*
+p > code {
+    border: 1px gray dotted;
+    background-color: #F0F0D0;
+}
+*/
+a {
+    color: darkred;
+}
+td, th {
+    padding: 2px 4px;
+}
+
+th {
+    font-weight: bold;
+}
+* table {
+  //border-style:solid;
+  //border-width:1px;
+  //border-color:darkgray;
+  border-spacing: 3px;
+}
+ 
+* table th, * table td {
+  //border-style:dashed;
+  border-width:1px;
+  //border-color:black;
+  padding: 0px 3px 0px 3px;
+  padding-right: 3px;
+  font-size: 75%;
+  background: #ECCCAA;
+}
+ 
+* table th {
+  border-style:solid;
+  font-weight:bold;
+  background: url("/images/noise.png?1330434582") repeat scroll left top #FDCDCD;
+  font-size: 85%;
+}
+ 
+* table th[align="left"], * table td[align="left"] {
+  text-align:left;
+}
+ 
+* table th[align="right"], * table td[align="right"] {
+  text-align:right;
+}
+ 
+* table th[align="center"], * table td[align="center"] {
+  text-align:center;
+}
+
+iframe {
+    margin-top:0px;
+    margin-left:5px;
+    -moz-box-shadow: 4px 4px 14px #000;
+    -webkit-box-shadow: 4px 4px 14px #000;
+    overflow: scroll;
+}
 span.iframe {
     margin: 0px 5px 0px 0px;
     padding: 0px 3px 0px 3px;
@@ -410,20 +497,16 @@ span.iframe {
     border-left: 1px dashed brown;
     border-right: 1px dashed brown;
 }
-ul>li {
-    margin-left: 50px;
+
+.treemapnode {
+    border: solid 1px white;
+    font: 10px sans-serif;
+    line-height: 12px;
+    overflow: hidden;
+    position: absolute;
+    text-indent: 2px;
+    //padding: 3px;
 }
-iframe {
-    margin-top:0px;
-    -moz-box-shadow: 4px 4px 14px #000;
-    -webkit-box-shadow: 4px 4px 14px #000;
-    overflow: scroll;
-    //border: 1px dashed brown;
-}
-p > code {
-    border: 1px gray dotted;
-    background-color: #F0F0D0;
-}
-a {
-    color: darkred;
+div#viz {
+    position: relative;
 }
