@@ -1,12 +1,71 @@
 "use strict;"
 
 function render() {
-    d3.selectAll('div.rendercode')
+    d3.selectAll('pre.rendercode>code')
         .each(function(d,i) {
-            var container = d3.select(this);
-            if (container.attr('height'))
-                container.style('height',container.attr('height'));
-            var code = container.text();
+            var pre = d3.select(this.parentElement);
+            if (pre.attr('height'))
+                pre.style('height',pre.attr('height'));
+            var codenode = d3.select(this);
+            var code = codenode.text();
+            if (pre.attr('id')) {
+                eval(code + '\n//@ sourceURL='+pre.attr('id')+'.js');
+            }
+            //code = code.replace(/^\s+/mg, '');
+            var out = [];
+            var cnt = 0;
+            while (code.length) {
+                if (!code.match(/(.*?)[/\s]*#\s*(.*)\n?((.|\n)*$)/))
+                    throw "yuch";
+                
+                var sectionOut = '';
+                var codechunk = code.replace(/(.*?)[/\s]*#\s*(.*)\n?((.|\n)*$)/,"$1");
+                var command = RegExp.$2;
+                code = RegExp.$3.trim();
+                //out.push(codechunk);
+                if (_.contains(command,'run')) {
+                    var result = eval(codechunk);
+                    command = command.replace(/run/,'').trim();
+                } 
+                if (_.contains(command,'show')) {
+                    sectionOut = codechunk;
+                    command = command.replace(/show/,'').trim();
+                }
+                if (_.contains(command,'renderhtml')) {
+                    throw new Error('not sure what to do');
+                    var result = eval(codechunk);
+                    command = command.replace(/renderhtml/,'').trim();
+                    if (command.length) {
+                        result = eval(command);
+                    }
+                }
+                if (_.contains(command,'render')) {
+                    var result = eval(codechunk);
+                    command = command.replace(/render/,'').trim();
+                    if (_.contains(command,'dontstringify')) {
+                        command = command.replace(/dontstringify/,'').trim();
+                    } else {
+                        if (command.match(/indent(\d+)/)) {
+                            result = JSON.stringify(result, null, parseInt(RegExp.$1));
+                            command = command.replace(/indent(\d+)/,'').trim();
+                        } else {
+                            result = JSON.stringify(result);
+                        }
+                    }
+                    if (command.length) {
+                        result = eval(command);
+                    }
+                    if (sectionOut.length)
+                        sectionOut += ' // ==> ';
+                    sectionOut += result;
+                }
+                out.push(sectionOut);
+                if (cnt++ > 10) break;
+            }
+            //console.log(codechunk);
+            codenode.text(out.join('\n'));
+            Prism.highlightElement(codenode.node());
+            return;
             container.html('');
             var sections = code.trim().split(/\n\s*;\s*\n/gm);
             //container.remove();

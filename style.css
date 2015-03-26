@@ -413,7 +413,8 @@ div.label {
 ul>li {
     margin-left: 50px;
 }
-iframe, code.rendercode, div.runcode, div.showcode, div.rendercode {
+iframe, pre.rendercode, div.runcode, div.showcode, div.rendercode {
+    padding: 5px !important;
     margin-top:0px;
     margin-bottom: 18px;
     padding-top: 0px;

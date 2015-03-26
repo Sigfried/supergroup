@@ -10,6 +10,7 @@ CSS: ./style.css
 CSS: ./assets/prism.css
 ---
 
+<script src="assets/prism.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.js"></script>
 <script src="./lodash/lodash.js"></script>
 <script src="./supergroup.js"></script>
@@ -110,22 +111,13 @@ Supergroup gives you almost everything you'd want for every item in your nest
 
   <a id='sgphysunit'></a>
 
-  <div><div class="label">Supergroup on physician and unit</div>
-
-  <div class='rendercode' width="100%" height="370px">
-
-    sg = _.supergroup(data, ['Physician','Unit']); // # show render
-    ;
-    sg[0]  // # show render
-    ;
-    sg[0].records // # show render
-    ;
-    sg[0].children // show render
-
-  </div>
+<div><div class="label">Supergroup on physician and unit</div>
+<pre class="rendercode language-javascript" id="sgphysunitx"><code> 
+sg = _.supergroup(data, ['Physician','Unit']); // # show render
+sg[0]  // # show render
+sg[0].records // # show render
+sg[0].children // # show render</code></pre></div>
   
-  </div>
-
 ## Dimension names and paths
 
   When you're using D3 for any kind of significant application, you'll be
@@ -134,42 +126,34 @@ Supergroup gives you almost everything you'd want for every item in your nest
   around, but then you spend half your time trying to reattach metadata to the
   values you're using. Not with Supergroup:
 
-  <a id='sgdims'></a>
+<a id='sgdimsx'></a>
 
-  <div><div class='rendercode' width="100%" height="220px">
-    sg[0].children[0] // # show render
-    ;
-    [sg[0].children[0].dim, sg[0].children.dim, sg.dim] // # show render
-    ;
-    sg[0].children[0].parent // # show render
-    ;
-    sg[0].children[0].namePath() // # show render
-    ;
-    sg[0].children[0].dimPath() // # show render
-  </div></div>
+<pre class="rendercode language-javascript" id="sgdims"><code>
+sg = _.supergroup(data, ["Physician","Unit"]) //#show render
+sg[0].children[0] //#show render
+sg[0].children[0].dim // # show render
+sg[0].children.dim //#show render
+sg.dim //#show render
+sg[0].children[0].parent // # show render
+sg[0].children[0].namePath() // # show render
+sg[0].children[0].dimPath() // # show render</code></pre>
 
 ## Aggregates
-  You can apply aggregate functions to the records of a single group or
-  to all the groups in a list.
+You can apply aggregate functions to the records of a single group or
+to all the groups in a list.
 
-  <a id='sgagg'></a>
+<a id='sgagg'></a>
 
-  <div><div class='rendercode' width="100%" height="180px">
-
-        _.each(data, function(rec) {
-            rec.Charge = parseFloat(rec.Charge);
-            rec.Copay = parseFloat(rec.Copay);
-        });
-        sg = _.supergroup(data, ['Physician','Unit']); // # run
-        ;
-        sg[0].aggregate(d3.sum, "Charge") // # show render
-        ;
-        sg[0].aggregate(d3.sum, function(rec) { return rec.Charge - rec.Copay; }) // # show render
-        ;
-        sg.aggregates(d3.sum, "Charge") // # show render
-        ;
-        sg.aggregates(d3.sum, "Charge", "dict") // # show render
-  </div></div>
+<div><pre class="rendercode language-javascript" id="aggregates"
+><code>_.each(data, function(rec) {
+    rec.Charge = parseFloat(rec.Charge); // make these actual numbers
+    rec.Copay = parseFloat(rec.Copay);
+});
+sg = _.supergroup(data, ['Physician','Unit']); // # run
+sg[0].aggregate(d3.sum, "Charge") // # show render
+sg[0].aggregate(d3.sum, function(rec) { return rec.Charge - rec.Copay; }) // # show render
+sg.aggregates(d3.sum, "Charge") // # show render
+sg.aggregates(d3.sum, "Charge", "dict") // # show render</code></pre></div>
 
 ## Finding specific values
   <a id='sgnodes'></a>
@@ -276,7 +260,7 @@ Supergroup gives you almost everything you'd want for every item in your nest
 
         _.each(data, function(d) { d.Insurance = d.Insurance.split(';')}) //  make Insurance field an array instead of ;-delimited string  # show run
         ;
-        _.supergroup(data, "Insurance") // supergroup by default just makes the array back into a string, joined with comma. so, 4 Insurance groups  // show render
+        _.supergroup(data, "Insurance") // supergroup by default just makes the array back into a string, joined with comma. so, 4 Insurance groups  // # show render
         ;
         _.supergroup(data, 'Insurance', {multiValuedGroup: true}); // now only 3 Insurance groups!  # show render
         ;
@@ -292,7 +276,6 @@ Supergroup gives you almost everything you'd want for every item in your nest
 
 </section>
 </div>
-<script src="assets/prism.js"></script>
 <script src="./docrender.js"></script>
 <script>
     d3.xhr('./examples/fake-patient_data.csv', function(err, resp) {
