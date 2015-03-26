@@ -32,35 +32,31 @@ file, a SQL query, or some AJAX call:
 
 
 <div><div class="label">Some very fake hospital data in a CSV file...</div>
-<div width="100%" class="rendercode" height="110px">
-    tabulate(container, data, ['Patient','Patient Age','PatientVisit','Date','Time','Unit','Physician','Charge','Copay','Insurance','Inpatient']); // # run
-</div>
-<div id="test"></div>
-</div>
+<pre class="rendercode language-javascript" id="csv"><code>
+    tabulate(d3.select('pre#csv'), data, ['Patient','Patient Age','PatientVisit','Date','Time','Unit','Physician','Charge','Copay','Insurance','Inpatient']); // # run
+</code></pre></div>
 
 <div><div class="label">...turned into canonical array of Objects (using d3.csv, for instance)</div>
-<div class="rendercode" height="200px">
+<pre class="rendercode language-javascript" height="150px"><code>
     data; // #   render result.replace(/{/g,'\n   {').replace(/]/,'\n]');
-</div></div>
+</code></pre></div>
 
 Without Supergroup, you'd group the records on the values of one or more fields
 with a standard grouping function, giving you data like:
 
-<div><div class="label">d3.nest().map(data)</div>
-<div class="rendercode" width="100%" height="150px">
-        d3.nest().key(function(d) { return d.Physician; })
-                 .key(function(d) { return d.Unit; })
-                 .map(data);  // # show render indent2
-</div></div>
+<pre class="rendercode language-javascript" id="nestmap" height="150px"><code>
+d3.nest().key(function(d) { return d.Physician; })
+            .key(function(d) { return d.Unit; })
+            .map(data);  // # show render indent2
+</code></pre>
 
 or
 
-<div markdown="0"><div class="label">d3.nest().map(data)</div>
-<div class='rendercode' width="100%" height="150px">
-        d3.nest().key(function(d) { return d.Physician; })
-                 .key(function(d) { return d.Unit; })
-                 .entries(data);  // # show render indent2 result.replace(/,\n/g, ", ").replace(/("key".*, )/g,"$1\n").replace(/,   */g, ", ")
-</div></div>
+<pre class="rendercode language-javascript" id="nestentries" height="150px"><code>
+d3.nest().key(function(d) { return d.Physician; })
+            .key(function(d) { return d.Unit; })
+            .entries(data);  // # show render indent2 result.replace(/,\n/g, ", ").replace(/("key".*, )/g,"$1\n").replace(/,   */g, ", ")
+</code></pre>
 
 To my mind, these are awkward data structures (not to mention the awkwardness
 of the calling functions.) The ```map``` version looks ok in the console, but
@@ -90,7 +86,15 @@ Supergroup gives you almost everything you'd want for every item in your nest
 ## Supergroup
   Works as an Underscore (or [Lo-Dash](https://lodash.com/)) mixin: 
 
-  <pre class="language-markup" data-src="./mixin_example.html"></pre>
+<pre class="rendercode language-markup" height="150px"><code
+><!--<script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.2/underscore.js"></script>
+<script src="https://rawgit.com/Sigfried/supergroup/master/supergroup.js"></script>
+<script>
+    var sg = _.supergroup(data, dimension_name)  // single-level grouping
+    var sg = _.supergroup(data, [dim1, dim2])  // multi-level grouping
+</script>-->
+// # showhtml result.replace(/<!--/,'').replace(/-->(.|\n)*/,'')
+</code></pre>
 
 ## Basics: A plain Array of Strings, enhanced with children and records
 
@@ -235,7 +239,7 @@ function position() {
         .style("height", function(d) { return Math.max(0, d.dy - 1) + "px"; });
 } // # run
 </code></pre></div>
-<div id="viz"></div>
+<div id="viz" style="margin-top:10px;height:400px;"></div>
 
 ## Multi-valued Groups
   Sometimes it makes sense to group on multi-valued fields, which leads
@@ -252,17 +256,15 @@ function position() {
   them.
 
   <a id='sgmultval'></a>
-  <p><div class='rendercode' width="100%" height="200px">
 
-        _.each(data, function(d) { d.Insurance = d.Insurance.split(';')}) //  make Insurance field an array instead of ;-delimited string  # show run
-        ;
-        _.supergroup(data, "Insurance") // supergroup by default just makes the array back into a string, joined with comma. so, 4 Insurance groups  // # show render
-        ;
-        _.supergroup(data, 'Insurance', {multiValuedGroup: true}); // now only 3 Insurance groups!  # show render
-        ;
-        mvnest = _.supergroup(data, ['Insurance','Patient'], {multiValuedGroups: ['Insurance']});
-        _.invoke(mvnest.leafNodes(),'namePath') // # show render
-  </div></p>
+<div><pre class="rendercode language-javascript" id="multivaluedGroups"
+><code>
+_.each(data, function(d) { d.Insurance = d.Insurance.split(';')}) //  make Insurance field an array instead of ;-delimited string  # show run
+_.supergroup(data, "Insurance") // supergroup by default just makes the array back into a string, joined with comma. so, 4 Insurance groups  // # show render
+_.supergroup(data, 'Insurance', {multiValuedGroup: true}); // now only 3 Insurance groups!  # show render
+mvnest = _.supergroup(data, ['Insurance','Patient'], {multiValuedGroups: ['Insurance']});
+_.invoke(mvnest.leafNodes(),'namePath') // # show render
+</code></pre></div>
   
   (In order to get this to work, I exposed an internal function
   of lodash. You can see the tiny change in my [lodash fork](https://github.com/Sigfried/lodash/commit/e158039d54d69e1362b15e8478885c4aaa23c9b2).)

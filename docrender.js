@@ -7,7 +7,7 @@ function render() {
             if (pre.attr('height'))
                 pre.style('height',pre.attr('height'));
             var codenode = d3.select(this);
-            var code = codenode.text();
+            var code = codenode.html();
             if (pre.attr('id')) {
                 eval(code + '\n//@ sourceURL='+pre.attr('id')+'.js');
             }
@@ -15,18 +15,28 @@ function render() {
             var out = [];
             var cnt = 0;
             while (code.length) {
-                if (!code.match(/(.*?)[/\s]*#\s*(.*)\n?((.|\n)*$)/))
+                if (!code.match(/^((.|\n)*?)(\s*\/\/\s*([^#]*))(#(.*))((.|\n)*$)/))
+                    code = code.trim();
+                if (!code.length) break;
+                if (!code.match(/^((.|\n)*?)(\s*\/\/\s*([^#]*))(#(.*))((.|\n)*$)/))
                     throw "yuch";
-                
+                var codechunk = RegExp.$1;
+                var command = RegExp.$6.trim();
+                code = RegExp.$7;
                 var sectionOut = '';
-                var codechunk = code.replace(/(.*?)[/\s]*#\s*(.*)\n?((.|\n)*$)/,"$1");
-                var command = RegExp.$2;
-                code = RegExp.$3.trim();
                 //out.push(codechunk);
                 if (_.contains(command,'run')) {
-                    var result = eval(codechunk);
+                    //code = codenode.text();
+                    //eval(codechunk); // already evaled above
                     command = command.replace(/run/,'').trim();
                 } 
+                if (_.contains(command,'showhtml')) {
+                    result = codenode.html();
+                    command = command.replace(/showhtml/,'').trim();
+                    if (command.length) {
+                        sectionOut = eval(command);
+                    }
+                }
                 if (_.contains(command,'show')) {
                     sectionOut = codechunk;
                     command = command.replace(/show/,'').trim();
@@ -65,60 +75,6 @@ function render() {
             console.log(out.join('\n'));
             codenode.text(out.join('\n'));
             Prism.highlightElement(codenode.node());
-            return;
-            container.html('');
-            var sections = code.trim().split(/\n\s*;\s*\n/gm);
-            //container.remove();
-            //container.text('/*' + code + '*/');
-            _.each(sections, function(section) {
-                console.log(section);
-                var codechunk = section.replace(/(.*?)[/\s]*#\s*(.*)$/,"$1");
-                var command = RegExp.$2;
-                if (_.contains(command,'run')) {
-                    eval(codechunk);
-                    command = command.replace(/run/,'').trim();
-                } 
-                if (_.contains(command,'show')) {
-                    var chunk = container.append('pre')
-                        .attr('class','language-javascript')
-                        .text(codechunk);
-                    Prism.highlightElement(chunk.node());
-                    command = command.replace(/show/,'').trim();
-                }
-                if (_.contains(command,'renderhtml')) {
-                    var result = eval(codechunk);
-                    command = command.replace(/renderhtml/,'').trim();
-                    if (command.length) {
-                        result = eval(command);
-                    }
-                    var chunk = container.append('')
-                        .attr('class','language-javascript')
-                        .text(result);
-                    Prism.highlightElement(chunk.node());
-                }
-                if (_.contains(command,'render')) {
-                    var result = eval(codechunk);
-                    command = command.replace(/render/,'').trim();
-                    if (_.contains(command,'dontstringify')) {
-                        result = result;
-                        command = command.replace(/dontstringify/,'').trim();
-                    } else {
-                        if (command.match(/indent(\d+)/)) {
-                            result = JSON.stringify(result, null, parseInt(RegExp.$1));
-                            command = command.replace(/indent(\d+)/,'').trim();
-                        } else {
-                            result = JSON.stringify(result);
-                        }
-                    }
-                    if (command.length) {
-                        result = eval(command);
-                    }
-                    var chunk = container.append('pre')
-                        .attr('class','language-javascript')
-                        .text(result);
-                    Prism.highlightElement(chunk.node());
-                }
-            });
         });
 }
 function tabulate(container, data, columns) { // from http://jsfiddle.net/7WQjr/

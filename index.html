@@ -14,15 +14,23 @@
 </head>
 <body>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.2/underscore.js"></script>
+<script src="assets/prism.js"></script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.js"></script>
 
-<script src="https://rawgit.com/Sigfried/supergroup/master/supergroup.js"></script>
+<script src="./lodash/lodash.js"></script>
 
-<p><a href="https://github.com/sigfried/supergroup"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/365986a132ccd6a44c23a9169022c0b5c890c387/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f7265645f6161303030302e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_red_aa0000.png"></a>
+<script src="./supergroup.js"></script>
+
+<!--
+<script src="https://rawgit.com/Sigfried/supergroup/master/supergroup.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.2/underscore.js"></script>
+<script src="../../software/d3/d3.js"></script>
+-->
+
+<p><a href="https://github.com/sigfried/supergroup"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/365986a132ccd6a44c23a9169022c0b5c890c387/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f7265645f6161303030302e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_red_aa0000.png"></a></p>
 <div>
-<section></p>
+<section>
 
 <h1 id="supergroup.js">Supergroup.js</h1>
 
@@ -53,26 +61,34 @@ object and its associated metadata and records is right there at
 your fingertips.</p>
 
 <p>Just to be clear about the problem&mdash;you start with tabular data from a CSV
-file, a SQL query, or some AJAX call:
-<p><span class="iframe">Some very fake hospital data in a CSV file&#8230;</span>
-<iframe width="100%" height="70px" src="examples/examples.html?data">
-</iframe></p></p>
+file, a SQL query, or some AJAX call:</p>
 
-<p><span class="iframe">...turned into canonical array of Objects (using d3.csv, for instance)</span>
-<iframe width="100%" height="80px" src="examples/examples.html?json">
-</iframe></p>
+<div><div class="label">Some very fake hospital data in a CSV file...</div>
+<pre class="rendercode language-javascript" id="csv"><code>
+    tabulate(d3.select('pre#csv'), data, ['Patient','Patient Age','PatientVisit','Date','Time','Unit','Physician','Charge','Copay','Insurance','Inpatient']); // # run
+</code></pre></div>
+
+<div><div class="label">...turned into canonical array of Objects (using d3.csv, for instance)</div>
+<pre class="rendercode language-javascript" height="150px"><code>
+    data; // #   render result.replace(/{/g,'\n   {').replace(/]/,'\n]');
+</code></pre></div>
 
 <p>Without Supergroup, you&#8217;d group the records on the values of one or more fields
 with a standard grouping function, giving you data like:</p>
 
-<p><span class="iframe">d3.nest().key(function(d) { return d.Physician; }).key(function(d) { return d.Unit; }).map(data)</span>
-<iframe width="100%" height="150px" src="examples/examples.html?d3map">
-</iframe></p>
+<pre class="rendercode language-javascript" id="nestmap" height="150px"><code>
+d3.nest().key(function(d) { return d.Physician; })
+            .key(function(d) { return d.Unit; })
+            .map(data);  // # show render indent2
+</code></pre>
 
-<p>or
-<p><span class="iframe">d3.nest().key(function(d) { return d.Physician; }).key(function(d) { return d.Unit; }).entries(data)</span>
-<iframe width="100%" height="150px" src="examples/examples.html?d3nest">
-</iframe></p></p>
+<p>or</p>
+
+<pre class="rendercode language-javascript" id="nestentries" height="150px"><code>
+d3.nest().key(function(d) { return d.Physician; })
+            .key(function(d) { return d.Unit; })
+            .entries(data);  // # show render indent2 result.replace(/,\n/g, ", ").replace(/("key".*, )/g,"$1\n").replace(/,   */g, ", ")
+</code></pre>
 
 <p>To my mind, these are awkward data structures (not to mention the awkwardness
 of the calling functions.) The <code>map</code> version looks ok in the console, but
@@ -98,13 +114,22 @@ dimension was being grouped at that level. </p>
 <li>Aggregate calculations on records for that group and its descendants (<a href="#aggregates">Aggregates</a>)</li>
 <li>Ability to look up specific values (<a href="#findingspecificvalues">Finding specific values</a>)</li>
 <li>Any of these in a format D3 or some other tool expects (<a href="#usingsupergroupford3hierarchylayouts">Using Supergroup for D3 hierarchy layouts</a>)</li>
-<li>Ability to include records in multipl groups if appropriate (<a href="#multi-valuedgroups">Multi-valued Groups</a>)</li>
+<li>Ability to include records in multiple groups if appropriate (<a href="#multi-valuedgroups">Multi-valued Groups</a>)</li>
 </ul>
 
 <h2 id="supergroup">Supergroup</h2>
 
 <p>Works as an Underscore (or <a href="https://lodash.com/">Lo-Dash</a>) mixin: </p>
- <pre class="language-markup" data-src="mixin_example.html"></pre>
+
+<pre class="rendercode language-markup" height="150px"><code
+><!--<script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.2/underscore.js"></script>
+<script src="https://rawgit.com/Sigfried/supergroup/master/supergroup.js"></script>
+<script>
+    var sg = _.supergroup(data, dimension_name)  // single-level grouping
+    var sg = _.supergroup(data, [dim1, dim2])  // multi-level grouping
+</script>-->
+// # showhtml result.replace(/<!--/,'').replace(/-->(.|\n)*/,'')
+</code></pre>
 
 <h2 id="basics:aplainarrayofstringsenhancedwithchildrenandrecords">Basics: A plain Array of Strings, enhanced with children and records</h2>
 
@@ -123,10 +148,14 @@ dimension was being grouped at that level. </p>
  Physician=&#8220;Adams&#8221;. <code>sg[0].children[0].records</code> would be the subset of
  records where Physician=&#8220;Adams&#8221; and Unit=&#8220;preop&#8221;.</p>
 
-<p><a id='sgphysunit'></a>
- <p><span class="iframe">Supergroup on physician and unit</span>
- <iframe width="100%" height="370px" src="examples/examples.html?sgphysunit">
- </iframe></p></p>
+<p><a id='sgphysunit'></a></p>
+
+<div><div class="label">Supergroup on physician and unit</div>
+<pre class="rendercode language-javascript" id="sgphysunitx"><code> 
+sg = _.supergroup(data, ['Physician','Unit']); // # show render
+sg[0]  // # show render
+sg[0].records // # show render
+sg[0].children // # show render</code></pre></div>
 
 <h2 id="dimensionnamesandpaths">Dimension names and paths</h2>
 
@@ -134,30 +163,60 @@ dimension was being grouped at that level. </p>
  writing callbacks that could accept datums of different sorts, from different
  hierarchy levels or whatever. D3 makes it super easy to pass the data values
  around, but then you spend half your time trying to reattach metadata to the
- values you&#8217;re using. Not with Supergroup:
- <a id='sgdims'></a>
- <p><iframe width="100%" height="220px" src="examples/examples.html?sgdims">
- </iframe></p></p>
+ values you&#8217;re using. Not with Supergroup:</p>
+
+<p><a id='sgdimsx'></a></p>
+
+<pre class="rendercode language-javascript" id="sgdims"><code>
+sg = _.supergroup(data, ["Physician","Unit"]) //#show render
+sg[0].children[0] //#show render
+sg[0].children[0].dim // # show render
+sg[0].children.dim //#show render
+sg.dim //#show render
+sg[0].children[0].parent // # show render
+sg[0].children[0].namePath() // # show render
+sg[0].children[0].dimPath() // # show render</code></pre>
 
 <h2 id="aggregates">Aggregates</h2>
 
 <p>You can apply aggregate functions to the records of a single group or
- to all the groups in a list.
- <a id='sgagg'></a>
- <p><iframe width="100%" height="180px" src="examples/examples.html?sgagg">
- </iframe></p></p>
+to all the groups in a list.</p>
+
+<p><a id='sgagg'></a></p>
+
+<div><pre class="rendercode language-javascript" id="aggregates"
+><code>_.each(data, function(rec) {
+    rec.Charge = parseFloat(rec.Charge); // make these actual numbers
+    rec.Copay = parseFloat(rec.Copay);
+});
+sg = _.supergroup(data, ['Physician','Unit']); // # run
+sg[0].aggregate(d3.sum, "Charge") // # show render
+sg[0].aggregate(d3.sum, function(rec) { return rec.Charge - rec.Copay; }) // # show render
+sg.aggregates(d3.sum, "Charge") // # show render
+sg.aggregates(d3.sum, "Charge", "dict") // # show render</code></pre></div>
 
 <h2 id="findingspecificvalues">Finding specific values</h2>
 
-<p><a id='sgnodes'></a>
- <p><iframe width="100%" height="180px" src="examples/examples.html?sgnodes">
- </iframe></p></p>
+<p><a id='sgnodes'></a></p>
+
+<div><pre class="rendercode language-javascript" id="lookup"
+><code>
+sg.lookup("Feldman") // # show render
+sg.lookup("Feldman").aggregate(d3.sum,"Charge") // # show render
+sg.lookup(["Gupta", "pediatrics"]).namePath() // # show render
+sg.lookupMany(["Baker", "Doom", "Feldman","A Name With No Match"]) // # show render
+</code></pre></div>
+
+<p><a id='sgnodesets'></a></p>
 
 <h2 id="retrievingsetsofvalues">Retrieving sets of values</h2>
 
-<p><a id='sgnodesets'></a>
- <p><iframe width="100%" height="200px" src="examples/examples.html?sgnodesets">
- </iframe></p></p>
+<div><pre class="rendercode language-javascript" id="nodesets"
+><code>
+sg.leafNodes()  // all bottom level groups  # show render
+sg.flattenTree()  // all groups  # show render
+_(sg.leafNodes()).invoke("namePath") // call .namePath() on all bottom level groups using underscore invoke  # show render
+</code></pre></div>
 
 <h2 id="usingsupergroupford3hierarchylayouts">Using Supergroup for D3 hierarchy layouts</h2>
 
@@ -183,9 +242,44 @@ dimension was being grouped at that level. </p>
  in a treemap. To see details, inspect code
  <a href="./examples/examples.html?sghierarchy">here</a>.</p>
 
-<p><a id='sghierarchy'></a>
- <p><iframe width="100%" height="370px" src="examples/examples.html?sghierarchy">
- </iframe></p></p>
+<p><a id='sghierarchy'></a></p>
+
+<div><pre class="rendercode language-javascript" id="treemap"
+><code>
+window.root = _.supergroup(data, ['Physician','Unit']).asRootVal('All Physicians'); // # show run
+root.addRecordsAsChildrenToLeafNodes();
+d3.layout.hierarchy()(root); // # show render
+</code></pre></div>
+
+<div><pre class="rendercode language-javascript" id="treemap"
+><code>
+var color = d3.scale.category20c();
+var treemap = d3.layout.treemap()
+    .size([700, 400])
+    .padding([18,3,3,3])
+    .value(function(d) { return d.Charge })
+var div = d3.select("div#viz");
+var node = div.datum(root).selectAll(".treemapnode")
+        .data(treemap.nodes)
+    .enter().append("div")
+        .attr("class", "treemapnode")
+        .call(position)
+        .style("background", function(d) { return d.children ? color(d) : null; })
+        .text(function(d) { 
+            return d.children ? d : 
+                _.chain(d).pick('Patient', 'Date', 'Charge')
+                    .values().value().join(', ');
+        }) // # run show
+
+function position() {
+    this.style("left", function(d) { return d.x + "px"; })
+        .style("top", function(d) { return d.y + "px"; })
+        .style("width", function(d) { return Math.max(0, d.dx - 1) + "px"; })
+        .style("height", function(d) { return Math.max(0, d.dy - 1) + "px"; });
+} // # run
+</code></pre></div>
+
+<div id="viz" style="margin-top:10px;height:400px;"></div>
 
 <h2 id="multi-valuedgroups">Multi-valued Groups</h2>
 
@@ -202,9 +296,16 @@ dimension was being grouped at that level. </p>
  we only get three groups. And that one record will show up in both of
  them.</p>
 
-<p><a id='sgmultval'></a>
- <p><iframe width="100%" height="200px" src="examples/examples.html?sgmultval">
- </iframe></p></p>
+<p><a id='sgmultval'></a></p>
+
+<div><pre class="rendercode language-javascript" id="multivaluedGroups"
+><code>
+_.each(data, function(d) { d.Insurance = d.Insurance.split(';')}) //  make Insurance field an array instead of ;-delimited string  # show run
+_.supergroup(data, "Insurance") // supergroup by default just makes the array back into a string, joined with comma. so, 4 Insurance groups  // # show render
+_.supergroup(data, 'Insurance', {multiValuedGroup: true}); // now only 3 Insurance groups!  # show render
+mvnest = _.supergroup(data, ['Insurance','Patient'], {multiValuedGroups: ['Insurance']});
+_.invoke(mvnest.leafNodes(),'namePath') // # show render
+</code></pre></div>
 
 <p>(In order to get this to work, I exposed an internal function
  of lodash. You can see the tiny change in my <a href="https://github.com/Sigfried/lodash/commit/e158039d54d69e1362b15e8478885c4aaa23c9b2">lodash fork</a>.)</p>
@@ -212,10 +313,36 @@ dimension was being grouped at that level. </p>
 <h2 id="license">License</h2>
 
 <p>MIT: <a href="http://sigfried.mit-license.org/">http://sigfried.mit-license.org/</a></p>
-
-<p></section>
+</section>
 </div>
-<script src="assets/prism.js"></script></p>
+
+<script src="./docrender.js"></script>
+
+<script>
+    d3.xhr('./examples/fake-patient_data.csv', function(err, resp) {
+        csv = resp.response;
+        data = d3.csv.parse(csv);
+        render();
+        /*
+        d3.selectAll('div.showandruncode')
+            .each(function(d) {
+                var div = d3.select(this);
+                var html = div.html();
+                div.html('');
+                div.append('div').attr('class','showcode').html(html);
+                div.append('div').attr('class','runcode').html(html);
+            });
+        d3.selectAll('div.showcode')
+            .each(function(d) {
+                putcode(d3.select(this));
+            });
+        d3.selectAll('div.runcode')
+            .each(function(d) {
+                putcode(d3.select(this), true);
+            });
+        */
+    });
+</script>
 
 </body>
 </html>
