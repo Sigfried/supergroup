@@ -157,27 +157,24 @@ sg.aggregates(d3.sum, "Charge", "dict") // # show render</code></pre></div>
 
 ## Finding specific values
   <a id='sgnodes'></a>
-  <p><div class='rendercode' width="100%" height="180px" src="examples/examples.html?sgnodes">
 
-    sg.lookup("Feldman") // # show render
-    ;
-    sg.lookup("Feldman").aggregate(d3.sum,"Charge") // # show render
-    ;
-    sg.lookup(["Gupta", "pediatrics"]).namePath() // # show render
-    ;
-    sg.lookupMany(["Baker", "Doom", "Feldman","A Name With No Match"]) // # show render
-  </div></p>
+<div><pre class="rendercode language-javascript" id="lookup"
+><code>
+sg.lookup("Feldman") // # show render
+sg.lookup("Feldman").aggregate(d3.sum,"Charge") // # show render
+sg.lookup(["Gupta", "pediatrics"]).namePath() // # show render
+sg.lookupMany(["Baker", "Doom", "Feldman","A Name With No Match"]) // # show render
+</code></pre></div>
 
+<a id='sgnodesets'></a>
 ## Retrieving sets of values
-  <a id='sgnodesets'></a>
-  <p><div class='rendercode' width="100%" height="200px">
 
-    sg.leafNodes()  // all bottom level groups  # show render
-    ;
-    sg.flattenTree()  // all groups  # show render
-    ;
-    _(sg.leafNodes()).invoke("namePath") // call .namePath() on all bottom level groups using underscore invoke  # show render
-  </div></p>
+<div><pre class="rendercode language-javascript" id="nodesets"
+><code>
+sg.leafNodes()  // all bottom level groups  # show render
+sg.flattenTree()  // all groups  # show render
+_(sg.leafNodes()).invoke("namePath") // call .namePath() on all bottom level groups using underscore invoke  # show render
+</code></pre></div>
 
 ## Using Supergroup for D3 hierarchy layouts
   D3 [hierarchy layouts](https://github.com/mbostock/d3/wiki/Hierarchy-Layout)
@@ -202,44 +199,43 @@ sg.aggregates(d3.sum, "Charge", "dict") // # show render</code></pre></div>
   in a treemap. To see details, inspect code 
   [here](./examples/examples.html?sghierarchy).
 
-  <a id='sghierarchy'></a>
-  <div><div class='rendercode' width="100%" height="370px">
+<a id='sghierarchy'></a>
 
-        window.root = _.supergroup(data, ['Physician','Unit']).asRootVal('All Physicians'); // # show run
-        root.addRecordsAsChildrenToLeafNodes();
-        var nodes = d3.layout.hierarchy()(root); // # show run
-  </div></div>
-  <div><div id='viz' class='rendercode' width="100%" height="370px">
-  
-        var color = d3.scale.category20c();
-        var treemap = d3.layout.treemap()
-            .size([700, 400])
-            .padding([18,3,3,3])
-            //.value(function(d) { return d3.sum(_.pluck(d.records,'Charge'));; });
-            .value(function(d) { return d.Charge })
-        var div = d3.select("div#viz");
-        var node = div.datum(root).selectAll(".treemapnode")
-                .data(treemap.nodes)
-            .enter().append("div")
-                .attr("class", "treemapnode")
-                .call(position)
-                .style("background", function(d) { return d.children ? color(d) : null; })
-                .text(function(d) { 
-                    return d.children ? d : 
-                        _.chain(d).pick('Patient', 'Date', 'Charge')
-                            .values().value().join(', ');
-                })
-                //.text(_.identity)
+<div><pre class="rendercode language-javascript" id="treemap"
+><code>
+window.root = _.supergroup(data, ['Physician','Unit']).asRootVal('All Physicians'); // # show run
+root.addRecordsAsChildrenToLeafNodes();
+d3.layout.hierarchy()(root); // # show render
+</code></pre></div>
 
-        function position() {
-            this.style("left", function(d) { return d.x + "px"; })
-                .style("top", function(d) { return d.y + "px"; })
-                .style("width", function(d) { return Math.max(0, d.dx - 1) + "px"; })
-                .style("height", function(d) { return Math.max(0, d.dy - 1) + "px"; });
-        }
-        // # run
+<div><pre class="rendercode language-javascript" id="treemap"
+><code>
+var color = d3.scale.category20c();
+var treemap = d3.layout.treemap()
+    .size([700, 400])
+    .padding([18,3,3,3])
+    .value(function(d) { return d.Charge })
+var div = d3.select("div#viz");
+var node = div.datum(root).selectAll(".treemapnode")
+        .data(treemap.nodes)
+    .enter().append("div")
+        .attr("class", "treemapnode")
+        .call(position)
+        .style("background", function(d) { return d.children ? color(d) : null; })
+        .text(function(d) { 
+            return d.children ? d : 
+                _.chain(d).pick('Patient', 'Date', 'Charge')
+                    .values().value().join(', ');
+        }) // # run show
 
-  </div></div>
+function position() {
+    this.style("left", function(d) { return d.x + "px"; })
+        .style("top", function(d) { return d.y + "px"; })
+        .style("width", function(d) { return Math.max(0, d.dx - 1) + "px"; })
+        .style("height", function(d) { return Math.max(0, d.dy - 1) + "px"; });
+} // # run
+</code></pre></div>
+<div id="viz"></div>
 
 ## Multi-valued Groups
   Sometimes it makes sense to group on multi-valued fields, which leads

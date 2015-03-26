@@ -62,7 +62,7 @@ function render() {
                 out.push(sectionOut);
                 if (cnt++ > 10) break;
             }
-            //console.log(codechunk);
+            console.log(out.join('\n'));
             codenode.text(out.join('\n'));
             Prism.highlightElement(codenode.node());
             return;
