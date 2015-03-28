@@ -59,3 +59,10 @@ All nodes in a single array:
         "United States/Swimming/2004",
         ...
 
+Multivalued groups
+
+    _.supergroup([{A:[1,2]}, {A:[2]}, {A:[2,3]}], 'A').d3entries() // normal operation
+    // ==> [{"key":"2","values":[{"A":[2]}]},{"key":"1,2","values":[{"A":[1,2]}]},{"key":"2,3","values":[{"A":[2,3]}]}]"
+    
+    _.supergroup([{A:[1,2]}, {A:[2]}, {A:[2,3]}], 'A',{multiValuedGroup:true}).d3entries() // allow records to appear in more than on group
+    // ==> [{"key":"1","values":[{"A":[1,2]}]},{"key":"2","values":[{"A":[1,2]},{"A":[2]},{"A":[2,3]}]},{"key":"3","values":[{"A":[2,3]}]}]
