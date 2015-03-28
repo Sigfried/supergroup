@@ -59,6 +59,23 @@ All nodes in a single array:
         "United States/Swimming/2004",
         ...
 
+Output in d3.nest formats
+    sg.d3map() // ==> {
+        "United States":{
+            "Swimming":{
+                "2000":[
+                    {"Athlete":"Dara Torres","Age":"33", ...
+                    {"Athlete":"Gary Hall Jr.","Age":"25", ...
+                    ],
+                "2004":[
+                    {"Athlete":"Michael Phelps","Age":"19", ...
+
+    sg.d3entries() // ==> [
+        {"key":"United States","values":[
+            {"key":"Swimming","values":[
+                {"key":"2000","values":[
+                    {"Athlete":"Dara Torres","Age":"33", ...
+                    
 Multivalued groups
 
     _.supergroup([{A:[1,2]}, {A:[2,3]}], 'A').d3map() // normal operation
