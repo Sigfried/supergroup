@@ -95,7 +95,7 @@ just leaf nodes:
       // it's now a 5-level hierarchy with a root node at top and original records at bottom
     
                     
-Multivalued groups
+#### Multivalued groups
 
     _.supergroup([{A:[1,2]}, {A:[2,3]}], 'A').d3map() // normal operation
     // ==> { 
