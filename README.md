@@ -60,6 +60,7 @@ All nodes in a single array:
         ...
 
 Output in d3.nest formats
+
     sg.d3map() // ==> {
         "United States":{
             "Swimming":{
