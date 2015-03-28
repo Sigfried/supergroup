@@ -1,5 +1,11 @@
 Supergroup
 ==========
+Supergroup performs single- or multi-level grouping on collections of records. It provides a host of utitily and conveniece methods on the returned array of group values as well as on each group values. If a multi-level grouping is performed, each value's `children` array also acts as a Supergroup list.
+
+Supergroup is implemented as an Underscore or LoDash mixin, so just include one of those first:
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/3.5.0/lodash.min.js"></script>
+    <script src="https://rawgit.com/Sigfried/supergroup/master/supergroup.js"></script>
 
 At first glance what Supergroup returns appears to be a list of String 
 objects representing the top-level grouping. (Examples use a subset of
