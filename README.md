@@ -62,14 +62,14 @@ All nodes in a single array:
 Multivalued groups
 
     _.supergroup([{A:[1,2]}, {A:[2,3]}], 'A').d3map() // normal operation
-       ==> { 
+    // ==> { 
             "1,2": [{"A":[1,2]}],
             "2,3": [{"A":[2,3]}]
-            }
+           }
     
     _.supergroup([{A:[1,2]}, {A:[2,3]}], 'A',{multiValuedGroup:true}).d3map() // allow records to appear in more than one group
-      ==> {
+    // ==> {
             "1":[{"A":[1,2]}],
             "2":[{"A":[1,2]},{"A":[2,3]}],
             "3":[{"A":[2,3]}]
-          }
+           }
