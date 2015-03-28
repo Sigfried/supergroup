@@ -81,14 +81,14 @@ just leaf nodes:
                     {"Athlete":"Dara Torres","Age":"33", ...
                     
 #### For use in D3 hierarchy layouts
-    // need a single root node
+    // D3 hierarchies need a single root node
     root = sg.asRootVal("Olympics") // ==> "Olympics"
     root.children // ==> ["United States","Russia","Australia"]
     
-    // need to have actual records as leaf nodes
-    _.invoke(root.leafNodes(),'namePath')  // normally leaf nodes are the bottom level grouping:
-      ==> ["United States/Swimming/2000", "United States/Swimming/2004", ...
-
+    // normally leaf nodes are the bottom level grouping:
+    _.invoke(root.leafNodes(),'namePath') // ==> ["United States/Swimming/2000", "United States/Swimming/2004", ...
+    
+    // but D3 hierachies need to have actual records as leaf nodes
     root.addRecordsAsChildrenToLeafNodes() // this adds a level to the grouping (changes sg also)
     _.invoke(root.leafNodes(),'namePath')  //
       ==> ["Olympics/United States/Swimming/2000/[object Object]", "Olympics/United States/Swimming/2000/[object Object]"]
