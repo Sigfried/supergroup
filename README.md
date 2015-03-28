@@ -51,4 +51,10 @@ just leaf nodes:
 All nodes in a single array:
 
     sg.flattenTree() // ==> ["United States","Swimming",2000,2004,2008,2012,"Gymnastics",2000,2004,2008,2012,"Diving",2000,2012,"Wrestling",2000,2004,2008,2012,"Weightlifting",2000,"Russia","Gymnastics",2000,2004,2008,2012,"Diving",2000,2004,2008,2012,"Swimming",2000,2004,2008,2012,"Wrestling",2000,2004,2008,2012,"Weightlifting",2000,2004,2008,2012,"Australia","Swimming",2000,2004,2008,2012,"Diving",2000,2004,2008,2012]
+    _.invoke(sg.flattenTree(), "namePath") // ==> [
+        "United States",
+        "United States/Swimming",
+        "United States/Swimming/2000",
+        "United States/Swimming/2004",
+        ...
 
