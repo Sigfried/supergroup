@@ -21,6 +21,7 @@ function render() {
                 if (!code.match(/^((.|\n)*?)(\s*\/\/\s*([^#]*))(#(.*))((.|\n)*$)/))
                     throw "yuch";
                 var codechunk = RegExp.$1;
+                var comment = RegExp.$3;
                 var command = RegExp.$6.trim();
                 code = RegExp.$7;
                 var sectionOut = '';
@@ -38,7 +39,7 @@ function render() {
                     }
                 }
                 if (_.contains(command,'show')) {
-                    sectionOut = codechunk;
+                    sectionOut = codechunk + comment;
                     command = command.replace(/show/,'').trim();
                 }
                 if (_.contains(command,'renderhtml')) {
@@ -66,14 +67,14 @@ function render() {
                         result = eval(command);
                     }
                     if (sectionOut.length)
-                        sectionOut += ' // ==> ';
+                        sectionOut += '==> ';
                     sectionOut += result;
                 }
                 out.push(sectionOut);
                 if (cnt++ > 10) break;
             }
-            console.log(out.join('\n'));
-            codenode.text(out.join('\n'));
+            //console.log(out.join('\n'));
+            codenode.text(out.join(''));
             Prism.highlightElement(codenode.node());
         });
 }
