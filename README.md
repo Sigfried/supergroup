@@ -61,8 +61,15 @@ All nodes in a single array:
 
 Multivalued groups
 
-    _.supergroup([{A:[1,2]}, {A:[2,3]}], 'A').d3entries() // normal operation
-    // ==> [{"key":"1,2","values":[{"A":[1,2]}]},{"key":"2,3","values":[{"A":[2,3]}]}]
+    _.supergroup([{A:[1,2]}, {A:[2,3]}], 'A').d3map() // normal operation
+       ==> { 
+            "1,2": [{"A":[1,2]}],
+            "2,3": [{"A":[2,3]}]
+            }
     
-    _.supergroup([{A:[1,2]}, {A:[2,3]}], 'A',{multiValuedGroup:true}).d3entries() // allow records to appear in more than one group
-    // ==> [{"key":"1","values":[{"A":[1,2]}]},{"key":"2","values":[{"A":[1,2]},{"A":[2,3]}]},{"key":"3","values":[{"A":[2,3]}]}]
+    _.supergroup([{A:[1,2]}, {A:[2,3]}], 'A',{multiValuedGroup:true}).d3map() // allow records to appear in more than one group
+      ==> {
+            "1":[{"A":[1,2]}],
+            "2":[{"A":[1,2]},{"A":[2,3]}],
+            "3":[{"A":[2,3]}]
+          }
