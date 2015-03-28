@@ -2,7 +2,8 @@ Supergroup
 ==========
 
 At first glance what Supergroup returns appears to be a list of String 
-objects representing the top-level grouping 
+objects representing the top-level grouping. (Examples use a subset of
+[these Olympic athlete records](https://github.com/Sigfried/supergroup/blob/master/examples/OlympicAthletes.csv).)
 
     sg = _.supergroup(data, ['Country','Sport','Year']) // ==> ["United States","Russia","Australia"]
     sg[0]  // ==> "United States"
