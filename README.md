@@ -8,7 +8,7 @@ objects representing the top-level grouping. (Examples use a subset of
     sg = _.supergroup(data, ['Country','Sport','Year']) // ==> ["United States","Russia","Australia"]
     sg[0]  // ==> "United States"
 
-but the grouped records show up as a property: 
+Original records in each group show up as a property of that group's String object: 
 
     sg[0].records.length // ==> 210
     sg[0].records.slice(0,2) // ==> [
