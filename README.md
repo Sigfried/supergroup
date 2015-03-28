@@ -8,7 +8,7 @@ objects representing the top-level grouping. (Examples use a subset of
     sg = _.supergroup(data, ['Country','Sport','Year']) // ==> ["United States","Russia","Australia"]
     sg[0]  // ==> "United States"
 
-Original records in each group show up as a property of that group's String object: 
+#### Original records in each group show up as a property of that group's String object: 
 
     sg[0].records.length // ==> 210
     sg[0].records.slice(0,2) // ==> [
@@ -16,10 +16,11 @@ Original records in each group show up as a property of that group's String obje
         {"Athlete":"Michael Phelps","Age":"19","Country":"United States","Year":"2004","Closing Ceremony Date":"8/29/04","Sport":"Swimming","Gold Medals":"6","Silver Medals":"0","Bronze Medals":"2","Total Medals":"8"}
       ]
 
-and subgroups appear in a children property: 
+#### and subgroups appear in a children property: 
 
     sg[0].children // ==> ["Swimming","Gymnastics","Diving","Wrestling","Weightlifting"]
 
+#### Aggregates
 Unlike common data grouping/nesting utilities (D3.nest, Underscore.Nest)
 Supergroup gives you record subsets at every level, not just at the leaf level.
 No need to roll up subgroups for calculating aggregates at higher levels.
@@ -30,6 +31,7 @@ Supergroup also provides convenience methods for aggregating:
     sg.aggregates(d3.sum, "Total Medals") // ==> [352,157,180]
     sg.aggregates(d3.sum, "Total Medals", "dict") // ==> {"United States":352,"Russia":157,"Australia":180}
 
+#### Metadata
 Supergroup remembers the dimension names used to produce groupings. And
 individual nodes contain a reference to the level they’re on and to their
 parent values and lists:
@@ -42,6 +44,7 @@ parent values and lists:
     sg[0].children[0].children[0].namePath() // ==> "United States/Swimming/2000"
     sg[0].children[0].children[0].dimPath() // ==> "Country/Sport/Year"
 
+#### lookup, descendants, leafNodes
 Find nodes by looking up specific values. From any node, get all descendant or
 just leaf nodes:
 
@@ -49,7 +52,7 @@ just leaf nodes:
     sg.lookup("Russia").descendants() // ==> ["Gymnastics",2000,2004,2008,2012,"Diving",2000,2004,2008,2012,"Swimming",2000,2004,2008,2012,"Wrestling",2000,2004,2008,2012,"Weightlifting",2000,2004,2008,2012]
     sg.lookup("Russia").leafNodes() // ==> [2000,2004,2008,2012,2000,2004,2008,2012,2000,2004,2008,2012,2000,2004,2008,2012,2000,2004,2008,2012]
 
-All nodes in a single array:
+#### All nodes in a single array:
 
     sg.flattenTree() // ==> ["United States","Swimming",2000,2004,2008,2012,"Gymnastics",2000,2004,2008,2012,"Diving",2000,2012,"Wrestling",2000,2004,2008,2012,"Weightlifting",2000,"Russia","Gymnastics",2000,2004,2008,2012,"Diving",2000,2004,2008,2012,"Swimming",2000,2004,2008,2012,"Wrestling",2000,2004,2008,2012,"Weightlifting",2000,2004,2008,2012,"Australia","Swimming",2000,2004,2008,2012,"Diving",2000,2004,2008,2012]
     _.invoke(sg.flattenTree(), "namePath") // ==> [
@@ -59,7 +62,7 @@ All nodes in a single array:
         "United States/Swimming/2004",
         ...
 
-Output in d3.nest formats
+#### Output in d3.nest formats
 
     sg.d3map() // ==> {
         "United States":{
@@ -76,6 +79,21 @@ Output in d3.nest formats
             {"key":"Swimming","values":[
                 {"key":"2000","values":[
                     {"Athlete":"Dara Torres","Age":"33", ...
+                    
+#### For use in D3 hierarchy layouts
+    // need a single root node
+    root = sg.asRootVal("Olympics") // ==> "Olympics"
+    root.children // ==> ["United States","Russia","Australia"]
+    
+    // need to have actual records as leaf nodes
+    _.invoke(root.leafNodes(),'namePath')  // normally leaf nodes are the bottom level grouping:
+      ==> ["United States/Swimming/2000", "United States/Swimming/2004", ...
+
+    root.addRecordsAsChildrenToLeafNodes() // this adds a level to the grouping (changes sg also)
+    _.invoke(root.leafNodes(),'namePath')  //
+      ==> ["Olympics/United States/Swimming/2000/[object Object]", "Olympics/United States/Swimming/2000/[object Object]"]
+      // it's now a 5-level hierarchy with a root node at top and original records at bottom
+    
                     
 Multivalued groups
 
