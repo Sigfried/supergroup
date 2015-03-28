@@ -1,6 +1,6 @@
 Supergroup
 ==========
-Supergroup performs single- or multi-level grouping on collections of records. It provides a host of utitily and conveniece methods on the returned array of group values as well as on each group values. If a multi-level grouping is performed, each value's `children` array also acts as a Supergroup list.
+Supergroup performs single- or multi-level grouping on collections of records. It provides a host of utitily and conveniece methods on the returned array of group values as well as on each of these specific group values. If a multi-level grouping is performed, each value's `children` array also acts as a Supergroup list.
 
 Supergroup is implemented as an Underscore or LoDash mixin, so just include one of those first:
 
