@@ -139,6 +139,7 @@ var supergroup = (function() {
         val[childProp]= this;
 
         _.each(val.descendants(), function(d) { d.depth = d.depth + 1; });
+        _.each(val.children, function(d) { d.parent = val; });
 
         val.depth = 0;
         val.dim = dimName || 'root';
@@ -154,23 +155,23 @@ var supergroup = (function() {
     };
     // lookup a value in a list, or, if query is an array
     //      it is interpreted as a path down the group hierarchy
-    List.prototype.lookup = function(query) {
+    List.prototype.lookup = function(query, die) {
         if (_.isArray(query)) {
             // if group has children, can search down the tree
             var values = query.slice(0);
             var list = this;
             var ret;
             while(values.length) {
-                ret = list.singleLookup(values.shift());
+                ret = list.singleLookup(values.shift(), true);
                 list = ret[childProp];
             }
             return ret;
         } else {
-            return this.singleLookup(query);
+            return this.singleLookup(query, die);
         }
     };
 
-    List.prototype.singleLookup = function(query) {
+    List.prototype.singleLookup = function(query, die) {
         var that = this;
         if (! ('lookupMap' in this)) {
             this.lookupMap = {};
@@ -180,13 +181,15 @@ var supergroup = (function() {
         }
         if (query in this.lookupMap)
             return this.lookupMap[query];
+        if (die)
+            throw new Error("can't find " + query + " in " + this.dim + " list [" + this.toString() + "]");
     };
 
     // lookup more than one thing at a time
-    List.prototype.lookupMany = function(query) {
+    List.prototype.lookupMany = function(query, die) {
         var list = this;
         return sg.addSupergroupMethods(_.chain(query).map(function(d) { 
-            return list.singleLookup(d)
+            return list.singleLookup(d, die)
         }).compact().value());
     };
     List.prototype.flattenTree = function() {
@@ -216,12 +219,19 @@ var supergroup = (function() {
         return results;
     };
 
-    List.prototype.entries = function() {
+    List.prototype.d3entries = function() {
         return _.map(this, function(val) {
             if (childProp in val)
-                return {key: val.toString(), values: val[childProp].entries()};
+                return {key: val.toString(), values: val[childProp].d3entries()};
             return {key: val.toString(), values: val.records};
         });
+    };
+    List.prototype.d3map = function() {
+        return _.chain(this).map(function(val) {
+            if (childProp in val)
+                return [val.toString(), val[childProp].d3map()];
+            return [val.toString(), val.records];
+        }).object().value();
     };
 
     function makeValue(v_arg) {
@@ -372,7 +382,7 @@ var supergroup = (function() {
     Value.prototype.descendants = function(opts) {
         return this[childProp] ? this[childProp].flattenTree() : undefined;
     };
-    Value.prototype.lookup = function(query) {
+    Value.prototype.lookup = function(query, die) {
         if (_.isArray(query)) {
             if (this.valueOf() == query[0]) { // allow string/num comparison to succeed?
                 query = query.slice(1);
@@ -388,7 +398,7 @@ var supergroup = (function() {
         }
         if (!this[childProp])
             throw new Error("can only call lookup on Values with kids");
-        return this[childProp].lookup(query);
+        return this[childProp].lookup(query, die);
     };
     Value.prototype.pct = function() {
         return this.records.length / this.parentList.records.length;
@@ -418,11 +428,11 @@ var supergroup = (function() {
                     return memo;
                 },{sum:0,cnt:0,max:-Infinity});
     }; 
-    /** Compare groups across two similar root notes
+    /** Compare groups across two similar nodes
      *
-     * @param {from} ...
-     * @param {to} ...
-     * @param {dim} ...
+     * @param {fromVal} ...
+     * @param {toVal} ...
+     * @param {dim|[dims]} ...
      * @param {opts} ...
      *
      * used by treelike and some earlier code
@@ -437,17 +447,17 @@ var supergroup = (function() {
         return list;
     };
 
-    /** Compare two groups by a dimension
+    /** Compare two lists by a dimension
      *
-     * @param {A} ...
-     * @param {B} ...
-     * @param {dim} ...
+     * @param {listA} ...
+     * @param {listB} ...
+     * @param {dim|[dims]} ...
      *
      * @memberof supergroup
      */
     sg.compare = function(A, B, dim) {
-        var a = _.chain(A).map(function(d) { return d+''; }).value();
-        var b = _.chain(B).map(function(d) { return d+''; }).value();
+        var a = A.map(String);
+        var b = B.map(String);
         var comp = {};
         _.each(A, function(d, i) {
             comp[d+''] = {
@@ -479,11 +489,15 @@ var supergroup = (function() {
         }).map(function(d) {
             var val = makeValue(d.name);
             _.extend(val, d);
+            /*
             val.records = [];
             if ('from' in d)
                 val.records = val.records.concat(d.from.records);
             if ('to' in d)
                 val.records = val.records.concat(d.to.records);
+            */
+            val.records = _.union(d.from ? d.from.records : [],
+                                  d.to ? d.to.records : []);
             return val;
 
         }).value();
@@ -512,7 +526,7 @@ var supergroup = (function() {
         val.to = to;
         val.depth = 0;
         val.in = "both";
-        val.records = [].concat(from.records,to.records);
+        val.records = _.union(from.records,to.records);
         val.records.parentVal = val; // NOT TESTED, NOT USED, PROBABLY WRONG
         val.dim = from.dim;
         return val;

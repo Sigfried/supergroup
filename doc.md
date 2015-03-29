@@ -11,13 +11,13 @@ CSS: ./assets/prism.css
 ---
 
 <script src="assets/prism.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.js"></script>
+<script src="../../software/d3/d3.js"></script>
 <script src="./lodash/lodash.js"></script>
 <script src="./supergroup.js"></script>
 <!--
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.js"></script>
 <script src="https://rawgit.com/Sigfried/supergroup/master/supergroup.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.2/underscore.js"></script>
-<script src="../../software/d3/d3.js"></script>
 -->
 <a href="https://github.com/sigfried/supergroup"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/365986a132ccd6a44c23a9169022c0b5c890c387/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f7265645f6161303030302e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_red_aa0000.png"></a>
 
@@ -264,6 +264,16 @@ function position() {
 </code></pre></div>
 <div id="viz" style="margin-top:10px;height:400px;"></div>
 
+## d3.nest formats
+<div><pre class="rendercode language-javascript" id="d3entries" height="100px"><code>
+sg.d3entries() // # show render indent2
+</code></pre></div>
+
+<div><pre class="rendercode language-javascript" id="d3map" height="100px"><code>
+sg.d3map() // # show render indent2
+</code></pre></div>
+
+<a id='sgmultval'></a>
 ## Multi-valued Groups
   Sometimes it makes sense to group on multi-valued fields, which leads
   to the result that records with multiple values in a grouped field end up 
@@ -278,7 +288,6 @@ function position() {
   we only get three groups. And that one record will show up in both of
   them.
 
-  <a id='sgmultval'></a>
 
 <div><pre class="rendercode language-javascript" id="multivaluedGroups"
 ><code>
@@ -292,6 +301,14 @@ _.invoke(mvnest.leafNodes(),'namePath') // # show render
   (In order to get this to work, I exposed an internal function
   of lodash. You can see the tiny change in my [lodash fork](https://github.com/Sigfried/lodash/commit/e158039d54d69e1362b15e8478885c4aaa23c9b2).)
 
+<div><pre class="rendercode language-javascript" id="diff"
+><code>
+og = _.supergroup(olympics, ["Country","Athlete","Year"]);
+diff = _.sgDiffList(
+            og.lookup(["United States","Michael Phelps",2004], true),
+            og.lookup(["United States","Michael Phelps",2008], true),
+            "Year") // # show render
+</code></pre></div>
 ## License ##
   MIT: [http://sigfried.mit-license.org/](http://sigfried.mit-license.org/)
 
@@ -302,24 +319,9 @@ _.invoke(mvnest.leafNodes(),'namePath') // # show render
     d3.xhr('./examples/fake-patient_data.csv', function(err, resp) {
         csv = resp.response;
         data = d3.csv.parse(csv);
-        render();
-        /*
-        d3.selectAll('div.showandruncode')
-            .each(function(d) {
-                var div = d3.select(this);
-                var html = div.html();
-                div.html('');
-                div.append('div').attr('class','showcode').html(html);
-                div.append('div').attr('class','runcode').html(html);
-            });
-        d3.selectAll('div.showcode')
-            .each(function(d) {
-                putcode(d3.select(this));
-            });
-        d3.selectAll('div.runcode')
-            .each(function(d) {
-                putcode(d3.select(this), true);
-            });
-        */
+        d3.csv('./examples/OlympicAthletes.csv', function(odata) {
+            olympics = odata;
+            render();
+        })
     });
 </script>
