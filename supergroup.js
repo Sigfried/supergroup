@@ -398,6 +398,16 @@ var supergroup = (function() {
             return func(_.map(this.records, field));
         return func(_.pluck(this.records, field));
     };
+    Value.prototype.previous = function(errorOnFail) {
+        var idx = this.parentList.indexOf(this);
+        if (idx < 1) {
+            if (errorOnFail) {
+                throw new Error("no previous node for " + String(this));
+            }
+            return null;
+        }
+        return this.parentList[idx - 1];
+    };
 
     /** Summarize records by a dimension
      *
