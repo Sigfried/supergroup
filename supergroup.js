@@ -162,6 +162,9 @@ var supergroup = (function() {
             var ret;
             while(values.length) {
                 ret = list.singleLookup(values.shift());
+                if(!ret) {
+                    break;
+                }                
                 list = ret[childProp];
             }
             return ret;
