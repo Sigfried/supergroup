@@ -10,6 +10,8 @@
 
 'use strict()';
 
+var recordset = (function() {
+}());
 var supergroup = (function() {
     // @description local reference to supergroup namespace 
     var sg = {};
@@ -30,13 +32,34 @@ var supergroup = (function() {
      *
      * Avaailable as _.supergroup, Underscore mixin
      */
-    sg.group = function(recs, dim, opts) {
+    sg.group = function(recs, dims, opts) {
         // if dim is an array, use multiDimList to create hierarchical grouping
         opts = opts || {};
-        if (_(dim).isArray()) return sg.multiDimList(recs, dim, opts);
+        dims = _.toArray(dims);
         recs = opts.preListRecsHook ? opts.preListRecsHook(recs) : recs;
         childProp = opts.childProp || childProp;
 
+        var originalDims = _.keys(recs[0] || {});
+        var nest = d3.nest();
+        dims.forEach(function(dim) {
+            nest.key(function(d) { return d[dim]; });
+        });
+        nest.rollup(function(d) { return null });
+        var entries = nest.entries(recs);
+        var hier = d3.layout.hierarchy()
+            .children(function(d){return d.values});
+        
+        var nodes = hier({key:"root",values:entries});
+
+        nodes.forEach(function(node) {
+            if (node.children)
+                node.toString = function() { return node.key };
+            else
+                node.toString = function() { return JSON.stringify(_.pick(node,originalDims)) };
+        })
+        console.log(nodes.toString);
+
+        /*
         if (opts.multiValuedGroup || opts.multiValuedGroups) {
             if (opts.wasMultiDim) {
                 if (opts.multiValuedGroups) {
@@ -54,6 +77,7 @@ var supergroup = (function() {
         } else {
             var groups = _.groupBy(recs, dim); // use Underscore's groupBy: http://underscorejs.org/#groupBy
         }
+        */
         if (opts.excludeValues) {
             _.each(opts.excludeValues, function(d) {
                 delete groups[d];

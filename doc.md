@@ -68,15 +68,24 @@ Without Supergroup, you'd group the records on the values of one or more fields
 with a standard grouping function, giving you data like:
 
 <pre class="rendercode language-javascript" id="nestmap" height="150px"><code>
-d3.nest().key(function(d) { return d.Physician; })
-            .key(function(d) { return d.Unit; })
-            .map(data);  // # show render indent2
+nest = d3.sgnest().keys(['Physician', 'Unit']); // # show
+g = nest.noCycles(true).groups(data);  // # show render indent2 result.replace(/,\n/g, ", ").replace(/("key".*, )/g,"$1\n").replace(/,   */g, ", ")
+a = g.lookup('Adams');
+nodes = nest.nodes(g[0]); // # show render
+t = nest.tree(data);  // # show render indent2 result.replace(/,\n/g, ", ").replace(/("key".*, )/g,"$1\n").replace(/,   */g, ", ")
+nodes = nest.nodes(t); // # show render
+paths = _.invoke(nodes,'namePath');
+node = t.lookup(['Adams','preop']);
+//g.children[0].nodes(); // # show render
+g = nest.leafNodesAreGroups(false).groups(data);  // # show render indent2 result.replace(/,\n/g, ", ").replace(/("key".*, )/g,"$1\n").replace(/,   */g, ", ")
+m = nest.map(data);  // # show render indent2
+e = nest.entries(data);  // # show render indent2 result.replace(/,\n/g, ", ").replace(/("key".*, )/g,"$1\n").replace(/,   */g, ", ")
 </code></pre>
 
 or
 
 <pre class="rendercode language-javascript" id="nestentries" height="150px"><code>
-d3.nest().key(function(d) { return d.Physician; })
+d3.sgnest().key(function(d) { return d.Physician; })
             .key(function(d) { return d.Unit; })
             .entries(data);  // # show render indent2 result.replace(/,\n/g, ", ").replace(/("key".*, )/g,"$1\n").replace(/,   */g, ", ")
 </code></pre>
