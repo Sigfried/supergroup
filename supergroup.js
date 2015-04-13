@@ -216,19 +216,12 @@ var supergroup = (function() {
         return results;
     };
 
-    List.prototype.d3entries = function() {
+    List.prototype.entries = function() {
         return _.map(this, function(val) {
             if (childProp in val)
-                return {key: val.toString(), values: val[childProp].d3entries()};
+                return {key: val.toString(), values: val[childProp].entries()};
             return {key: val.toString(), values: val.records};
         });
-    };
-    List.prototype.d3map = function() {
-        return _.chain(this, function(val) {
-            if (childProp in val)
-                return [val.toString(), val[childProp].d3map()];
-            return [val.toString(), val.records];
-        }).object().value();
     };
 
     function makeValue(v_arg) {
