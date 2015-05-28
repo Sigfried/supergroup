@@ -162,9 +162,6 @@ var supergroup = (function() {
             var ret;
             while(values.length) {
                 ret = list.singleLookup(values.shift());
-                if(!ret) {
-                    break;
-                }                
                 list = ret[childProp];
             }
             return ret;
@@ -400,16 +397,6 @@ var supergroup = (function() {
         if (_.isFunction(field))
             return func(_.map(this.records, field));
         return func(_.pluck(this.records, field));
-    };
-    Value.prototype.previous = function(errorOnFail) {
-        var idx = this.parentList.indexOf(this);
-        if (idx < 1) {
-            if (errorOnFail) {
-                throw new Error("no previous node for " + String(this));
-            }
-            return null;
-        }
-        return this.parentList[idx - 1];
     };
 
     /** Summarize records by a dimension
