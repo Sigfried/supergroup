@@ -10,6 +10,9 @@
 
 'use strict()';
 
+if (typeof require !== "undefined")
+    var _ = require('lodash');
+
 var supergroup = (function() {
     // @description local reference to supergroup namespace 
     var sg = {};
