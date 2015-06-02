@@ -1,7 +1,8 @@
 {
   "framework": "jasmine",
   "src_files": [
-    "./node_modules/underscore/underscore.js",
+    "./lodash.custom.js",
+    "./node_modules/d3/d3.js",
     "./supergroup.js",
     "./supergroup_spec.js"
   ]

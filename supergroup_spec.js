@@ -1,4 +1,4 @@
-'use strict()';
+'use strict';
 
 /* global: describe */
 describe('_.supergroup', function() {
@@ -38,6 +38,14 @@ describe('_.supergroup', function() {
             {"lastName":"Gold","firstName":"Sigfried","class":"Documenting with Pretty Colors","grade":"B","num":3}
         ]); 
     });
+    it('should have lookup and children', function() {
+        expect(self.gradesByGradeLastName.lookup('B').children.length).toEqual(2);
+    });
+    it('should have leafNodes', function() {
+        expect(self.gradesByGradeLastName.leafNodes().namePaths()).toEqual( [
+            'C/Gold','B/Gold','B/Androy','A/Sassoon'
+            ]);
+    });
 
 
     describe('asRootVal', function() {
@@ -57,6 +65,19 @@ describe('_.supergroup', function() {
 
         xit('should set its name to a provided value, or "Root"', function() {
             /** @todo not at all sure how this works yet */
+        });
+    });
+
+    describe('hierarchicalTableToTree', function() {
+        var treePairs = [{"p":"animal","c":"mammal"},{"p":"animal","c":"reptile"},{"p":"animal","c":"fish"},{"p":"animal","c":"bird"},{"p":"bird","c":"kiwi"},{"p":"kiwi","c":"orange tailed kiwi"},{"p":"plant","c":"tree"},{"p":"plant","c":"bush"},{"p":"plant","c":"grass"},{"p":"plant","c":"fruit"},{"p":"fruit","c":"kiwi"},{"p":"kiwi","c":"purple kiwi"},{"p":"tree","c":"oak"},{"p":"tree","c":"maple"},{"p":"oak","c":"pin oak"},{"p":"mammal","c":"primate"},{"p":"mammal","c":"bovine"},{"p":"bovine","c":"cow"},{"p":"bovine","c":"ox"},{"p":"primate","c":"monkey"},{"p":"primate","c":"ape"},{"p":"ape","c":"chimpanzee"},{"p":"ape","c":"gorilla"},{"p":"ape","c":"me"}];
+        var tree;
+        it('should work with (data, parentProp, childProp) params', function() {
+            tree = _.hierarchicalTableToTree(treePairs, 'p', 'c');
+            expect(tree).toBeDefined();
+        });
+        it('should make this tree', function() {
+            var paths = _.invoke(tree.flattenTree(), 'namePath');
+            expect(paths).toEqual(["animal", "animal/mammal", "animal/mammal/primate", "animal/mammal/primate/monkey", "animal/mammal/primate/ape", "animal/mammal/primate/ape/chimpanzee", "animal/mammal/primate/ape/gorilla", "animal/mammal/primate/ape/me", "animal/mammal/bovine", "animal/mammal/bovine/cow", "animal/mammal/bovine/ox", "animal/reptile", "animal/fish", "animal/bird", "animal/bird/kiwi", "plant", "plant/tree", "plant/tree/oak", "plant/tree/oak/pin oak", "plant/tree/maple", "plant/bush", "plant/grass", "plant/fruit", "plant/fruit/kiwi", "plant/fruit/kiwi/orange tailed kiwi", "plant/fruit/kiwi/purple kiwi"]);
         });
     });
 

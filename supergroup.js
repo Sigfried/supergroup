@@ -8,7 +8,7 @@
  */
 ; // jshint -W053
 
-'use strict()';
+'use strict';
 
 if (typeof require !== "undefined")
     var _ = require('lodash');
@@ -33,7 +33,7 @@ var supergroup = (function() {
      *
      * Avaailable as _.supergroup, Underscore mixin
      */
-    sg.group = function(recs, dim, opts) {
+    sg.supergroup = function(recs, dim, opts) {
         // if dim is an array, use multiDimList to create hierarchical grouping
         opts = opts || {};
         if (_(dim).isArray()) return sg.multiDimList(recs, dim, opts);
@@ -118,7 +118,7 @@ var supergroup = (function() {
     // nested groups, each dim is a level in hierarchy
     sg.multiDimList = function(recs, dims, opts) {
         opts.wasMultiDim = true;  // pretty kludgy
-        var groups = sg.group(recs, dims[0], opts);
+        var groups = sg.supergroup(recs, dims[0], opts);
         _.chain(dims).rest().each(function(dim) {
             groups.addLevel(dim, opts);
         }).value();
@@ -178,6 +178,9 @@ var supergroup = (function() {
         if (! ('lookupMap' in this)) {
             this.lookupMap = {};
             this.forEach(function(d) {
+                if (d in that.lookupMap)
+                    console.warn('multiple occurrence of ' + d + 
+                        ' in list. Lookup will only get the last');
                 that.lookupMap[d] = d;
             });
         }
@@ -206,6 +209,11 @@ var supergroup = (function() {
     List.prototype.addLevel = function(dim, opts) {
         _.each(this, function(val) {
             val.addLevel(dim, opts);
+        });
+    };
+    List.prototype.namePaths = function(opts) {
+        return _.map(this, function(d) {
+            return d.namePath(opts);
         });
     };
     // apply a function to the records of each group
@@ -284,7 +292,7 @@ var supergroup = (function() {
             if (d.in && d.in === "both") {
                 d[childProp] = sg.diffList(d.from, d.to, dim, opts);
             } else {
-                d[childProp] = sg.group(d.records, dim, opts);
+                d[childProp] = sg.supergroup(d.records, dim, opts);
                 if (d.in ) {
                     _.each(d[childProp], function(c) {
                         c.in = d.in;
@@ -433,8 +441,8 @@ var supergroup = (function() {
      * @memberof supergroup
      */
     sg.diffList = function(from, to, dim, opts) {
-        var fromList = sg.group(from.records, dim, opts);
-        var toList = sg.group(to.records, dim, opts);
+        var fromList = sg.supergroup(from.records, dim, opts);
+        var toList = sg.supergroup(to.records, dim, opts);
         var list = makeList(sg.compare(fromList, toList, dim));
         list.dim = (opts && opts.dimName) ? opts.dimName : dim;
         return list;
@@ -562,6 +570,27 @@ var supergroup = (function() {
         */
         return arr;
     }
+
+    sg.hierarchicalTableToTree = function(data, parentProp, childProp) {
+        // does not do the right thing if a value has two parents
+        // also, does not yet fix depth numbers
+        var parents = sg.supergroup(data,[parentProp, childProp]); // 2-level grouping with all parent/child pairs
+        var children = parents.leafNodes();
+        var topParents = _.filter(parents, function(parent) { 
+            var adoptiveParent = children.lookup(parent); // is this parent also a child?
+            if (adoptiveParent) { // if so, make it the parent
+                adoptiveParent.children = sg.addSupergroupMethods([]);
+                _.each(parent.children, function(c) { 
+                    c.parent = adoptiveParent; 
+                    adoptiveParent.children.push(c)
+                });  
+            } else { // if not, this is a top parent
+                return parent;
+            }
+            // if so, make use that child node, move this parent node's children over to it
+        });
+        return sg.addSupergroupMethods(topParents);
+    };
     return sg;
 }());
 
@@ -581,11 +610,13 @@ if (_.createAggregator) {
     var multiValuedGroupBy = function() { throw new Error("couldn't install multiValuedGroupBy") };
 }
 
-_.mixin({supergroup: supergroup.group, 
+_.mixin({
+    supergroup: supergroup.supergroup, 
     addSupergroupMethods: supergroup.addSupergroupMethods,
     multiValuedGroupBy: multiValuedGroupBy,
     sgDiffList: supergroup.diffList,
     sgCompare: supergroup.compare,
     sgCompareValue: supergroup.compareValue,
+    hierarchicalTableToTree: supergroup.hierarchicalTableToTree,
 });
 
