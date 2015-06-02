@@ -287,13 +287,15 @@ var supergroup = (function() {
     Value.prototype.extendGroupBy = // backward compatibility
     Value.prototype.addLevel = function(dim, opts) {
         opts = opts || {};
-        _.each(this.leafNodes(), function(d) {
+        _.each(this.leafNodes() || [this], function(d) {
             opts.parent = d;
-            if (d.in && d.in === "both") {
-                d[childProp] = sg.diffList(d.from, d.to, dim, opts);
-            } else {
+            if (!('in' in d)) { // d.in means it's part of a diffList
                 d[childProp] = sg.supergroup(d.records, dim, opts);
-                if (d.in ) {
+            } else {
+                if (d.in === "both") {
+                    d[childProp] = sg.diffList(d.from, d.to, dim, opts);
+                } else {
+                    d[childProp] = sg.supergroup(d.records, dim, opts);
                     _.each(d[childProp], function(c) {
                         c.in = d.in;
                         c[d.in] = d[d.in];
@@ -304,6 +306,17 @@ var supergroup = (function() {
         });
     };
     Value.prototype.leafNodes = function(level) {
+        // until commit 31278a35b91a8f4bd4ddc4376c840fb14d2723f9
+        // supported level param, to only go down so many levels
+        // not supporting that any more. wasn't using it
+
+        if (!(childProp in this)) return;
+
+        return _.chain(this.descendants()).filter(
+                function(d){
+                    return !('children' in d)
+                }).addSupergroupMethods().value();
+
         var ret = [this];
         if (typeof level === "undefined") {
             level = Infinity;
