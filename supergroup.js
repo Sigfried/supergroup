@@ -173,19 +173,21 @@ var supergroup = (function() {
         }
     };
 
-    List.prototype.singleLookup = function(query) {
-        var that = this;
-        if (! ('lookupMap' in this)) {
-            this.lookupMap = {};
-            this.forEach(function(d) {
-                if (d in that.lookupMap)
+    List.prototype.getLookupMap = function() {
+        var self = this;
+        if (! ('lookupMap' in self)) {
+            self.lookupMap = {};
+            self.forEach(function(d) {
+                if (d in self.lookupMap)
                     console.warn('multiple occurrence of ' + d + 
                         ' in list. Lookup will only get the last');
-                that.lookupMap[d] = d;
+                self.lookupMap[d] = d;
             });
         }
-        if (query in this.lookupMap)
-            return this.lookupMap[query];
+        return self.lookupMap;
+    };
+    List.prototype.singleLookup = function(query) {
+        return this.getLookupMap()[query];
     };
 
     // lookup more than one thing at a time
