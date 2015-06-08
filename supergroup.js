@@ -229,13 +229,22 @@ var supergroup = (function() {
         return results;
     };
 
-    List.prototype.entries = function() {
+    List.prototype.entries =  // for backward compatibility
+    List.prototype.d3NestEntries = function() {
         return _.map(this, function(val) {
             if (childProp in val)
                 return {key: val.toString(), values: val[childProp].entries()};
             return {key: val.toString(), values: val.records};
         });
     };
+    List.prototype.d3NestMap = function() {
+        return _.chain(this).map(
+            function(val) {
+                if (val.children)
+                    return [val+'', val.children.d3NestMap()];
+                return [val+'', val.records];
+            }).object().value();
+    }
 
     function makeValue(v_arg) {
         if (isNaN(v_arg)) {
