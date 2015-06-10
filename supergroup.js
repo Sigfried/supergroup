@@ -102,7 +102,8 @@ var supergroup = (function() {
             }
             return val;
         });
-        groups = makeList(groups); // turns groups into a List object
+        //groups = makeList(groups); // turns groups into a List object
+        groups = sg.addListMethods(groups); // turns groups into a List object
         groups.records = recs; // NOT TESTED, NOT USED, PROBABLY WRONG
         groups.dim = (opts.dimName) ? opts.dimName : dim;
         groups.isNumeric = isNumeric;
@@ -229,11 +230,10 @@ var supergroup = (function() {
         return results;
     };
 
-    List.prototype.entries =  // for backward compatibility
     List.prototype.d3NestEntries = function() {
         return _.map(this, function(val) {
             if (childProp in val)
-                return {key: val.toString(), values: val[childProp].entries()};
+                return {key: val.toString(), values: val[childProp].d3NestEntries()};
             return {key: val.toString(), values: val.records};
         });
     };
@@ -245,6 +245,13 @@ var supergroup = (function() {
                 return [val+'', val.records];
             }).object().value();
     }
+    List.prototype._sort = Array.prototype.sort;
+    List.prototype.sort = function(func) {
+        return sg.addListMethods(this._sort(func));
+    };
+    List.prototype.sortBy = function(func) {
+        return sg.addListMethods(_.sortBy(this, func));
+    };
 
     function makeValue(v_arg) {
         if (isNaN(v_arg)) {
@@ -302,7 +309,7 @@ var supergroup = (function() {
             opts.parent = d;
             if (!('in' in d)) { // d.in means it's part of a diffList
                 d[childProp] = sg.supergroup(d.records, dim, opts);
-            } else {
+            } else { // allows adding levels to diffLists. haven't used for a long time
                 if (d.in === "both") {
                     d[childProp] = sg.diffList(d.from, d.to, dim, opts);
                 } else {
@@ -337,7 +344,8 @@ var supergroup = (function() {
                 return c.leafNodes(level);
             }), true);
         }
-        return makeList(ret);
+        //return makeList(ret);
+        return sg.addListMethods(ret);
     };
     Value.prototype.addRecordsAsChildrenToLeafNodes = function() {
         _.each(this.leafNodes(), function(node) {
@@ -391,6 +399,7 @@ var supergroup = (function() {
              )
         */
     };
+    Value.prototype.path =  // better than 'pedigree', right?
     Value.prototype.pedigree = function(opts) {
         var path = [];
         if (!(opts && opts.notThis)) path.push(this);
@@ -428,6 +437,15 @@ var supergroup = (function() {
     Value.prototype.pct = function() {
         return this.records.length / this.parentList.records.length;
     };
+    Value.prototype.previous = function() {
+        if (this.parentList) {
+            // could store pos on each value, but not doing that now
+            var pos = this.parentList.indexOf(this);
+            if (pos > 0) {
+                return this.parentList[pos - 1];
+            }
+        }
+    };
     Value.prototype.aggregate = function(func, field) {
         if (_.isFunction(field))
             return func(_.map(this.records, field));
@@ -453,7 +471,7 @@ var supergroup = (function() {
                     return memo;
                 },{sum:0,cnt:0,max:-Infinity});
     }; 
-    /** Compare groups across two similar root notes
+    /** Compare groups across two similar root nodes
      *
      * @param {from} ...
      * @param {to} ...
@@ -467,7 +485,8 @@ var supergroup = (function() {
     sg.diffList = function(from, to, dim, opts) {
         var fromList = sg.supergroup(from.records, dim, opts);
         var toList = sg.supergroup(to.records, dim, opts);
-        var list = makeList(sg.compare(fromList, toList, dim));
+        //var list = makeList(sg.compare(fromList, toList, dim));
+        var list = sg.addListMethods(sg.compare(fromList, toList, dim));
         list.dim = (opts && opts.dimName) ? opts.dimName : dim;
         return list;
     };
@@ -537,7 +556,7 @@ var supergroup = (function() {
      *
      * @memberof supergroup
      */
-    sg.compareValue = function(from, to) {
+    sg.compareValue = function(from, to) { // any reason to keep this?
         if (from.dim !== to.dim) {
             throw new Error("not sure what you're trying to do");
         }

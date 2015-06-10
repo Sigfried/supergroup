@@ -46,6 +46,30 @@ describe('_.supergroup', function() {
             'C/Gold','B/Gold','B/Androy','A/Sassoon'
             ]);
     });
+    it('should sort to a List', function() {
+        expect(self.gradesByGradeLastName
+            .leafNodes()
+            .sort(function(a,b){
+                return a.namePath() < b.namePath() ? -1 : 
+                        b.namePath() < a.namePath() ? 1 : 0
+            })
+            .namePaths())
+            .toEqual( [ 'A/Sassoon', 'B/Androy', 'B/Gold', 'C/Gold' ]);
+    });
+    it('should sortBy to a List', function() {
+        expect(self.gradesByGradeLastName
+                .leafNodes()
+                .sortBy(function(d) { return d.namePath() })
+                .namePaths())
+            .toEqual([ 'A/Sassoon', 'B/Androy', 'B/Gold', 'C/Gold' ]);
+    });
+    it('should have previous', function() {
+        expect(self.gradesByGradeLastName
+                .sort()[2]
+                .previous()
+                .namePath())
+            .toEqual('B');
+    });
 
 
     describe('asRootVal', function() {
