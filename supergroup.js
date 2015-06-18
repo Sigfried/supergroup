@@ -137,15 +137,13 @@ var supergroup = (function() {
 
     // sometimes a root value is needed as the top of a hierarchy
     List.prototype.asRootVal = function(name, dimName) {
-        name = name || 'Root';
-        var val = makeValue(name);
-        val.records = this; // is this wrong?
-        val[childProp]= this;
-
-        _.each(val.descendants(), function(d) { d.depth = d.depth + 1; });
-
-        val.depth = 0;
+        var val = makeValue(name || 'Root');
         val.dim = dimName || 'root';
+        val.depth = 0;
+        val.records = this.records;
+        val[childProp]= this;
+        _.each(val[childProp], function(d) { d.parent = val; });
+        _.each(val.descendants(), function(d) { d.depth = d.depth + 1; });
         return val;
     };
     List.prototype.leafNodes = function(level) {

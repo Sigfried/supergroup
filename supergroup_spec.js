@@ -38,6 +38,16 @@ describe('_.supergroup', function() {
             {"lastName":"Gold","firstName":"Sigfried","class":"Documenting with Pretty Colors","grade":"B","num":3}
         ]); 
     });
+    it('should assign its records to the current group', function() {
+        expect(JSON.stringify(
+            self.gradesByName.lookup('Sigfried Gold').records
+                .sortBy(function(d) { return d.class; })))
+            .toEqual(JSON.stringify(
+                gradeBook.slice(0,3)
+                    .sort(function(a,b){
+                        return a.class < b.class ? -1 : 
+                                b.class < a.class ? 1 : 0;})))
+    });
     it('should have lookup and children', function() {
         expect(self.gradesByGradeLastName.lookup('B').children.length).toEqual(2);
     });
@@ -73,22 +83,19 @@ describe('_.supergroup', function() {
 
 
     describe('asRootVal', function() {
-        /*
+        // make new version of gradesByGradeLastName so asRootVal doesn't mess up other one
+        var gradesByGradeLastName = _.supergroup(gradeBook, ['grade','lastName']);
+        var root = gradesByGradeLastName.asRootVal();
         it('should set its dimension as "root"', function() {
-            var root = self.groups.asRootVal();
             expect(root.dim).toBe('root');
         });
-        */
-
-        it('should assign its records to the current group', function() {
-            expect(JSON.stringify(self.gradesByName.lookup('Sigfried Gold').records
-                    .sort(function(a,b){return a.class < b.class ? -1 : b.class < a.class ? 1 : 0;})))
-                .toEqual(JSON.stringify(gradeBook.slice(0,3)
-                    .sort(function(a,b){return a.class < b.class ? -1 : b.class < a.class ? 1 : 0;})))
+        it('should contain all the records', function() {
+            expect(root.aggregate(_.sum, 'num')).toBe(14);
         });
-
-        xit('should set its name to a provided value, or "Root"', function() {
-            /** @todo not at all sure how this works yet */
+        it('should namePath to root', function() {
+            expect(gradesByGradeLastName.leafNodes().namePaths()).toEqual( [
+                'Root/C/Gold','Root/B/Gold','Root/B/Androy','Root/A/Sassoon'
+                ]);
         });
     });
 
