@@ -659,7 +659,36 @@ _.mixin({
     sgCompare: supergroup.compare,
     sgCompareValue: supergroup.compareValue,
     hierarchicalTableToTree: supergroup.hierarchicalTableToTree,
-    mean: function(data) { return _.sum(data) / data.length },
+
+    // FROM https://gist.github.com/AndreasBriese/1670507
+    // Return aritmethic mean of the elements
+    // if an iterator function is given, it is applied before
+    mean : function(obj, iterator, context) {
+        if (!iterator && _.isEmpty(obj)) return Infinity;
+        if (!iterator && _.isArray(obj)) return _.sum(obj)/obj.length;
+        if (_.isArray(obj) && !_.isEmpty(obj)) return _.sum(obj, iterator, context)/obj.length;
+    },
+    
+    // Return median of the elements 
+    // if the object element number is odd the median is the 
+    // object in the "middle" of a sorted array
+    // in case of an even number, the arithmetic mean of the two elements
+    // in the middle (in case of characters or strings: obj[n/2-1] ) is returned.
+    // if an iterator function is provided, it is applied before
+    median : function(obj, iterator, context) {
+        if (_.isEmpty(obj)) return Infinity;
+        var tmpObj = [];
+        if (!iterator && _.isArray(obj)){
+        tmpObj = _.clone(obj);
+        tmpObj.sort(function(f,s){return f-s;});
+        }else{
+        _.isArray(obj) && each(obj, function(value, index, list) {
+            tmpObj.push(iterator ? iterator.call(context, value, index, list) : value);
+            tmpObj.sort();
+        });
+        };
+        return tmpObj.length%2 ? tmpObj[Math.floor(tmpObj.length/2)] : (_.isNumber(tmpObj[tmpObj.length/2-1]) && _.isNumber(tmpObj[tmpObj.length/2])) ? (tmpObj[tmpObj.length/2-1]+tmpObj[tmpObj.length/2]) /2 : tmpObj[tmpObj.length/2-1];
+    },
 });
 
 if (typeof module !== "undefined")
