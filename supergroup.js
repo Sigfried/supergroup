@@ -330,7 +330,7 @@ var supergroup = (function() {
 
         return _.chain(this.descendants()).filter(
                 function(d){
-                    return !('children' in d)
+                    return _.isEmpty(d.children);
                 }).addSupergroupMethods().value();
 
         var ret = [this];
@@ -659,6 +659,7 @@ _.mixin({
     sgCompare: supergroup.compare,
     sgCompareValue: supergroup.compareValue,
     hierarchicalTableToTree: supergroup.hierarchicalTableToTree,
+    mean: function(data) { return _.sum(data) / data.length },
 });
 
 if (typeof module !== "undefined")
