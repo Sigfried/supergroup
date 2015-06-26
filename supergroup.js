@@ -661,3 +661,5 @@ _.mixin({
     hierarchicalTableToTree: supergroup.hierarchicalTableToTree,
 });
 
+if (typeof module !== "undefined")
+    module.exports = _;
