@@ -10,8 +10,13 @@
 
 'use strict';
 
-if (typeof require !== "undefined")
-    var _ = require('lodash');
+if (typeof require !== "undefined") {
+    if (typeof underscore !== "undefined" && underscore === "underscore") {
+        var _ = require('underscore');
+    } else {
+        var _ = require('lodash');
+    }
+}
 
 var supergroup = (function() {
     // @description local reference to supergroup namespace 
