@@ -668,6 +668,21 @@ _.mixin({
     // FROM https://gist.github.com/AndreasBriese/1670507
     // Return aritmethic mean of the elements
     // if an iterator function is given, it is applied before
+    sum : function(obj, iterator, context) {
+        if (!iterator && _.isEmpty(obj)) return 0;
+        var result = 0;
+        if (!iterator && _.isArray(obj)){
+        for(var i=obj.length-1;i>-1;i-=1){
+            result += obj[i];
+        };
+        return result;
+        };
+        each(obj, function(value, index, list) {
+        var computed = iterator ? iterator.call(context, value, index, list) : value;
+        result += computed;
+        });
+        return result;
+    },
     mean : function(obj, iterator, context) {
         if (!iterator && _.isEmpty(obj)) return Infinity;
         if (!iterator && _.isArray(obj)) return _.sum(obj)/obj.length;

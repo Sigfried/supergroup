@@ -1,6 +1,6 @@
 {
   "name": "supergroup",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "description": "Nested groups on arrays of objects where groups are Strings that know what you want them to know about themselves and their relatives.",
   "main": "supergroup.js",
   "scripts": {
