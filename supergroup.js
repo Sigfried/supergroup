@@ -2,7 +2,7 @@
  * # supergroup.js
  * Author: [Sigfried Gold](http://sigfried.org)  
  * License: [MIT](http://sigfried.mit-license.org/)  
- * Version: 0.0.2
+ * Version: 1.0.13
  *
  * usage examples at [http://sigfried.github.io/blog/supergroup](http://sigfried.github.io/blog/supergroup)
  */
