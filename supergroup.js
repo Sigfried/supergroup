@@ -313,13 +313,13 @@ var supergroup = (function() {
             if (!('in' in d)) { // d.in means it's part of a diffList
                 d[childProp] = sg.supergroup(d.records, dim, opts);
             } else { // allows adding levels to diffLists. haven't used for a long time
-                if (d.in === "both") {
+                if (d['in'] === "both") {
                     d[childProp] = sg.diffList(d.from, d.to, dim, opts);
                 } else {
                     d[childProp] = sg.supergroup(d.records, dim, opts);
                     _.each(d[childProp], function(c) {
-                        c.in = d.in;
-                        c[d.in] = d[d.in];
+                        c['in'] = d['in'];
+                        c[d['in']] = d[d['in']];
                     });
                 }
             }
@@ -509,7 +509,7 @@ var supergroup = (function() {
         _.each(A, function(d, i) {
             comp[d+''] = {
                 name: d+'',
-                in: 'from',
+                'in': 'from',
                 from: d,
                 fromIdx: i,
                 dim: dim
@@ -518,13 +518,13 @@ var supergroup = (function() {
         _.each(B, function(d, i) {
             if ((d+'') in comp) {
                 var c = comp[d+''];
-                c.in = "both";
+                c['in'] = "both";
                 c.to = d;
                 c.toIdx = i;
             } else {
                 comp[d+''] = {
                     name: d+'',
-                    in: 'to',
+                    'in': 'to',
                     to: d,
                     toIdx: i,
                     dim: dim
@@ -568,7 +568,7 @@ var supergroup = (function() {
         val.from = from;
         val.to = to;
         val.depth = 0;
-        val.in = "both";
+        val['in'] = "both";
         val.records = [].concat(from.records,to.records);
         val.records.parentVal = val; // NOT TESTED, NOT USED, PROBABLY WRONG
         val.dim = from.dim;
