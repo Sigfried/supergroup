@@ -140,6 +140,7 @@ var supergroup = (function() {
     // Methods described below.
     function Value() {}
 
+    List.prototype.isSupergroupList = true;
     // sometimes a root value is needed as the top of a hierarchy
     List.prototype.asRootVal = function(name, dimName) {
         var val = makeValue(name || 'Root');
@@ -216,6 +217,7 @@ var supergroup = (function() {
         _.each(this, function(val) {
             val.addLevel(dim, opts);
         });
+        return this;
     };
     List.prototype.namePaths = function(opts) {
         return _.map(this, function(d) {
@@ -417,6 +419,10 @@ var supergroup = (function() {
         return path;
     };
     Value.prototype.descendants = function(opts) {
+        // these two lines fix a treelike bug, hope they don't do harm
+        this[childProp] = this[childProp] || [];
+        _.addSupergroupMethods(this[childProp]);
+
         return this[childProp] ? this[childProp].flattenTree() : undefined;
     };
     Value.prototype.lookup = function(query) {
@@ -592,6 +598,8 @@ var supergroup = (function() {
     sg.addSupergroupMethods =
 
     sg.addListMethods = function(arr) {
+        arr = arr || []; // KLUDGE for treelike
+        if (arr.isSupergroupList) return arr;
         for(var method in List.prototype) {
             Object.defineProperty(arr, method, {
                 value: List.prototype[method]
@@ -663,6 +671,7 @@ _.mixin({
     sgDiffList: supergroup.diffList,
     sgCompare: supergroup.compare,
     sgCompareValue: supergroup.compareValue,
+    sgAggregate: supergroup.aggregate,
     hierarchicalTableToTree: supergroup.hierarchicalTableToTree,
 
     // FROM https://gist.github.com/AndreasBriese/1670507
