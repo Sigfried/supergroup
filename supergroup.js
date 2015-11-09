@@ -34,6 +34,7 @@ var supergroup = (function() {
         * function before continuing processing
      * @param {function} [opts.dimName] defaults to the value of `dim`.
         * If `dim` is a function, the dimName will be ugly.
+     * @param {function} [opts.truncateBranchOnEmptyVal] 
      * @return {Array of Values} enhanced with all the List methods
      *
      * Avaailable as _.supergroup, Underscore mixin
@@ -51,6 +52,8 @@ var supergroup = (function() {
                     if (_(opts.multiValuedGroups).contains(dim)) {
                         var groups = _.multiValuedGroupBy(recs, dim);
                     } else {
+                        if (opts.truncateBranchOnEmptyVal)
+                          recs = recs.filter(r => !_.isEmpty(r[dim]) || (_.isNumber(r[dim]) && isFinite(r[dim])));
                         var groups = _.groupBy(recs, dim);
                     }
                 } else {
@@ -60,6 +63,8 @@ var supergroup = (function() {
                 var groups = _.multiValuedGroupBy(recs, dim);
             }
         } else {
+            if (opts.truncateBranchOnEmptyVal)
+              recs = recs.filter(r => !_.isEmpty(r[dim]) || (_.isNumber(r[dim]) && isFinite(r[dim])));
             var groups = _.groupBy(recs, dim); // use Underscore's groupBy: http://underscorejs.org/#groupBy
         }
         if (opts.excludeValues) {
@@ -352,8 +357,8 @@ var supergroup = (function() {
         //return makeList(ret);
         return sg.addListMethods(ret);
     };
-    Value.prototype.addRecordsAsChildrenToLeafNodes = function() {
-        _.each(this.leafNodes(), function(node) {
+    Value.prototype.addRecordsAsChildrenToLeafNodes = function(truncateEmpty) {
+        function fixLeaf(node) {
             node.children = node.records;
             _.each(node.children, function(rec) {
                 rec.parent = node;
@@ -364,7 +369,22 @@ var supergroup = (function() {
                     });
                 }
             });
-        });
+        }
+        if (typeof truncateEmpty === "undefined")
+            truncateEmpty = true;
+        if (truncateEmpty) {
+            var self = this;
+            self.descendants().forEach(function(node) {
+                if (self.parent && self.parent.children.length === 1) {
+                  fixLeaf(node);
+                }
+            });
+        } else {
+          _.each(this.leafNodes(), function(node) {
+              fixLeaf(node);
+          });
+        }
+        return this;
     };
     /*  didn't make this yet, just copied from above
     Value.prototype.descendants = function(level) {

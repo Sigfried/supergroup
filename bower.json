@@ -1,7 +1,7 @@
 {
   "name": "supergroup",
   "main": "supergroup.js",
-  "version": "v1.0.14",
+  "version": "v1.0.15",
   "homepage": "https://github.com/Sigfried/supergroup",
   "authors": [
     "Sigfried Gold <sigfried@sigfried.org>"
