@@ -410,8 +410,6 @@ var supergroup = (function() {
     Value.prototype.namePath = function(opts) {
         opts = delimOpts(opts);
         var path = this.pedigree(opts);
-        if (opts.noRoot) path.shift();
-        if (opts.backwards || this.backwards) path.reverse(); //kludgy?
         if (opts.dimName) path = _.pluck(path, 'dim');
         if (opts.asArray) return path;
         return path.join(opts.delim);
@@ -426,16 +424,19 @@ var supergroup = (function() {
     };
     Value.prototype.path =  // better than 'pedigree', right?
     Value.prototype.pedigree = function(opts) {
+        opts = opts || {};
         var path = [];
-        if (!(opts && opts.notThis)) path.push(this);
+        if (!opts.notThis) path.push(this);
         var ptr = this;
         while ((ptr = ptr.parent)) {
             path.unshift(ptr);
         }
+        if (opts.noRoot) path.shift();
+        if (opts.backwards || this.backwards) path.reverse(); //kludgy?
         return path;
         // CHANGING -- HOPE THIS DOESN'T BREAK STUFF (pedigree isn't
         // documented yet)
-        if (!(opts && opts.asValues)) return _.chain(path).invoke('valueOf').value();
+        if (!opts.asValues) return _.chain(path).invoke('valueOf').value();
         return path;
     };
     Value.prototype.descendants = function(opts) {
