@@ -10,12 +10,14 @@
 
 'use strict';
 
+
 if (typeof require !== "undefined") {
     if (typeof underscore !== "undefined" && underscore === "underscore") {
         var _ = require('underscore');
     } else {
         var _ = require('lodash');
     }
+    var assert = require("assert");
 }
 
 var supergroup = (function() {
@@ -144,7 +146,34 @@ var supergroup = (function() {
     // String or Number objects representing group values.
     // Methods described below.
     function Value() {}
+    // @class State
+    // @description with a couple exceptions, supergroups should not 
+    // mutate after creation. States are a way to track selection/highlighting
+    // states without mutating.
+    function State(list) {
+      this.list = list;
+      this.selectedVals = [];
+      //this.selectedRecs = [];
+    }
+    sg.State = State;
+    State.prototype.selectByVal = function(val) {
+        assert.equal(val.rootList(), this.list); // assume state only on root lists
+        this.selectedVals.push(val);
+    }
+    /*
+    State.prototype.selectByFilter = function(filt) {
+        
+        
+        this.selectedVals.push(val);
+    }
+    */
+    State.prototype.selectedRecs = function() {
+        return _.chain(this.selectedVals).pluck('records').flatten().value();
+    }
 
+    List.prototype.state = function() {
+        return new State(this);
+    }
     List.prototype.isSupergroupList = true;
     // sometimes a root value is needed as the top of a hierarchy
     List.prototype.asRootVal = function(name, dimName) {
@@ -261,6 +290,11 @@ var supergroup = (function() {
     };
     List.prototype.sortBy = function(func) {
         return sg.addListMethods(_.sortBy(this, func));
+    };
+    List.prototype.rootList = function(func) {
+        if ('parentVal' in this)
+          return this.parentVal.rootList();
+        return this;
     };
 
     function makeValue(v_arg) {
@@ -481,6 +515,9 @@ var supergroup = (function() {
             return func(_.map(this.records, field));
         return func(_.pluck(this.records, field));
     };
+    Value.prototype.rootList = function() {
+        return this.parentList.rootList();
+    };
 
     /** Summarize records by a dimension
      *
@@ -694,6 +731,7 @@ _.mixin({
     sgCompareValue: supergroup.compareValue,
     sgAggregate: supergroup.aggregate,
     hierarchicalTableToTree: supergroup.hierarchicalTableToTree,
+    stateClass: supergroup.State,
 
     // FROM https://gist.github.com/AndreasBriese/1670507
     // Return aritmethic mean of the elements

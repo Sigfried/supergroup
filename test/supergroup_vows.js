@@ -4,7 +4,7 @@ var assert = require("assert");
 //XMLHttpRequest = require('xhr2');
 var d3 = require("d3");
 var _ = require("lodash");
-require("./supergroup.js");
+require("../supergroup.js");
 var fs = require('fs');
 
 var suite = vows.describe("supergroup");
@@ -25,7 +25,29 @@ var gradesByGradeLastName = _.supergroup(gradeBook, ['grade','lastName']);
 
 
 suite.addBatch({
-  "supergroup": {
+  "supergroup state": {
+    topic: gradesByGradeLastName.state(),
+    "should be a Supergroup State": function(selector) {
+        var a = {};
+        var b = a;
+        assert.equal(a, b);
+        assert.instanceOf(selector, _.stateClass);
+    },
+    "should allow selection by value": function(selector) {
+        selector.selectByVal(gradesByGradeLastName.lookup("A"));
+        assert.deepEqual(selector.selectedRecs(), [gradeBook[3]]);
+    },
+    /*
+    "should allow selection by filter": function(selector) {
+        selector.selectByVal(gradesByGradeLastName.lookup("A"));
+        assert.deepEqual(selector.selectedRecs(), [gradeBook[3]]);
+    },
+    */
+  }
+});
+
+suite.addBatch({
+  "supergroup general": {
     topic: function(){ return null; }, 
     "rawValues are group names": function() {
         assert.deepEqual(gradesByLastName.rawValues(), ["Gold","Sassoon","Androy"]);
@@ -69,23 +91,29 @@ suite.addBatch({
         assert.deepEqual(gradesByGradeLastName.sort()[2].previous().namePath(),
                     "B");
     },
-    /* haven't translated these yet
-    describe('asRootVal', function() {
+    "vals should have rootList": function() {
+        assert.equal(gradesByGradeLastName.lookup(['A','Sassoon']).rootList(),
+                     gradesByGradeLastName);
+    },
+  },
+  "asRootVal": {
+    topic: function(){  
         // make new version of gradesByGradeLastName so asRootVal doesn't mess up other one
         var gradesByGradeLastName = _.supergroup(gradeBook, ['grade','lastName']);
         var root = gradesByGradeLastName.asRootVal();
-        it('should set its dimension as "root"', function() {
-            expect(root.dim).toBe('root');
-        });
-        it('should contain all the records', function() {
-            expect(root.aggregate(_.sum, 'num')).toBe(14);
-        });
-        it('should namePath to root', function() {
-            expect(gradesByGradeLastName.leafNodes().namePaths()).toEqual( [
-                'Root/C/Gold','Root/B/Gold','Root/B/Androy','Root/A/Sassoon'
-                ]);
-        });
-    });
+        return {gradesByGradeLastName:gradesByGradeLastName, root:root};
+    }, 
+    'should set its dimension as "root"': function(topic) {
+        assert.equal(topic.root.dim, 'root');
+    },
+    'should contain all the records': function(topic) {
+        assert.equal(topic.root.aggregate(_.sum, 'num'), 14);
+    },
+    'should namePath to root': function(topic) {
+        assert.deepEqual(topic.gradesByGradeLastName.leafNodes().namePaths(),
+          [ 'Root/C/Gold','Root/B/Gold','Root/B/Androy','Root/A/Sassoon' ]);
+    }
+    /* haven't translated these yet
 
     describe('hierarchicalTableToTree', function() {
         var treePairs = [{"p":"animal","c":"mammal"},{"p":"animal","c":"reptile"},{"p":"animal","c":"fish"},{"p":"animal","c":"bird"},{"p":"bird","c":"kiwi"},{"p":"kiwi","c":"orange tailed kiwi"},{"p":"plant","c":"tree"},{"p":"plant","c":"bush"},{"p":"plant","c":"grass"},{"p":"plant","c":"fruit"},{"p":"fruit","c":"kiwi"},{"p":"kiwi","c":"purple kiwi"},{"p":"tree","c":"oak"},{"p":"tree","c":"maple"},{"p":"oak","c":"pin oak"},{"p":"mammal","c":"primate"},{"p":"mammal","c":"bovine"},{"p":"bovine","c":"cow"},{"p":"bovine","c":"ox"},{"p":"primate","c":"monkey"},{"p":"primate","c":"ape"},{"p":"ape","c":"chimpanzee"},{"p":"ape","c":"gorilla"},{"p":"ape","c":"me"}];
