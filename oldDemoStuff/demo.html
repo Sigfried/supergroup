@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <!-- you can link or require this bundled library or the four .js files below
+            <script src="./supergroupBundled.js"></script>
+        -->
+        <script src="./lib/underscore.js"></script>
+        <script src="./lib/underscoreAddon.js"></script>
+        <script src="./supergroup.js"></script>
+
+        <script src="./lib/jquery-1.9.1.js"></script>
+        <style>
+.CSSTableGenerator { margin:0px;padding:0px;  border:1px solid #000000; }
+.CSSTableGenerator table{ border-collapse: collapse; border-spacing: 0; width:100%; height:100%; margin:0px;padding:0px;}
+.CSSTableGenerator tr:nth-child(odd){ background-color:#aad4ff; }
+.CSSTableGenerator tr:nth-child(even)    { background-color:#ffffff; }
+.CSSTableGenerator td{ vertical-align:middle; border:1px solid #000000; border-width:0px 1px 1px 0px; text-align:left; padding:7px; 
+    font-size:12px; font-family:Arial; font-weight:normal; color:#000000; }
+.CSSTableGenerator tr:last-child td{ border-width:0px 1px 0px 0px;
+}.CSSTableGenerator tr td:last-child{ border-width:0px 0px 1px 0px; }
+.CSSTableGenerator tr:last-child td:last-child{ border-width:0px 0px 0px 0px; }
+.CSSTableGenerator tr:first-child td{ background:-o-linear-gradient(bottom, #005fbf 5%, #003f7f 100%);    background:-webkit-gradient( linear, left top, left bottom, color-stop(0.05, #005fbf), color-stop(1, #003f7f) ); background:-moz-linear-gradient( center top, #005fbf 5%, #003f7f 100% ); filter:progid:DXImageTransform.Microsoft.gradient(startColorstr="#005fbf", endColorstr="#003f7f");  background: -o-linear-gradient(top,#005fbf,003f7f); background-color:#005fbf; border:0px solid #000000; text-align:center; border-width:0px 0px 1px 1px; font-size:14px; font-family:Arial; font-weight:bold; color:#ffffff; }
+        </style>
+    </head>
+    <body>
+        <script>
+            $(function() {
+                var gradeBook = [
+                    {firstName: 'Sigfried', lastName: 'Gold', class: 'Remedial Programming', grade: 'C', num: 2},
+                    {firstName: 'Sigfried', lastName: 'Gold', class: 'Literary Posturing', grade: 'B', num: 3},
+                    {firstName: 'Sigfried', lastName: 'Gold', class: 'Documenting with Pretty Colors', grade: 'B', num: 3},
+                    {firstName: 'Someone', lastName: 'Else', class: 'Remedial Programming', grade: 'B', num:3}];
+                var tests = {
+                    "Group on one dimension": "gradesByLastName = _.supergroup(gradeBook, 'lastName')",
+                    "Perform calculation on the records of a group": "_.chain(gradesByLastName.lookup('Gold').records).pluck('num').mean().value()",
+                    //"gradesByLastName.lookup('Gold').records.pluck('num').mean().mapScalar(function(d){return Math.round(d*10)/10;}).valueOf()",
+                    "Group on results of a function": "gradesByName = _.supergroup(gradeBook,  function(d) { return d.firstName + ' ' + d.lastName },  {dimName: 'fullName'})",
+                    "use .lookup() to retrieve value from supergroup array": "_(gradesByName.lookup('Sigfried Gold').records).pluck('class')",
+                    "Group on more than one dimension (returns top-level grouping)": "gradesByGradeLastName = _.supergroup(gradeBook, ['grade','lastName'])",
+                    "Flatten nested groups": "gradesByGradeLastName.flattenTree()",
+                    "Path to nested values": "_(gradesByGradeLastName.flattenTree()).invoke('namePath')",
+                    "Just for leaf nodes": "_(gradesByGradeLastName.leafNodes()).invoke('namePath')"
+                };
+                //$('body').append('<h3>gradeBook: </h3><pre>' + JSON.stringify(gradeBook,null,4) + '</pre>');
+
+                var dataTable = '<h3>Gradebook Data</h3><table class="CSSTableGenerator"><tr>' +
+                    _.chain(gradeBook).first().keys()
+                        .map(function(d){return '<td>'+d+'</td>'}).value().join('') + '</tr>' +
+                    _.map(gradeBook, function(rec){
+                        return '<tr>' + 
+                            _(rec).values().map(function(val) {
+                                return '<td>'+val+'</td>'
+                            }).join('') + '</tr>';
+                    }).join('') + 
+                    '</tr></table>'
+                $('body').append(dataTable);
+
+/*
+                $('body').append('<h3>gradeBook: </h3><pre>' + JSON.stringify(gradeBook,null,4) + '</pre>');
+
+                var gradesByLastName = _.supergroup(gradeBook, 'lastName')
+                $('body').append("<h3>var gradesByLastName = _.supergroup(gradeBook, 'lastName'): </h3><pre>" +
+                    JSON.stringify(gradesByLastName) + ' // these are String objects, if you need plain strings, use .rawValues()</pre>');
+
+                $('body').append("<h3>gradesByLastName.lookup('Gold').records.pluck('num').mean().mapScalar(function(d){return Math.round(d*10)/10;}).valueOf()",
+                    gradesByLastName.lookup('Gold').records.pluck('num').mean().mapScalar(function(d){return Math.round(d*10)/10;}).valueOf() + '</pre>');
+                $('body').append("<h3>gradesByLastName.lookup('Gold').records.pluck('num').mean()",
+                    gradesByLastName.lookup('Gold').records.pluck('num').mean() + '</pre>');
+
+                var gradesByName = _.supergroup(gradeBook,  
+                        function(d) { return d.firstName + ' ' + d.lastName },  
+                        {dimName: 'fullName'});
+
+                $('body').append("<h3>var gradesByName = _.supergroup(gradeBook,  function(d) { return d.firstName + ' ' + d.lastName },  {dimName: 'fullName'});",
+                    JSON.stringify(gradesByName) + '</pre>');
+                $('body').append("<h3>gradesByName.lookup('Sigfried Gold').records.pluck('class'): </h3><pre>" + 
+                    JSON.stringify(gradesByName.lookup('Sigfried Gold').records.pluck('class'),null,2) + '</pre>');
+
+                var gradesByGradeLastName = _.supergroup(gradeBook, ['grade','lastName'])
+                $('body').append("<h3>var gradesByGradeLastName = _.supergroup(gradeBook, ['grade','lastName'])</h3><pre>" + 
+                     JSON.stringify(gradesByGradeLastName) + '</pre>');
+
+                $('body').append("<h3>gradesByGradeLastName.flattenTree()</h3><pre>" + 
+                     JSON.stringify(gradesByGradeLastName.flattenTree()) + '</pre>');
+                console.log(gradesByGradeLastName)
+*/
+                _.chain(tests).pairs().each(function(d) {
+                    $('body').append("<h3>" + d[0] + "</h3><pre>" + d[1] + "\n=>  " + JSON.stringify(eval(d[1])) + '</pre>');
+                });
+            });
+        </script>
+    </body>
+</html>
+

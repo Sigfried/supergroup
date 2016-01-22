@@ -1,0 +1,21 @@
+p,c
+animal,mammal
+animal,reptile
+animal,fish
+animal,bird
+plant,tree
+plant,bush
+plant,grass
+plant,fruit
+tree,oak
+tree,maple
+oak,pin oak
+mammal,primate
+mammal,bovine
+bovine,cow
+bovine,ox
+primate,monkey
+primate,ape
+ape,chimpanzee
+ape,gorilla
+ape,me

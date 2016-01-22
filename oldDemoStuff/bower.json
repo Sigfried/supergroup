@@ -1,0 +1,29 @@
+{
+  "name": "supergroup",
+  "main": "bundle.js",
+  "description": "A super-charged cross between d3.nest and underscore.groupBy tailored for D3 use. Returns an array of String or Number objects immediately usable as data, but having access to every piece of related data you could want.",
+  "keywords": [
+    "groups",
+    "D3",
+    "d3.js",
+    "underscore",
+    "visualization"
+  ],
+  "author": {
+    "name": "Sigfried Gold",
+    "web": "http://www.sigfried.org"
+  },
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "http://sigfried.mit-license.org/"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:Sigfried/supergroup.git"
+  },
+  "dependencies": {
+    "lodash": "~2.4.1"
+  }
+}
