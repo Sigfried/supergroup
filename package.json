@@ -28,10 +28,9 @@
   },
   "homepage": "https://github.com/Sigfried/supergroup",
   "dependencies": {
-    "lodash": "^3.9.3",
-    "underscore": "^1.8.3"
+    "lodash": "^3.9.3"
   },
   "devDependencies": {
-    "jasmine": "^2.2.1"
+    "vows": "^0.8.1"
   }
 }
