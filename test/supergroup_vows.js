@@ -1,11 +1,9 @@
 'use strict';
+require('babel-core');
 var vows = require("vows");
 var assert = require("assert");
-//XMLHttpRequest = require('xhr2');
-var d3 = require("d3");
-var _ = require("lodash");
-require("../supergroup.js");
-var fs = require('fs');
+var _ = require("../src/supergroup.js");
+//require("../dist/supergroup.js");
 
 var suite = vows.describe("supergroup");
 
@@ -28,9 +26,6 @@ suite.addBatch({
   "supergroup state": {
     topic: gradesByGradeLastName.state(),
     "should be a Supergroup State": function(selector) {
-        var a = {};
-        var b = a;
-        assert.equal(a, b);
         assert.instanceOf(selector, _.stateClass);
     },
     "should allow selection by value": function(selector) {

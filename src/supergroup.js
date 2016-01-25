@@ -2,23 +2,18 @@
  * # supergroup.js
  * Author: [Sigfried Gold](http://sigfried.org)  
  * License: [MIT](http://sigfried.mit-license.org/)  
- * Version: 1.0.13
+ * Version: 1.1.0
+ * (starting to convert to es6)
  *
  * usage examples at [http://sigfried.github.io/blog/supergroup](http://sigfried.github.io/blog/supergroup)
  */
 ; // jshint -W053
 
-'use strict';
-
-
-if (typeof require !== "undefined") {
-    if (typeof underscore !== "undefined" && underscore === "underscore") {
-        var _ = require('underscore');
-    } else {
-        var _ = require('lodash');
-    }
-    var assert = require("assert");
-}
+//require('babel-core');
+import _ from 'lodash';
+//let _ = require('lodash');
+import 'assert';
+//const assert = require("assert");
 
 var supergroup = (function() {
     // @description local reference to supergroup namespace 
@@ -146,10 +141,14 @@ var supergroup = (function() {
     // String or Number objects representing group values.
     // Methods described below.
     function Value() {}
+
+
     // @class State
-    // @description with a couple exceptions, supergroups should not 
-    // mutate after creation. States are a way to track selection/highlighting
-    // states without mutating.
+    // @description with a couple exceptions, supergroup objects should be
+    // immutable. when managing filters, calling code often adds .hidden
+    // properties to records, sometimes to values. not good.
+    // States are a way to track selection/highlighting states without mutating
+    // the underlying object.
     function State(list) {
       this.list = list;
       this.selectedVals = [];
@@ -160,6 +159,13 @@ var supergroup = (function() {
         assert.equal(val.rootList(), this.list); // assume state only on root lists
         this.selectedVals.push(val);
     }
+    let a,b,c;
+    [a,b,c]=[{a:1},{a:2},{a:3}]
+    let w = new WeakSet([a,b,c]);
+    console.log(w);
+    a = null;
+    console.log(w);
+    debugger;
     /*
     State.prototype.selectByFilter = function(filt) {
         
@@ -779,5 +785,4 @@ _.mixin({
     },
 });
 
-if (typeof module !== "undefined")
-    module.exports = _;
+module.export = _;
