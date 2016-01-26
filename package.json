@@ -10,6 +10,7 @@
     "prepublish": "npm run compile",
     "tape": "babel-node node_modules/argg src/test/*.es6",
     "vows": "babel-node node_modules/argg src/test/*.es6",
+    "watch": "npm run compile && npm run vows",
     "istanbul": "npm run compile && istanbul cover --dir coverage/istanbul node_modules/argg dist/test/*.js --report lcovonly",
     "coverage": "npm run compile && istanbul cover --dir coverage/istanbul node_modules/argg dist/test/*.js --report html",
     "coveralls": "cat ./coverage/istanbul/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage",
