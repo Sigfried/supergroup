@@ -12,18 +12,34 @@
 
 //require('babel-core');
 import _ from 'lodash';
-let lodash = _;
 //let _ = require('lodash');
 import assert from 'assert';
 //const assert = require("assert");
 
-export class Supergroup {
+/* @exported function supergroup.group(recs, dim, opts)
+  * @param {Object[]} recs list of records to be grouped
+  * @param {string or Function} dim either the property name to
+  group by or a function returning a group by string or number
+  * @param {Object} [opts]
+  * @param {String} opts.childProp='children' If group ends up being
+  * hierarchical, this will be the property name of any children
+  * @param {String[]} [opts.excludeValues] to exlude specific group values
+  * @param {function} [opts.preListRecsHook] run recs through this
+  * function before continuing processing
+  * @param {function} [opts.dimName] defaults to the value of `dim`.
+  * If `dim` is a function, the dimName will be ugly.
+  * @param {function} [opts.truncateBranchOnEmptyVal] 
+  * @return {Array of Values} enhanced with all the List methods
+  *
+  * Avaailable as _.supergroup, Underscore mixin
+  */
+export class Supergroup extends Array {
   constructor(recs, dim, opts) {
     // if dim is an array, use multiDimList to create hierarchical grouping
     opts = opts || {};
     if (_(dim).isArray()) return multiDimList(recs, dim, opts);
     recs = opts.preListRecsHook ? opts.preListRecsHook(recs) : recs;
-    this.childProp = opts.childProp || this.childProp || 'children';
+    opts.childProp = opts.childProp || 'children';
 
     if (opts.multiValuedGroup || opts.multiValuedGroups) {
       if (opts.wasMultiDim) {
@@ -77,7 +93,8 @@ export class Supergroup {
        * on                    FIX!!!!!!
        */
 
-      addSupergroupMethods(val.records);
+      // WHY DID I EVER DO THIS?
+      // addSupergroupMethods(val.records);
 
       val.dim = (opts.dimName) ? opts.dimName : dim;
       val.records.parentVal = val; // NOT TESTED, NOT USED, PROBABLY WRONG
@@ -95,20 +112,142 @@ export class Supergroup {
       }
       return val;
     });
+    super();
+    this.push(...groups);
     //groups = makeList(groups); // turns groups into a List object
-    groups = addListMethods(groups); // turns groups into a List object
-    groups.records = recs; // NOT TESTED, NOT USED, PROBABLY WRONG
-    groups.dim = (opts.dimName) ? opts.dimName : dim;
-    groups.isNumeric = isNumeric;
+    //groups = addListMethods(groups); // turns groups into a List object
+    this.records = recs; // NOT TESTED, NOT USED, PROBABLY WRONG
+    this.dim = (opts.dimName) ? opts.dimName : dim;
+    this.isNumeric = isNumeric;
+    this.childProp = opts.childProp;
 
-    _.each(groups, function(group, i) { 
-      group.parentList = groups;
+    this.forEach( (group,i) => { 
+      group.parentList = this 
       //group.idxInParentList = i; // maybe a good idea, but don't need it yet
     });
     // pointless without recursion
     //if (opts.postListListHook) groups = opts.postListListHook(groups);
-    return groups;
+    //return groups;
   };
+  state() {
+    return new State(this);
+  }
+
+  // sometimes a root value is needed as the top of a hierarchy
+  asRootVal(name, dimName) {
+    var val = new Value(name || 'Root');
+    val.dim = dimName || 'root';
+    val.depth = 0;
+    val.records = this.records;
+    val[this.parentList.childProp]= this;
+    _.each(val[this.parentList.childProp], function(d) { d.parent = val; });
+    _.each(val.descendants(), function(d) { d.depth = d.depth + 1; });
+    return val;
+  };
+  leafNodes(level) {
+    return _.chain(this).invoke('leafNodes').flatten()
+      .addSupergroupMethods()
+      .value();
+  };
+  rawValues() {
+    return this.map(d=>d.toString());
+  };
+  // lookup a value in a list, or, if query is an array
+  //   it is interpreted as a path down the group hierarchy
+  lookup(query) {
+    if (_.isArray(query)) {
+      // if group has children, can search down the tree
+      var values = query.slice(0);
+      var list = this;
+      var ret;
+      while(values.length) {
+        ret = list.singleLookup(values.shift());
+        list = ret[this.parentList.childProp];
+      }
+      return ret;
+    } else {
+      return this.singleLookup(query);
+    }
+  };
+
+  getLookupMap() {
+    var self = this;
+    if (! ('lookupMap' in self)) {
+      self.lookupMap = {};
+      self.forEach(function(d) {
+        if (d in self.lookupMap)
+          console.warn('multiple occurrence of ' + d + 
+            ' in list. Lookup will only get the last');
+        self.lookupMap[d] = d;
+      });
+    }
+    return self.lookupMap;
+  };
+  singleLookup(query) {
+    return this.getLookupMap()[query];
+  };
+
+  // lookup more than one thing at a time
+  lookupMany(query) {
+    var list = this;
+    return addSupergroupMethods(_.chain(query).map(function(d) { 
+      return list.singleLookup(d)
+    }).compact().value());
+  };
+  flattenTree() {
+    return _.chain(this)
+          .map(function(d) {
+            var desc = d.descendants();
+            return [d].concat(desc);
+          })
+          .flatten()
+          .filter(_.identity) // expunge nulls
+          .tap(addListMethods)
+          .value();
+  };
+  addLevel(dim, opts) {
+    _.each(this, function(val) {
+      val.addLevel(dim, opts);
+    });
+    return this;
+  };
+  namePaths(opts) {
+    return _.map(this, function(d) {
+      return d.namePath(opts);
+    });
+  };
+  // apply a function to the records of each group
+  // 
+  aggregates(func, field, ret) {
+    var results = _.map(this, function(val) {
+      return val.aggregate(func, field);
+    });
+    if (ret === 'dict')
+      return _.object(this, results);
+    return results;
+  };
+
+  d3NestEntries() {
+    return _.map(this, val => {
+      if (this.parentList.childProp in val)
+        return {key: val.toString(), values: val[this.parentList.childProp].d3NestEntries()};
+      return {key: val.toString(), values: val.records};
+    });
+  };
+  d3NestMap() {
+    return _.chain(this).map(
+      function(val) {
+        if (val.children)
+          return [val+'', val.children.d3NestMap()];
+        return [val+'', val.records];
+      }).object().value();
+  }
+  rootList(func) {
+    if ('parentVal' in this)
+      return this.parentVal.rootList();
+    return this;
+  };
+
   static wholeListNumeric(groups) {
     var isNumeric = _.every(_.keys(groups), function(k) {
       return   k === null ||
@@ -126,31 +265,6 @@ export class Supergroup {
     return isNumeric;
   }
 }
-function StringValue() {}
-//StringValue.prototype = new String;
-function makeStringValue(s_arg) {
-  var S = new String(s_arg);
-  //S.__proto__ = StringValue.prototype; // won't work in IE10
-  for(var method in StringValue.prototype) {
-    Object.defineProperty(S, method, {
-      value: StringValue.prototype[method]
-    });
-  }
-  return S;
-}
-function NumberValue() {}
-//NumberValue.prototype = new Number;
-function makeNumberValue(n_arg) {
-  var N = new Number(n_arg);
-  //N.__proto__ = NumberValue.prototype;
-  for(var method in NumberValue.prototype) {
-    Object.defineProperty(N, method, {
-      value: NumberValue.prototype[method]
-    });
-  }
-  return N;
-}
-
 
 /*
 var supergroup = (function() {
@@ -158,23 +272,6 @@ var supergroup = (function() {
   // @description local reference to supergroup namespace 
   var sg = {};
 
-  /* @exported function supergroup.group(recs, dim, opts)
-   * @param {Object[]} recs list of records to be grouped
-   * @param {string or Function} dim either the property name to
-    group by or a function returning a group by string or number
-   * @param {Object} [opts]
-   * @param {String} opts.childProp='children' If group ends up being
-    * hierarchical, this will be the property name of any children
-   * @param {String[]} [opts.excludeValues] to exlude specific group values
-   * @param {function} [opts.preListRecsHook] run recs through this
-    * function before continuing processing
-   * @param {function} [opts.dimName] defaults to the value of `dim`.
-    * If `dim` is a function, the dimName will be ugly.
-   * @param {function} [opts.truncateBranchOnEmptyVal] 
-   * @return {Array of Values} enhanced with all the List methods
-   *
-   * Avaailable as _.supergroup, Underscore mixin
-   * /
   sg.supergroup = function(recs, dim, opts) {
     // if dim is an array, use multiDimList to create hierarchical grouping
     opts = opts || {};
@@ -325,88 +422,6 @@ var supergroup = (function() {
     if (!_(opts).has('delim')) opts.delim = '/';
     return opts;
   }
-  Value.prototype.dimPath = function(opts) {
-    opts = delimOpts(opts);
-    opts.dimName = true;
-    return this.namePath(opts);
-  };
-  Value.prototype.namePath = function(opts) {
-    opts = delimOpts(opts);
-    var path = this.pedigree(opts);
-    if (opts.dimName) path = _.pluck(path, 'dim');
-    if (opts.asArray) return path;
-    return path.join(opts.delim);
-    /*
-    var delim = opts.delim || '/';
-    return (this.parent ? 
-        this.parent.namePath(_.extend({},opts,{notLeaf:true})) : '') +
-      ((opts.noRoot && this.depth===0) ? '' : 
-        (this + (opts.notLeaf ? delim : ''))
-       )
-    * /
-  };
-  Value.prototype.path = // better than 'pedigree', right?
-  Value.prototype.pedigree = function(opts) {
-    opts = opts || {};
-    var path = [];
-    if (!opts.notThis) path.push(this);
-    var ptr = this;
-    while ((ptr = ptr.parent)) {
-      path.unshift(ptr);
-    }
-    if (opts.noRoot) path.shift();
-    if (opts.backwards || this.backwards) path.reverse(); //kludgy?
-    return path;
-    // CHANGING -- HOPE THIS DOESN'T BREAK STUFF (pedigree isn't
-    // documented yet)
-    if (!opts.asValues) return _.chain(path).invoke('valueOf').value();
-    return path;
-  };
-  Value.prototype.descendants = function(opts) {
-    // these two lines fix a treelike bug, hope they don't do harm
-    this[childProp] = this[childProp] || [];
-    _.addSupergroupMethods(this[childProp]);
-
-    return this[childProp] ? this[childProp].flattenTree() : undefined;
-  };
-  Value.prototype.lookup = function(query) {
-    if (_.isArray(query)) {
-      if (this.valueOf() == query[0]) { // allow string/num comparison to succeed?
-        query = query.slice(1);
-        if (query.length === 0)
-          return this;
-      }
-    } else if (_.isString(query)) {
-      if (this.valueOf() == query) {
-        return this;
-      }
-    } else {
-      throw new Error("invalid param: " + query);
-    }
-    if (!this[childProp])
-      throw new Error("can only call lookup on Values with kids");
-    return this[childProp].lookup(query);
-  };
-  Value.prototype.pct = function() {
-    return this.records.length / this.parentList.records.length;
-  };
-  Value.prototype.previous = function() {
-    if (this.parentList) {
-      // could store pos on each value, but not doing that now
-      var pos = this.parentList.indexOf(this);
-      if (pos > 0) {
-        return this.parentList[pos - 1];
-      }
-    }
-  };
-  Value.prototype.aggregate = function(func, field) {
-    if (_.isFunction(field))
-      return func(_.map(this.records, field));
-    return func(_.pluck(this.records, field));
-  };
-  Value.prototype.rootList = function() {
-    return this.parentList.rootList();
-  };
   ListG = List;
   ValueG = Value;
   return sg;
@@ -550,6 +565,7 @@ var compareValue = function(from, to) { // any reason to keep this?
 
 
 var addListMethods = function(arr) {
+  throw new Error('obsolete');
   arr = arr || []; // KLUDGE for treelike
   if (arr.isSupergroupList) return arr;
   for(var method in List.prototype) {
@@ -576,14 +592,6 @@ function makeList(arr_arg) {
   var arr = [ ];
   arr.push.apply(arr, arr_arg);
   addListMethods(arr);
-  /*
-  //arr.__proto__ = List.prototype;
-  for(var method in List.prototype) {
-    Object.defineProperty(arr, method, {
-      value: List.prototype[method]
-    });
-  }
-  */
   return arr;
 }
 
@@ -673,141 +681,6 @@ State.prototype.selectedRecs = function() {
   return _.chain(this.selectedVals).pluck('records').flatten().value();
 }
 
-List.prototype.state = function() {
-  return new State(this);
-}
-
-
-
-// @class List
-// @description Native Array of groups with various added methods and properties.
-// Methods described below.
-function List() {}
-
-
-List.prototype.isSupergroupList = true;
-// sometimes a root value is needed as the top of a hierarchy
-List.prototype.asRootVal = function(name, dimName) {
-  var val = new Value(name || 'Root');
-  val.dim = dimName || 'root';
-  val.depth = 0;
-  val.records = this.records;
-  val[this.childProp]= this;
-  _.each(val[this.childProp], function(d) { d.parent = val; });
-  _.each(val.descendants(), function(d) { d.depth = d.depth + 1; });
-  return val;
-};
-List.prototype.leafNodes = function(level) {
-  return _.chain(this).invoke('leafNodes').flatten()
-    .addSupergroupMethods()
-    .value();
-};
-List.prototype.rawValues = function() {
-  return this.map(d=>d.toString());
-};
-// lookup a value in a list, or, if query is an array
-//   it is interpreted as a path down the group hierarchy
-List.prototype.lookup = function(query) {
-  if (_.isArray(query)) {
-    // if group has children, can search down the tree
-    var values = query.slice(0);
-    var list = this;
-    var ret;
-    while(values.length) {
-      ret = list.singleLookup(values.shift());
-      list = ret[this.childProp];
-    }
-    return ret;
-  } else {
-    return this.singleLookup(query);
-  }
-};
-
-List.prototype.getLookupMap = function() {
-  var self = this;
-  if (! ('lookupMap' in self)) {
-    self.lookupMap = {};
-    self.forEach(function(d) {
-      if (d in self.lookupMap)
-        console.warn('multiple occurrence of ' + d + 
-          ' in list. Lookup will only get the last');
-      self.lookupMap[d] = d;
-    });
-  }
-  return self.lookupMap;
-};
-List.prototype.singleLookup = function(query) {
-  return this.getLookupMap()[query];
-};
-
-// lookup more than one thing at a time
-List.prototype.lookupMany = function(query) {
-  var list = this;
-  return addSupergroupMethods(_.chain(query).map(function(d) { 
-    return list.singleLookup(d)
-  }).compact().value());
-};
-List.prototype.flattenTree = function() {
-  return _.chain(this)
-        .map(function(d) {
-          var desc = d.descendants();
-          return [d].concat(desc);
-        })
-        .flatten()
-        .filter(_.identity) // expunge nulls
-        .tap(addListMethods)
-        .value();
-};
-List.prototype.addLevel = function(dim, opts) {
-  _.each(this, function(val) {
-    val.addLevel(dim, opts);
-  });
-  return this;
-};
-List.prototype.namePaths = function(opts) {
-  return _.map(this, function(d) {
-    return d.namePath(opts);
-  });
-};
-// apply a function to the records of each group
-// 
-List.prototype.aggregates = function(func, field, ret) {
-  var results = _.map(this, function(val) {
-    return val.aggregate(func, field);
-  });
-  if (ret === 'dict')
-    return _.object(this, results);
-  return results;
-};
-
-List.prototype.d3NestEntries = function() {
-  return _.map(this, val => {
-    if (this.childProp in val)
-      return {key: val.toString(), values: val[this.childProp].d3NestEntries()};
-    return {key: val.toString(), values: val.records};
-  });
-};
-List.prototype.d3NestMap = function() {
-  return _.chain(this).map(
-    function(val) {
-      if (val.children)
-        return [val+'', val.children.d3NestMap()];
-      return [val+'', val.records];
-    }).object().value();
-}
-List.prototype._sort = Array.prototype.sort;
-List.prototype.sort = function(func) {
-  return addListMethods(this._sort(func));
-};
-List.prototype.sortBy = function(func) {
-  return addListMethods(_.sortBy(this, func));
-};
-List.prototype.rootList = function(func) {
-  if ('parentVal' in this)
-    return this.parentVal.rootList();
-  return this;
-};
-
 // @class Value
 // @description Supergroup Lists are composed of Values which are
 // String or Number objects representing group values.
@@ -825,6 +698,7 @@ class Value {
   //Value.prototype.extendGroupBy = // backward compatibility
   addLevel(dim, opts) {
     opts = opts || {};
+    debugger;
     _.each(this.leafNodes() || [this], function(d) {
       opts.parent = d;
       if (!('in' in d)) { // d.in means it's part of a diffList
@@ -896,8 +770,92 @@ class Value {
     }
     return this;
   };
+  dimPath(opts) {
+    opts = delimOpts(opts);
+    opts.dimName = true;
+    return this.namePath(opts);
+  };
+  namePath(opts) {
+    opts = delimOpts(opts);
+    var path = this.pedigree(opts);
+    if (opts.dimName) path = _.pluck(path, 'dim');
+    if (opts.asArray) return path;
+    return path.join(opts.delim);
+    /*
+    var delim = opts.delim || '/';
+    return (this.parent ? 
+        this.parent.namePath(_.extend({},opts,{notLeaf:true})) : '') +
+      ((opts.noRoot && this.depth===0) ? '' : 
+        (this + (opts.notLeaf ? delim : ''))
+       )
+    */
+  };
+  pedigree(opts) {
+    opts = opts || {};
+    var path = [];
+    if (!opts.notThis) path.push(this);
+    var ptr = this;
+    while ((ptr = ptr.parent)) {
+      path.unshift(ptr);
+    }
+    if (opts.noRoot) path.shift();
+    if (opts.backwards || this.backwards) path.reverse(); //kludgy?
+    return path;
+    // CHANGING -- HOPE THIS DOESN'T BREAK STUFF (pedigree isn't
+    // documented yet)
+    if (!opts.asValues) return _.chain(path).invoke('valueOf').value();
+    return path;
+  };
+  path(opts) {
+    return this.pedigree(opts);
+  }
+  descendants(opts) {
+    // these two lines fix a treelike bug, hope they don't do harm
+    this[childProp] = this[childProp] || [];
+    _.addSupergroupMethods(this[childProp]);
+
+    return this[childProp] ? this[childProp].flattenTree() : undefined;
+  };
+  lookup(query) {
+    if (_.isArray(query)) {
+      if (this.valueOf() == query[0]) { // allow string/num comparison to succeed?
+        query = query.slice(1);
+        if (query.length === 0)
+          return this;
+      }
+    } else if (_.isString(query)) {
+      if (this.valueOf() == query) {
+        return this;
+      }
+    } else {
+      throw new Error("invalid param: " + query);
+    }
+    if (!this[childProp])
+      throw new Error("can only call lookup on Values with kids");
+    return this[childProp].lookup(query);
+  };
+  pct() {
+    return this.records.length / this.parentList.records.length;
+  };
+  previous() {
+    if (this.parentList) {
+      // could store pos on each value, but not doing that now
+      var pos = this.parentList.indexOf(this);
+      if (pos > 0) {
+        return this.parentList[pos - 1];
+      }
+    }
+  };
+  aggregate(func, field) {
+    if (_.isFunction(field))
+      return func(_.map(this.records, field));
+    return func(_.pluck(this.records, field));
+  };
+  rootList() {
+    return this.parentList.rootList();
+  };
   /* didn't make this yet, just copied from above
-  Value.prototype.descendants = function(level) {
+  Value.prototype.descendants(level) {
     var ret = [this];
     if (level !== 0 && this[childProp] && (!level || this.depth < level))
       ret = _.flatten(_.map(this[childProp], function(c) {
@@ -908,10 +866,10 @@ class Value {
   */
 }
 
-lodash.mixin({
+_.mixin({
   //supergroup: supergroup.supergroup, 
-  //supergroup: ((...args) => new Supergroup(...args)),
-  supergroup: function(d) { console.log('EEK'); debugger; throw new Error("blah");},
+  supergroup: ((...args) => new Supergroup(...args)),
+  //supergroup: function(d) { console.log('EEK'); debugger; throw new Error("blah");},
   //addSupergroupMethods: supergroup.addSupergroupMethods,
   multiValuedGroupBy: multiValuedGroupBy,
   sgDiffList: diffList,
@@ -966,6 +924,5 @@ lodash.mixin({
     return tmpObj.length%2 ? tmpObj[Math.floor(tmpObj.length/2)] : (_.isNumber(tmpObj[tmpObj.length/2-1]) && _.isNumber(tmpObj[tmpObj.length/2])) ? (tmpObj[tmpObj.length/2-1]+tmpObj[tmpObj.length/2]) /2 : tmpObj[tmpObj.length/2-1];
   },
 });
-debugger;
-//export default lodash;
-export default function() { console.log('hi')};
+export default _;
+//export default function() { console.log('hi')};
