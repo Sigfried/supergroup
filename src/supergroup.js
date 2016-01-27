@@ -12,6 +12,7 @@
 
 //require('babel-core');
 import _ from 'lodash';
+let lodash = _;
 //let _ = require('lodash');
 import assert from 'assert';
 //const assert = require("assert");
@@ -55,14 +56,16 @@ export class Supergroup {
               Supergroup.wholeListNumeric(groups); // does every group Value look like a number or a missing value?
     var groups = _.map(_.pairs(groups), function(pair, i) { // setup Values for each group in List
       var rawVal = pair[0];
+      var val = new Value(rawVal);
+      /*
       var val;
       if(isNumeric) {
         //val = makeNumberValue(rawVal); // either everything's a Number
-        val = new Value(rawVal, Number);
       } else {
         //val = makeStringValue(rawVal); // or everything's a String
-        val = new Value(rawVal, String);
+        val = new Value(rawVal);
       }
+      */
       /* The original records in this group are stored as an Array in 
        * the records property (should probably be a getter method).
        */
@@ -121,15 +124,6 @@ export class Supergroup {
       });
     }
     return isNumeric;
-  }
-}
-function makeValue(v_arg) {
-  if (isNaN(v_arg)) {
-    return new Value(v_arg, String);
-    //makeStringValue(v_arg);
-  } else {
-    return new Value(v_arg, Number);
-    //return makeNumberValue(v_arg);
   }
 }
 function StringValue() {}
@@ -499,7 +493,7 @@ var compare = function(A, B, dim) {
   var list = _.chain(comp).values().sort(function(a,b) {
     return (a.fromIdx - b.fromIdx) || (a.toIdx - b.toIdx);
   }).map(function(d) {
-    var val = makeValue(d.name);
+    var val = new Value(d.name);
     _.extend(val, d);
     val.records = [];
     if ('from' in d)
@@ -529,7 +523,7 @@ var compareValue = function(from, to) { // any reason to keep this?
     throw new Error("not sure what you're trying to do");
   }
   var name = from + ' to ' + to;
-  var val = makeValue(name);
+  var val = new Value(name);
   val.from = from;
   val.to = to;
   val.depth = 0;
@@ -657,7 +651,7 @@ class Filter {
 }
 
 
-
+/*
 var g = function *test(n) {for(let i=0; i<n; i++){ yield i}; return; };
 
 let a,b,c;
@@ -669,6 +663,7 @@ console.log(w.has(a));
 console.log(w.has(b));
 console.log(w);
 debugger;
+*/
 State.prototype.selectByFilter = function(filt) {
   
   
@@ -688,17 +683,12 @@ List.prototype.state = function() {
 // @description Native Array of groups with various added methods and properties.
 // Methods described below.
 function List() {}
-// @class Value
-// @description Supergroup Lists are composed of Values which are
-// String or Number objects representing group values.
-// Methods described below.
-function Value() {}
 
 
 List.prototype.isSupergroupList = true;
 // sometimes a root value is needed as the top of a hierarchy
 List.prototype.asRootVal = function(name, dimName) {
-  var val = makeValue(name || 'Root');
+  var val = new Value(name || 'Root');
   val.dim = dimName || 'root';
   val.depth = 0;
   val.records = this.records;
@@ -713,7 +703,7 @@ List.prototype.leafNodes = function(level) {
     .value();
 };
 List.prototype.rawValues = function() {
-  return _.chain(this).map(function(d) { return d.toString(); }).value();
+  return this.map(d=>d.toString());
 };
 // lookup a value in a list, or, if query is an array
 //   it is interpreted as a path down the group hierarchy
@@ -818,95 +808,110 @@ List.prototype.rootList = function(func) {
   return this;
 };
 
-Value.prototype.extendGroupBy = // backward compatibility
-Value.prototype.addLevel = function(dim, opts) {
-  opts = opts || {};
-  _.each(this.leafNodes() || [this], function(d) {
-    opts.parent = d;
-    if (!('in' in d)) { // d.in means it's part of a diffList
-      d[d.parentList.childProp] = new Supergroup(d.records, dim, opts);
-    } else { // allows adding levels to diffLists. haven't used for a long time
-      if (d['in'] === "both") {
-        d[d.parentList.childProp] = diffList(d.from, d.to, dim, opts);
-      } else {
+// @class Value
+// @description Supergroup Lists are composed of Values which are
+// String or Number objects representing group values.
+// Methods described below.
+class Value {
+  constructor(val, type) {
+    this.val = val;
+  }
+  toString() {
+    return this.val.toString();
+  }
+  valueOf() {
+    return this.val.valueOf()
+  }
+  //Value.prototype.extendGroupBy = // backward compatibility
+  addLevel(dim, opts) {
+    opts = opts || {};
+    _.each(this.leafNodes() || [this], function(d) {
+      opts.parent = d;
+      if (!('in' in d)) { // d.in means it's part of a diffList
         d[d.parentList.childProp] = new Supergroup(d.records, dim, opts);
-        _.each(d[d.parentList.childProp], function(c) {
-          c['in'] = d['in'];
-          c[d['in']] = d[d['in']];
-        });
+      } else { // allows adding levels to diffLists. haven't used for a long time
+        if (d['in'] === "both") {
+          d[d.parentList.childProp] = diffList(d.from, d.to, dim, opts);
+        } else {
+          d[d.parentList.childProp] = new Supergroup(d.records, dim, opts);
+          _.each(d[d.parentList.childProp], function(c) {
+            c['in'] = d['in'];
+            c[d['in']] = d[d['in']];
+          });
+        }
       }
+      d[d.parentList.childProp].parentVal = d; // NOT TESTED, NOT USED, PROBABLY WRONG!!!
+    });
+  };
+  leafNodes(level) {
+    // until commit 31278a35b91a8f4bd4ddc4376c840fb14d2723f9
+    // supported level param, to only go down so many levels
+    // not supporting that any more. wasn't using it
+
+    if (!(this.parentList.childProp in this)) return;
+
+    return _.chain(this.descendants()).filter(
+        function(d){
+          return _.isEmpty(d.children);
+        }).addSupergroupMethods().value();
+
+    var ret = [this];
+    if (typeof level === "undefined") {
+      level = Infinity;
     }
-    d[d.parentList.childProp].parentVal = d; // NOT TESTED, NOT USED, PROBABLY WRONG!!!
-  });
-};
-Value.prototype.leafNodes = function(level) {
-  // until commit 31278a35b91a8f4bd4ddc4376c840fb14d2723f9
-  // supported level param, to only go down so many levels
-  // not supporting that any more. wasn't using it
-
-  if (!(this.parentList.childProp in this)) return;
-
-  return _.chain(this.descendants()).filter(
-      function(d){
-        return _.isEmpty(d.children);
-      }).addSupergroupMethods().value();
-
-  var ret = [this];
-  if (typeof level === "undefined") {
-    level = Infinity;
-  }
-  if (level !== 0 && this[this.parentList.childProp] && this[this.parentList.childProp].length && (!level || this.depth < level)) {
-    ret = _.flatten(_.map(this[this.parentList.childProp], function(c) {
-      return c.leafNodes(level);
-    }), true);
-  }
-  //return makeList(ret);
-  return addListMethods(ret);
-};
-Value.prototype.addRecordsAsChildrenToLeafNodes = function(truncateEmpty) {
-  function fixLeaf(node) {
-    node.children = node.records;
-    _.each(node.children, function(rec) {
-      rec.parent = node;
-      rec.depth = node.depth + 1;
-      for(var method in Value.prototype) {
-        Object.defineProperty(rec, method, {
-          value: Value.prototype[method]
-        });
-      }
-    });
-  }
-  if (typeof truncateEmpty === "undefined")
-    truncateEmpty = true;
-  if (truncateEmpty) {
-    var self = this;
-    self.descendants().forEach(function(node) {
-      if (self.parent && self.parent.children.length === 1) {
+    if (level !== 0 && this[this.parentList.childProp] && this[this.parentList.childProp].length && (!level || this.depth < level)) {
+      ret = _.flatten(_.map(this[this.parentList.childProp], function(c) {
+        return c.leafNodes(level);
+      }), true);
+    }
+    //return makeList(ret);
+    return addListMethods(ret);
+  };
+  addRecordsAsChildrenToLeafNodes(truncateEmpty) {
+    function fixLeaf(node) {
+      node.children = node.records;
+      _.each(node.children, function(rec) {
+        rec.parent = node;
+        rec.depth = node.depth + 1;
+        for(var method in Value.prototype) {
+          Object.defineProperty(rec, method, {
+            value: Value.prototype[method]
+          });
+        }
+      });
+    }
+    if (typeof truncateEmpty === "undefined")
+      truncateEmpty = true;
+    if (truncateEmpty) {
+      var self = this;
+      self.descendants().forEach(function(node) {
+        if (self.parent && self.parent.children.length === 1) {
+          fixLeaf(node);
+        }
+      });
+    } else {
+      _.each(this.leafNodes(), function(node) {
         fixLeaf(node);
-      }
-    });
-  } else {
-    _.each(this.leafNodes(), function(node) {
-      fixLeaf(node);
-    });
-  }
-  return this;
-};
-/* didn't make this yet, just copied from above
-Value.prototype.descendants = function(level) {
-  var ret = [this];
-  if (level !== 0 && this[childProp] && (!level || this.depth < level))
-    ret = _.flatten(_.map(this[childProp], function(c) {
-      return c.leafNodes(level);
-    }), true);
-  return makeList(ret);
-};
-*/
+      });
+    }
+    return this;
+  };
+  /* didn't make this yet, just copied from above
+  Value.prototype.descendants = function(level) {
+    var ret = [this];
+    if (level !== 0 && this[childProp] && (!level || this.depth < level))
+      ret = _.flatten(_.map(this[childProp], function(c) {
+        return c.leafNodes(level);
+      }), true);
+    return makeList(ret);
+  };
+  */
+}
 
-
-_.mixin({
+lodash.mixin({
   //supergroup: supergroup.supergroup, 
-  supergroup: ((...args) => new Supergroup(...args)),
+  //supergroup: ((...args) => new Supergroup(...args)),
+  supergroup: function(d) { console.log('EEK'); debugger; throw new Error("blah");},
   //addSupergroupMethods: supergroup.addSupergroupMethods,
   multiValuedGroupBy: multiValuedGroupBy,
   sgDiffList: diffList,
@@ -939,7 +944,7 @@ _.mixin({
     if (!iterator && _.isArray(obj)) return _.sum(obj)/obj.length;
     if (_.isArray(obj) && !_.isEmpty(obj)) return _.sum(obj, iterator, context)/obj.length;
   },
-  
+
   // Return median of the elements 
   // if the object element number is odd the median is the 
   // object in the "middle" of a sorted array
@@ -950,16 +955,17 @@ _.mixin({
     if (_.isEmpty(obj)) return Infinity;
     var tmpObj = [];
     if (!iterator && _.isArray(obj)){
-    tmpObj = _.clone(obj);
-    tmpObj.sort(function(f,s){return f-s;});
+      tmpObj = _.clone(obj);
+      tmpObj.sort(function(f,s){return f-s;});
     }else{
-    _.isArray(obj) && each(obj, function(value, index, list) {
-      tmpObj.push(iterator ? iterator.call(context, value, index, list) : value);
-      tmpObj.sort();
-    });
+      _.isArray(obj) && each(obj, function(value, index, list) {
+        tmpObj.push(iterator ? iterator.call(context, value, index, list) : value);
+        tmpObj.sort();
+      });
     };
     return tmpObj.length%2 ? tmpObj[Math.floor(tmpObj.length/2)] : (_.isNumber(tmpObj[tmpObj.length/2-1]) && _.isNumber(tmpObj[tmpObj.length/2])) ? (tmpObj[tmpObj.length/2-1]+tmpObj[tmpObj.length/2]) /2 : tmpObj[tmpObj.length/2-1];
   },
 });
-
-export default _;
+debugger;
+//export default lodash;
+export default function() { console.log('hi')};

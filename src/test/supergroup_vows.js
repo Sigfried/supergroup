@@ -61,11 +61,11 @@ suite.addBatch({
       {"lastName":"Gold","firstName":"Sigfried","class":"Documenting with Pretty Colors","grade":"B","num":3}
     ]); 
   },
-  /*
   "lookup finds the right thing": function() {
     assert.equal(gradesByLastName.lookup("Sassoon").records[0], gradeBook[3])
   },
   "two groups for 'B'": function() {
+    console.log('lookup:', gradesByGradeLastName.lookup("B"));
     assert.deepEqual(gradesByGradeLastName.lookup("B").children.rawValues(), ["Gold","Androy"]);
   },
   "leafnodes": function() {
@@ -79,6 +79,7 @@ suite.addBatch({
         }).namePaths(),
       [ 'A/Sassoon', 'B/Androy', 'B/Gold', 'C/Gold' ]);
   },
+  /*
   "sortBy": function() {
     assert.deepEqual(gradesByGradeLastName.leafNodes().sortBy(
           function(d){ return d.namePath(); }).namePaths(),
