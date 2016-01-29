@@ -21,8 +21,6 @@ import assert from 'assert';
   * @param {string or Function} dim either the property name to
   group by or a function returning a group by string or number
   * @param {Object} [opts]
-  * @param {String} opts.childProp='children' If group ends up being
-  * hierarchical, this will be the property name of any children
   * @param {String[]} [opts.excludeValues] to exlude specific group values
   * @param {function} [opts.preListRecsHook] run recs through this
   * function before continuing processing
@@ -33,15 +31,77 @@ import assert from 'assert';
   *
   * Avaailable as _.supergroup, Underscore mixin
   */
+
+// private Supergroup methods:
+function groupBy(recs, keyfunc, keyname, depth=0, opts={}) {
+  //let sg = new Supergroup();
+  let m = new Map();
+  recs.forEach( r => {
+    let key = keyfunc(r);
+    //console.log(`making Value for ${keyname}:${key} by applying ${keyfunc} to ${JSON.stringify(r)}`);
+    if (!m.has(key)) {
+      if (opts.excludeValues) {
+        if (_.isArray(opts.excludeValues) && !_.find(opts.exludeValues(key))) {
+        } else if (opts.excludeValues instanceof Map && !opt.excludeValues.has(key)) {
+        }
+      } else {
+        let val = new Value(key);
+        val.dim = keyname;
+        val.records = [r];
+        val.depth = depth;
+        m.set(key, val);
+      }
+    } else {
+      let val = m.get(key);
+      val.records.push(r);
+    }
+  });
+  return m;
+}
+function nest(recs, keys, keynames=[], 
+              depth=0, opts={}, parent) {
+  let key = keys.shift();
+  let keyname = keynames.shift();
+  let keyfunc = key;
+  if (!_.isFunction(key)) {
+    keyname = keyname || key;
+    keyfunc = (d) => d[key];
+  }
+  //console.log(`keyname: ${keyname}, keyfunc: ${keyfunc}`);
+  recs = opts.preListRecsHook ? opts.preListRecsHook(recs) : recs;
+  if (opts.truncateBranchOnEmptyVal) // can't remember when this is used
+    recs = recs.filter(r => !_.isEmpty(r[dim]) || (_.isNumber(r[dim]) && isFinite(r[dim])));
+  let groups = groupBy(recs, keyfunc, keyname, depth, opts);
+  groups.records = recs;
+  groups.parentVal = parent;
+  //console.log(`MAPKEYS: ${[...groups.keys()]}`);
+  groups.forEach( (val, groupKey) => {
+    //console.log("depth---", depth, "groupKey---",groupKey,"val---", val);
+    val.parentList = groups;
+    if (keys.length) {
+      debugger;
+      val.children = nest(val.records, keys, keynames, depth+1, opts);
+    }
+  });
+  return groups; // returns (nested) map
+}
 export class Supergroup extends Array {
-  constructor(recs, dim, opts) {
-    // if dim is an array, use multiDimList to create hierarchical grouping
-    opts = opts || {};
-    if (_(dim).isArray()) return multiDimList(recs, dim, opts);
-    recs = opts.preListRecsHook ? opts.preListRecsHook(recs) : recs;
-    opts.childProp = opts.childProp || 'children';
+
+  constructor(recs, dims, opts={}, depth) {
+
+    let root = new Value(opts.rootVal || "root");
+    root.depth = opts.rootVal ? 0 : -1;
+
+    if (!_.isArray(dims)) {
+      dims = [dims];
+    }
+    root.children = nest(recs, dims, 
+                                opts.dimName ? [opts.dimName] : opts.dimNames,
+                                0, opts, root);
 
     if (opts.multiValuedGroup || opts.multiValuedGroups) {
+      throw new Error("multiValuedGroup not implemented in es6 version yet");
+      /*
       if (opts.wasMultiDim) {
         if (opts.multiValuedGroups) {
           if (_(opts.multiValuedGroups).contains(dim)) {
@@ -57,77 +117,24 @@ export class Supergroup extends Array {
       } else {
         var groups = _.multiValuedGroupBy(recs, dim);
       }
-    } else {
-      if (opts.truncateBranchOnEmptyVal)
-        recs = recs.filter(r => !_.isEmpty(r[dim]) || (_.isNumber(r[dim]) && isFinite(r[dim])));
-      var groups = _.groupBy(recs, dim); // use Underscore's groupBy: http://underscorejs.org/#groupBy
+      */
     }
-    if (opts.excludeValues) {
-      _.each(opts.excludeValues, function(d) {
-        delete groups[d];
-      });
-    }
+    /* 
+    numeric no longer necessary, right?
     var isNumeric = _(opts).has('isNumeric') ? 
               opts.isNumeric :
               Supergroup.wholeListNumeric(groups); // does every group Value look like a number or a missing value?
+
     var groups = _.map(_.pairs(groups), function(pair, i) { // setup Values for each group in List
-      var rawVal = pair[0];
-      var val = new Value(rawVal);
-      /*
-      var val;
-      if(isNumeric) {
-        //val = makeNumberValue(rawVal); // either everything's a Number
-      } else {
-        //val = makeStringValue(rawVal); // or everything's a String
-        val = new Value(rawVal);
-      }
-      */
-      /* The original records in this group are stored as an Array in 
-       * the records property (should probably be a getter method).
-       */
-      val.records = pair[1];
-      /* val.records is enhanced with Underscore methods for
-       * convenience, but also with the supergroup method that's
-       * been mixed in to Underscore. So you can group this specific
-       * subset like: val.records.supergroup
-       * on                    FIX!!!!!!
-       */
-
-      // WHY DID I EVER DO THIS?
-      // addSupergroupMethods(val.records);
-
-      val.dim = (opts.dimName) ? opts.dimName : dim;
       val.records.parentVal = val; // NOT TESTED, NOT USED, PROBABLY WRONG
       if (opts.parent)
-        val.parent = opts.parent;
-      if (val.parent) {
-        if ('depth' in val.parent) {
-          val.depth = val.parent.depth + 1;
-        } else {
-          val.parent.depth = 0;
-          val.depth = 1;
-        }
-      } else {
-        val.depth = 0;
-      }
-      return val;
+        val.parent = opts.parent;   // was this ever used?
     });
+    */
     super();
-    this.push(...groups);
-    //groups = makeList(groups); // turns groups into a List object
-    //groups = addListMethods(groups); // turns groups into a List object
-    this.records = recs; // NOT TESTED, NOT USED, PROBABLY WRONG
-    this.dim = (opts.dimName) ? opts.dimName : dim;
-    this.isNumeric = isNumeric;
-    this.childProp = opts.childProp;
+    //console.log('WHAT???', root[opts.childProp].values().map(String));
 
-    this.forEach( (group,i) => { 
-      group.parentList = this 
-      //group.idxInParentList = i; // maybe a good idea, but don't need it yet
-    });
-    // pointless without recursion
-    //if (opts.postListListHook) groups = opts.postListListHook(groups);
-    //return groups;
+    this.push(...(root.children));
   };
   state() {
     return new State(this);
@@ -139,8 +146,8 @@ export class Supergroup extends Array {
     val.dim = dimName || 'root';
     val.depth = 0;
     val.records = this.records;
-    val[this.parentList.childProp]= this;
-    _.each(val[this.parentList.childProp], function(d) { d.parent = val; });
+    val.children= this;
+    _.each(val.children, function(d) { d.parent = val; });
     _.each(val.descendants(), function(d) { d.depth = d.depth + 1; });
     return val;
   };
@@ -150,7 +157,7 @@ export class Supergroup extends Array {
       .value();
   };
   rawValues() {
-    return this.map(d=>d.toString());
+    return this.map(String);
   };
   // lookup a value in a list, or, if query is an array
   //   it is interpreted as a path down the group hierarchy
@@ -162,7 +169,7 @@ export class Supergroup extends Array {
       var ret;
       while(values.length) {
         ret = list.singleLookup(values.shift());
-        list = ret[this.parentList.childProp];
+        list = ret.children;
       }
       return ret;
     } else {
@@ -229,8 +236,8 @@ export class Supergroup extends Array {
 
   d3NestEntries() {
     return _.map(this, val => {
-      if (this.parentList.childProp in val)
-        return {key: val.toString(), values: val[this.parentList.childProp].d3NestEntries()};
+      if ('children' in val)
+        return {key: val.toString(), values: val.children.d3NestEntries()};
       return {key: val.toString(), values: val.records};
     });
   };
@@ -265,169 +272,6 @@ export class Supergroup extends Array {
     return isNumeric;
   }
 }
-
-/*
-var supergroup = (function() {
-  return;
-  // @description local reference to supergroup namespace 
-  var sg = {};
-
-  sg.supergroup = function(recs, dim, opts) {
-    // if dim is an array, use multiDimList to create hierarchical grouping
-    opts = opts || {};
-    if (_(dim).isArray()) return sg.multiDimList(recs, dim, opts);
-    recs = opts.preListRecsHook ? opts.preListRecsHook(recs) : recs;
-    childProp = opts.childProp || childProp;
-
-    if (opts.multiValuedGroup || opts.multiValuedGroups) {
-      if (opts.wasMultiDim) {
-        if (opts.multiValuedGroups) {
-          if (_(opts.multiValuedGroups).contains(dim)) {
-            var groups = _.multiValuedGroupBy(recs, dim);
-          } else {
-            if (opts.truncateBranchOnEmptyVal)
-             recs = recs.filter(r => !_.isEmpty(r[dim]) || (_.isNumber(r[dim]) && isFinite(r[dim])));
-            var groups = _.groupBy(recs, dim);
-          }
-        } else {
-          throw new Error("If you want multValuedGroups on multi-level groupings, you have to say which dims get multiValued: opts: { multiValuedGroups:[dim1,dim2] }");
-        }
-      } else {
-        var groups = _.multiValuedGroupBy(recs, dim);
-      }
-    } else {
-      if (opts.truncateBranchOnEmptyVal)
-       recs = recs.filter(r => !_.isEmpty(r[dim]) || (_.isNumber(r[dim]) && isFinite(r[dim])));
-      var groups = _.groupBy(recs, dim); // use Underscore's groupBy: http://underscorejs.org/#groupBy
-    }
-    if (opts.excludeValues) {
-      _.each(opts.excludeValues, function(d) {
-        delete groups[d];
-      });
-    }
-    var isNumeric = _(opts).has('isNumeric') ? 
-              opts.isNumeric :
-              wholeListNumeric(groups); // does every group Value look like a number or a missing value?
-    var groups = _.map(_.pairs(groups), function(pair, i) { // setup Values for each group in List
-      var rawVal = pair[0];
-      var val;
-      if(isNumeric) {
-        val = makeNumberValue(rawVal); // either everything's a Number
-      } else {
-        val = makeStringValue(rawVal); // or everything's a String
-      }
-      /* The original records in this group are stored as an Array in 
-       * the records property (should probably be a getter method).
-       * /
-      val.records = pair[1];
-      /* val.records is enhanced with Underscore methods for
-       * convenience, but also with the supergroup method that's
-       * been mixed in to Underscore. So you can group this specific
-       * subset like: val.records.supergroup
-       * on                    FIX!!!!!!
-       * /
-
-      sg.addSupergroupMethods(val.records);
-
-      val.dim = (opts.dimName) ? opts.dimName : dim;
-      val.records.parentVal = val; // NOT TESTED, NOT USED, PROBABLY WRONG
-      if (opts.parent)
-        val.parent = opts.parent;
-      if (val.parent) {
-        if ('depth' in val.parent) {
-          val.depth = val.parent.depth + 1;
-        } else {
-          val.parent.depth = 0;
-          val.depth = 1;
-        }
-      } else {
-        val.depth = 0;
-      }
-      return val;
-    });
-    //groups = makeList(groups); // turns groups into a List object
-    groups = sg.addListMethods(groups); // turns groups into a List object
-    groups.records = recs; // NOT TESTED, NOT USED, PROBABLY WRONG
-    groups.dim = (opts.dimName) ? opts.dimName : dim;
-    groups.isNumeric = isNumeric;
-
-    _.each(groups, function(group, i) { 
-      group.parentList = groups;
-      //group.idxInParentList = i; // maybe a good idea, but don't need it yet
-    });
-    // pointless without recursion
-    //if (opts.postListListHook) groups = opts.postListListHook(groups);
-    return groups;
-  };
-  // nested groups, each dim is a level in hierarchy
-  sg.multiDimList = function(recs, dims, opts) {
-    opts.wasMultiDim = true; // pretty kludgy
-    var groups = sg.supergroup(recs, dims[0], opts);
-    _.chain(dims).rest().each(function(dim) {
-      groups.addLevel(dim, opts);
-    }).value();
-    return groups;
-  };
-  function makeValue(v_arg) {
-    if (isNaN(v_arg)) {
-      return makeStringValue(v_arg);
-    } else {
-      return makeNumberValue(v_arg);
-    }
-  }
-  function StringValue() {}
-  //StringValue.prototype = new String;
-  function makeStringValue(s_arg) {
-    var S = new String(s_arg);
-    //S.__proto__ = StringValue.prototype; // won't work in IE10
-    for(var method in StringValue.prototype) {
-      Object.defineProperty(S, method, {
-        value: StringValue.prototype[method]
-      });
-    }
-    return S;
-  }
-  function NumberValue() {}
-  //NumberValue.prototype = new Number;
-  function makeNumberValue(n_arg) {
-    var N = new Number(n_arg);
-    //N.__proto__ = NumberValue.prototype;
-    for(var method in NumberValue.prototype) {
-      Object.defineProperty(N, method, {
-        value: NumberValue.prototype[method]
-      });
-    }
-    return N;
-  }
-  function wholeListNumeric(groups) {
-    var isNumeric = _.every(_.keys(groups), function(k) {
-      return   k === null ||
-            k === undefined ||
-            (!isNaN(Number(k))) ||
-            ["null", ".", "undefined"].indexOf(k.toLowerCase()) > -1;
-    });
-    if (isNumeric) {
-      _.each(_.keys(groups), function(k) {
-        if (isNaN(k)) {
-          delete groups[k];    // getting rid of NULL values in dim list!!
-        }
-      });
-    }
-    return isNumeric;
-  }
-  var childProp = 'children';
-  function delimOpts(opts) {
-    if (typeof opts === "string") opts = {delim: opts};
-    opts = opts || {};
-    if (!_(opts).has('delim')) opts.delim = '/';
-    return opts;
-  }
-  ListG = List;
-  ValueG = Value;
-  return sg;
-}());
-*/
-
 
 /** Summarize records by a dimension
   *
@@ -576,14 +420,6 @@ var addListMethods = function(arr) {
   return arr;
 };
 var addSupergroupMethods = addListMethods;
-var multiDimList = function(recs, dims, opts) {
-  opts.wasMultiDim = true; // pretty kludgy
-  var groups = new Supergroup(recs, dims[0], opts);
-  _.chain(dims).rest().each(function(dim) {
-    groups.addLevel(dim, opts);
-  }).value();
-  return groups;
-};
 
 
 // can't easily subclass Array, so this explicitly puts the List
@@ -595,7 +431,8 @@ function makeList(arr_arg) {
   return arr;
 }
 
-var hierarchicalTableToTree = function(data, parentProp, childProp) {
+var hierarchicalTableToTree = function(data, parentPropchildProp) {
+  throw new Error("fix this after getting rid of childProp");
   // does not do the right thing if a value has two parents
   // also, does not yet fix depth numbers
   var parents = new Supergroup(data,[parentProp, childProp]); // 2-level grouping with all parent/child pairs
@@ -686,7 +523,7 @@ State.prototype.selectedRecs = function() {
 // String or Number objects representing group values.
 // Methods described below.
 class Value {
-  constructor(val, type) {
+  constructor(val) {
     this.val = val;
   }
   toString() {
@@ -702,19 +539,19 @@ class Value {
     _.each(this.leafNodes() || [this], function(d) {
       opts.parent = d;
       if (!('in' in d)) { // d.in means it's part of a diffList
-        d[d.parentList.childProp] = new Supergroup(d.records, dim, opts);
+        d.children = new Supergroup(d.records, dim, opts);
       } else { // allows adding levels to diffLists. haven't used for a long time
         if (d['in'] === "both") {
-          d[d.parentList.childProp] = diffList(d.from, d.to, dim, opts);
+          d.children = diffList(d.from, d.to, dim, opts);
         } else {
-          d[d.parentList.childProp] = new Supergroup(d.records, dim, opts);
-          _.each(d[d.parentList.childProp], function(c) {
+          d.children = new Supergroup(d.records, dim, opts);
+          _.each(d.children, function(c) {
             c['in'] = d['in'];
             c[d['in']] = d[d['in']];
           });
         }
       }
-      d[d.parentList.childProp].parentVal = d; // NOT TESTED, NOT USED, PROBABLY WRONG!!!
+      d.children.parentVal = d; // NOT TESTED, NOT USED, PROBABLY WRONG!!!
     });
   };
   leafNodes(level) {
@@ -722,7 +559,7 @@ class Value {
     // supported level param, to only go down so many levels
     // not supporting that any more. wasn't using it
 
-    if (!(this.parentList.childProp in this)) return;
+    if (!('children' in this)) return;
 
     return _.chain(this.descendants()).filter(
         function(d){
@@ -733,8 +570,8 @@ class Value {
     if (typeof level === "undefined") {
       level = Infinity;
     }
-    if (level !== 0 && this[this.parentList.childProp] && this[this.parentList.childProp].length && (!level || this.depth < level)) {
-      ret = _.flatten(_.map(this[this.parentList.childProp], function(c) {
+    if (level !== 0 && this.children && this.children.length && (!level || this.depth < level)) {
+      ret = _.flatten(_.map(this.children, function(c) {
         return c.leafNodes(level);
       }), true);
     }
@@ -811,10 +648,10 @@ class Value {
   }
   descendants(opts) {
     // these two lines fix a treelike bug, hope they don't do harm
-    this[childProp] = this[childProp] || [];
-    _.addSupergroupMethods(this[childProp]);
+    this.children = this.children || [];
+    _.addSupergroupMethods(this.children);
 
-    return this[childProp] ? this[childProp].flattenTree() : undefined;
+    return this.children ? this.children.flattenTree() : undefined;
   };
   lookup(query) {
     if (_.isArray(query)) {
@@ -830,9 +667,9 @@ class Value {
     } else {
       throw new Error("invalid param: " + query);
     }
-    if (!this[childProp])
+    if (!this.children)
       throw new Error("can only call lookup on Values with kids");
-    return this[childProp].lookup(query);
+    return this.children.lookup(query);
   };
   pct() {
     return this.records.length / this.parentList.records.length;
