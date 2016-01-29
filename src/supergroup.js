@@ -3,7 +3,7 @@
  * # supergroup.js
  * Author: [Sigfried Gold](http://sigfried.org) 
  * License: [MIT](http://sigfried.mit-license.org/) 
- * Version: 1.1.0
+ * Version: 2.0.0
  * (starting to convert to es6)
  *
  * usage examples at [http://sigfried.github.io/blog/supergroup](http://sigfried.github.io/blog/supergroup)
@@ -30,35 +30,49 @@ import assert from 'assert';
   * @return {Array of Values} enhanced with all the List methods
   *
   * Avaailable as _.supergroup, Underscore mixin
+  *
+  * new structure:
+  *
+  * Supergroup extends Array
+  *   Array values are Values
+  *   properties:
+  *     groupsmap: keys are the keys used to group Values, values are Values
+  *     recsmap:   keys are index into original records array, values are orig records
+  *   methods:
+  *     rawValues: returns keys from groupsmap
+  *
+  * Values
+  *     children:  returns Values from groupsmap
   */
 
 // private Supergroup methods:
-function groupBy(recs, keyfunc, keyname, depth=0, opts={}) {
+function groupBy(recsmap, keyfunc, keyname, depth=0, opts={}) {
   //let sg = new Supergroup();
-  let m = new Map();
-  recs.forEach( r => {
+  let groupsmap = new Map();
+  recsmap.forEach( (r,i) => {
     let key = keyfunc(r);
+    let val;
     //console.log(`making Value for ${keyname}:${key} by applying ${keyfunc} to ${JSON.stringify(r)}`);
-    if (!m.has(key)) {
+    if (!groupsmap.has(key)) {
       if (opts.excludeValues) {
         if (_.isArray(opts.excludeValues) && !_.find(opts.exludeValues(key))) {
         } else if (opts.excludeValues instanceof Map && !opt.excludeValues.has(key)) {
         }
       } else {
-        let val = new Value(key);
+        val = new Value(key);
         val.dim = keyname;
-        val.records = [r];
+        val.recsmap = new Map();
         val.depth = depth;
-        m.set(key, val);
+        groupsmap.set(key, val);
       }
     } else {
-      let val = m.get(key);
-      val.records.push(r);
+      val = groupsmap.get(key);
     }
+    val.recsmap.set(i, r);
   });
-  return m;
+  return groupsmap;
 }
-function nest(recs, keys, keynames=[], 
+function nest(recsmap, keys, keynames=[], 
               depth=0, opts={}, parent) {
   let key = keys.shift();
   let keyname = keynames.shift();
@@ -68,72 +82,47 @@ function nest(recs, keys, keynames=[],
     keyfunc = (d) => d[key];
   }
   //console.log(`keyname: ${keyname}, keyfunc: ${keyfunc}`);
-  recs = opts.preListRecsHook ? opts.preListRecsHook(recs) : recs;
-  if (opts.truncateBranchOnEmptyVal) // can't remember when this is used
+  if (opts.preListRecsHook) {
+    throw new Error("preListRecsHook not re-implemented yet");
+    recs = opts.preListRecsHook ? opts.preListRecsHook(recs) : recs;
+  }
+  if (opts.truncateBranchOnEmptyVal) { // can't remember when this is used
+    throw new Error("truncateBranchOnEmptyVal not re-implemented yet");
     recs = recs.filter(r => !_.isEmpty(r[dim]) || (_.isNumber(r[dim]) && isFinite(r[dim])));
-  let groups = groupBy(recs, keyfunc, keyname, depth, opts);
-  groups.records = recs;
-  groups.parentVal = parent;
-  //console.log(`MAPKEYS: ${[...groups.keys()]}`);
-  groups.forEach( (val, groupKey) => {
+  }
+  let groupsmap = groupBy(recsmap, keyfunc, keyname, depth, opts);
+  //console.log(`MAPKEYS: ${[...groupsmap.keys()]}`);
+  groupsmap.forEach( (val, groupKey) => {
     //console.log("depth---", depth, "groupKey---",groupKey,"val---", val);
-    val.parentList = groups;
+    val.parentList = parent;
     if (keys.length) {
       debugger;
       val.children = nest(val.records, keys, keynames, depth+1, opts);
     }
   });
-  return groups; // returns (nested) map
+  return groupsmap; // returns (nested) map
 }
 export class Supergroup extends Array {
 
   constructor(recs, dims, opts={}, depth) {
-
     let root = new Value(opts.rootVal || "root");
     root.depth = opts.rootVal ? 0 : -1;
+    root.recsmap = new Map();
+    recs.forEach( (r,i) => {
+      root.recsmap.set(i, r)
+    });
 
     if (!_.isArray(dims)) {
       dims = [dims];
     }
-    root.children = nest(recs, dims, 
+    root.children = nest(root.recsmap, dims, 
                                 opts.dimName ? [opts.dimName] : opts.dimNames,
                                 0, opts, root);
 
     if (opts.multiValuedGroup || opts.multiValuedGroups) {
       throw new Error("multiValuedGroup not implemented in es6 version yet");
-      /*
-      if (opts.wasMultiDim) {
-        if (opts.multiValuedGroups) {
-          if (_(opts.multiValuedGroups).contains(dim)) {
-            var groups = _.multiValuedGroupBy(recs, dim);
-          } else {
-            if (opts.truncateBranchOnEmptyVal)
-             recs = recs.filter(r => !_.isEmpty(r[dim]) || (_.isNumber(r[dim]) && isFinite(r[dim])));
-            var groups = _.groupBy(recs, dim);
-          }
-        } else {
-          throw new Error("If you want multValuedGroups on multi-level groupings, you have to say which dims get multiValued: opts: { multiValuedGroups:[dim1,dim2] }");
-        }
-      } else {
-        var groups = _.multiValuedGroupBy(recs, dim);
-      }
-      */
     }
-    /* 
-    numeric no longer necessary, right?
-    var isNumeric = _(opts).has('isNumeric') ? 
-              opts.isNumeric :
-              Supergroup.wholeListNumeric(groups); // does every group Value look like a number or a missing value?
-
-    var groups = _.map(_.pairs(groups), function(pair, i) { // setup Values for each group in List
-      val.records.parentVal = val; // NOT TESTED, NOT USED, PROBABLY WRONG
-      if (opts.parent)
-        val.parent = opts.parent;   // was this ever used?
-    });
-    */
     super();
-    //console.log('WHAT???', root[opts.childProp].values().map(String));
-
     this.push(...(root.children));
   };
   state() {
