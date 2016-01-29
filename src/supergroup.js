@@ -1,12 +1,29 @@
 'use strict';
-/*
- * # supergroup.js
+/**
+ * Supergroup module
+ * @module supergroup
+ * @description
  * Author: [Sigfried Gold](http://sigfried.org) 
  * License: [MIT](http://sigfried.mit-license.org/) 
  * Version: 2.0.0
  * (starting to convert to es6)
  *
  * usage examples at [http://sigfried.github.io/blog/supergroup](http://sigfried.github.io/blog/supergroup)
+ *
+ * Avaailable as _.supergroup, Underscore mixin
+ *
+ * new structure:
+ *
+ * Supergroup extends Array
+ *   Array values are Values
+ *   properties:
+ *     groupsmap: keys are the keys used to group Values, values are Values
+ *     recsmap:   keys are index into original records array, values are orig records
+ *   methods:
+ *     rawValues: returns keys from groupsmap
+ *
+ * Values
+ *     children:  returns Values from groupsmap
  */
 ; // jshint -W053
 
@@ -16,33 +33,7 @@ import _ from 'lodash';
 import assert from 'assert';
 //const assert = require("assert");
 
-/* @exported function supergroup.group(recs, dim, opts)
-  * @param {Object[]} recs list of records to be grouped
-  * @param {string or Function} dim either the property name to
-  group by or a function returning a group by string or number
-  * @param {Object} [opts]
-  * @param {String[]} [opts.excludeValues] to exlude specific group values
-  * @param {function} [opts.preListRecsHook] run recs through this
-  * function before continuing processing
-  * @param {function} [opts.dimName] defaults to the value of `dim`.
-  * If `dim` is a function, the dimName will be ugly.
-  * @param {function} [opts.truncateBranchOnEmptyVal] 
-  * @return {Array of Values} enhanced with all the List methods
-  *
-  * Avaailable as _.supergroup, Underscore mixin
-  *
-  * new structure:
-  *
-  * Supergroup extends Array
-  *   Array values are Values
-  *   properties:
-  *     groupsmap: keys are the keys used to group Values, values are Values
-  *     recsmap:   keys are index into original records array, values are orig records
-  *   methods:
-  *     rawValues: returns keys from groupsmap
-  *
-  * Values
-  *     children:  returns Values from groupsmap
+/*
   */
 
 // private Supergroup methods:
@@ -102,8 +93,21 @@ function nest(recsmap, keys, keynames=[],
   });
   return groupsmap; // returns (nested) map
 }
+/** Class of grouped records masquerading as an array */
 export class Supergroup extends Array {
 
+ /** 
+  * groups records and building tree structure
+  * @exported class supergroup.group(recs, dim, opts)
+  * @param {Object[]} recs list of records to be grouped
+  * @param {string or Function} dim either the property name to group by or a function returning a group by string or number
+  * @param {Object} [opts]
+  * @param {String[]} [opts.excludeValues] to exlude specific group values
+  * @param {function} [opts.preListRecsHook] run recs through this * function before continuing processing
+  * @param {function} [opts.dimName] defaults to the value of `dim`.  * If `dim` is a function, the dimName will be ugly.
+  * @param {function} [opts.truncateBranchOnEmptyVal] 
+  * @return {Array of Values} enhanced with all the List methods
+  */
   constructor(recs, dims, opts={}, depth) {
     let root = new Value(opts.rootVal || "root");
     root.depth = opts.rootVal ? 0 : -1;
@@ -198,7 +202,6 @@ export class Supergroup extends Array {
           })
           .flatten()
           .filter(_.identity) // expunge nulls
-          .tap(addListMethods)
           .value();
   };
   addLevel(dim, opts) {
@@ -296,7 +299,7 @@ var diffList = function(from, to, dim, opts) {
   var fromList = new Supergroup(from.records, dim, opts);
   var toList = new Supergroup(to.records, dim, opts);
   //var list = makeList(sg.compare(fromList, toList, dim));
-  var list = addListMethods(compare(fromList, toList, dim));
+  var list = compare(fromList, toList, dim);
   list.dim = (opts && opts.dimName) ? opts.dimName : dim;
   return list;
 };
@@ -397,28 +400,6 @@ var compareValue = function(from, to) { // any reason to keep this?
   */
 
 
-var addListMethods = function(arr) {
-  throw new Error('obsolete');
-  arr = arr || []; // KLUDGE for treelike
-  if (arr.isSupergroupList) return arr;
-  for(var method in List.prototype) {
-    Object.defineProperty(arr, method, {
-      value: List.prototype[method]
-    });
-  }
-  return arr;
-};
-var addSupergroupMethods = addListMethods;
-
-
-// can't easily subclass Array, so this explicitly puts the List
-// methods on an Array that's supposed to be a List
-function makeList(arr_arg) {
-  var arr = [ ];
-  arr.push.apply(arr, arr_arg);
-  addListMethods(arr);
-  return arr;
-}
 
 var hierarchicalTableToTree = function(data, parentPropchildProp) {
   throw new Error("fix this after getting rid of childProp");
@@ -456,12 +437,10 @@ if (_.createAggregator) {
 } else {
   var multiValuedGroupBy = function() { throw new Error("couldn't install multiValuedGroupBy") };
 }
-// @class State
-// @description with a couple exceptions, supergroup objects should be
-// immutable. when managing filters, calling code often adds .hidden
-// properties to records, sometimes to values. not good.
-// States are a way to track selection/highlighting states without mutating
-// the underlying object.
+/**
+ * Class for managing filter state while leaving Supgergroups immutable
+ * as much as possible.
+ */
 class State {
   constructor(sglist) {
     this.list = sglist;
@@ -564,8 +543,7 @@ class Value {
         return c.leafNodes(level);
       }), true);
     }
-    //return makeList(ret);
-    return addListMethods(ret);
+    return ret;
   };
   addRecordsAsChildrenToLeafNodes(truncateEmpty) {
     function fixLeaf(node) {
