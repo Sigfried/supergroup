@@ -1,6 +1,19 @@
 'use strict';
 /**
  * Supergroup module
+ *
+ * {@tutorial README.md}
+ *
+ * - #### Supergroup extends `Array`
+ *   - `Array` values are `Values`
+ *   - properties:
+ *     - groupsmap: keys are the keys used to group Values, values are Values
+ *     - recsmap:   keys are index into original records array, values are orig records
+ *   - methods:
+ *     - rawValues: returns keys from groupsmap
+ *
+ * - Values
+ *     - children:  returns Values from groupsmap
  * @module supergroup
  * @description
  * Author: [Sigfried Gold](http://sigfried.org) 
@@ -12,18 +25,6 @@
  *
  * Avaailable as _.supergroup, Underscore mixin
  *
- * new structure:
- *
- * Supergroup extends Array
- *   Array values are Values
- *   properties:
- *     groupsmap: keys are the keys used to group Values, values are Values
- *     recsmap:   keys are index into original records array, values are orig records
- *   methods:
- *     rawValues: returns keys from groupsmap
- *
- * Values
- *     children:  returns Values from groupsmap
  */
 ; // jshint -W053
 
@@ -93,7 +94,35 @@ function nest(recsmap, keys, keynames=[],
   });
   return groupsmap; // returns (nested) map
 }
-/** Class of grouped records masquerading as an array */
+/** 
+ * ### Class of grouped records masquerading as an array
+ * A `Supergroup` object is an array of `Value` objects made by grouping
+ * an array of json objects by some set of properties or functions performed
+ * on those objects. Each `Value` represents a single group. Think of it as
+ * a SQL group by:
+ *
+ *     SELECT state, zipcode, count(*)
+ *     FROM addresses
+ *     GROUP BY state, zipcode
+ *
+ * In Supergroup parlance: 'state' and 'zipcode' are _dimensions_; states 
+ * ('Alabama', 'Alaska') and zipcodes (50032, 20002) are _values_, or, 
+ * rather, value _keys_; and `count(*)` is an aggregation performed on the
+ * group. In regular SQL the underlying records represented in a group are
+ * not available, with Supergroup they are. So a `Value` has a `key` which
+ * is the text or number or any javascript object used to form the group.
+ * In a group of states, the _key_ of each value would be a `string`, for
+ * zipdcodes it could be a `number`. (In previous versions of Supergroup,
+ * these were `String` and `Number` objects, but now they are `string` 
+ * literals or anything else returnable by a grouping function.)
+ *
+ * `Value` objects have a `key`, and `valueobj.valueOf()` will return that
+ * key, and `valueobj.toString()` will return the results of the default
+ * toString method on that key. `valueobj.records` is an array of the original
+ * javascript objects included in the group represented by the key. And 
+ * `valueobj.indexes` is an array of the positions of those records in the
+ * original array.
+ */
 export class Supergroup extends Array {
 
  /** 
@@ -490,7 +519,7 @@ State.prototype.selectedRecs = function() {
 // @description Supergroup Lists are composed of Values which are
 // String or Number objects representing group values.
 // Methods described below.
-class Value {
+export class Value {
   constructor(val) {
     this.val = val;
   }

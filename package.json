@@ -1,40 +1,41 @@
 {
-  "name": "es6-module-starter",
-  "version": "2.0.0",
-  "description": "Starter kit to create npm modules using ES6 and Babel with sensible defaults",
+  "name": "supergroup",
+  "version": "1.0.16",
+  "description": "Nested groups on arrays of objects where groups are Strings that know what you want them to know about themselves and their relatives.",
+  "homepage": "https://github.com/Sigfried/supergroup",
   "main": "dist/supergroup.js",
+  "author": "Sigfried Gold",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Sigfried/supergroup/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Sigfried/supergroup.git"
+  },
+  "keywords": [
+    "underscore",
+    "d3",
+    "nest",
+    "groupby",
+    "group",
+    "convenience",
+    "readability",
+    "data",
+    "hierarchy"
+  ],
   "scripts": {
     "dev": "babel-node src/supergroup.js",
     "lint": "eslint src/**/*.js",
     "compile": "babel --stage 0 -d dist/ src/",
     "prepublish": "npm run compile",
-    "doc": "documentation -o doc -f html src/supergroup.js",
-    "tape": "babel-node node_modules/argg src/test/*.js",
+    "documentationNOT_USING": "documentation -c conf.json -o doc -f html -R ./README src/supergroup.js",
+    "doc": "esdoc -c conf.json",
     "vows": "babel-node node_modules/argg src/test/*.js",
     "watchHOLD": "npm run compile && npm run vows",
-    "watch": "npm run doc && npm run vows",
-    "istanbul": "npm run compile && istanbul cover --dir coverage/istanbul node_modules/argg dist/test/*.js --report lcovonly",
-    "coverage": "npm run compile && istanbul cover --dir coverage/istanbul node_modules/argg dist/test/*.js --report html",
-    "coveralls": "cat ./coverage/istanbul/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage",
-    "plato": "plato -d coverage/plato dist/supergroup.js",
-    "test": "npm run istanbul && npm run coveralls"
+    "watchcmd": "npm run doc && npm run vows",
+    "watch": "fswatch -0 -o ./src .package.json conf.json README.md | xargs -0 -n 1 -I {} npm run watchcmd"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/vinniegarcia/es6-module-starter.git"
-  },
-  "keywords": [
-    "module",
-    "npm",
-    "starter",
-    "boilerplate",
-    "babel",
-    "es6",
-    "tape",
-    "istanbul"
-  ],
-  "author": "Vinnie Garcia <vinnie@coev.co>",
-  "license": "MIT",
   "devDependencies": {
     "argg": "0.0.2",
     "babel": "^5",
@@ -48,7 +49,7 @@
     "istanbul": "^0.3.18",
     "plato": "^1.5.0",
     "tape": "^4.2.0",
-    "vows": "^0.8.1"
-  },
-  "dependencies": {}
+    "vows": "^0.8.1",
+    "lodash": "^3.9.3"
+  }
 }

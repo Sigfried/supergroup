@@ -1,0 +1,8 @@
+{
+  "readme": "./README.md",
+  "tutorials": [
+    "README"
+  ],
+  "source": "./src",
+  "destination": "./doc"
+}
