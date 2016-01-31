@@ -43,7 +43,8 @@ export class Value {
   namePath(opts) {
     opts = delimOpts(opts);
     var path = this.pedigree(opts);
-    if (opts.dimName) path = _.pluck(path, 'dim');
+    if (opts.dimName) path = path.map(d=>d.dim);
+        //_.pluck(path, 'dim');
     if (opts.asArray) return path;
     return path.join(opts.delim);
     /*
@@ -68,13 +69,16 @@ export class Value {
     return path;
     // CHANGING -- HOPE THIS DOESN'T BREAK STUFF (pedigree isn't
     // documented yet)
-    if (!opts.asValues) return _.chain(path).invoke('valueOf').value();
+    if (!opts.asValues) return path;
+    // why was I calling valueOf?
+      _.chain(path).invoke('valueOf').value();
     return path;
   }
   path(opts) {
     return this.pedigree(opts);
   }
   //Value.prototype.extendGroupBy = // backward compatibility
+  /*
   addLevel(dim, opts) {
     opts = opts || {};
     debugger;
@@ -95,7 +99,7 @@ export class Value {
       }
       d.children.parentVal = d; // NOT TESTED, NOT USED, PROBABLY WRONG!!!
     });
-  }
+  } */
   descendants(opts) {
     // these two lines fix a treelike bug, hope they don't do harm
     //this.children = this.children || [];
@@ -109,27 +113,9 @@ export class Value {
     // not supporting that any more. wasn't using it
 
     if (!this._hasChildren) return;
-
-    let nodes = _.chain(this.descendants()).filter(
-        function(d){
-          return _.isEmpty(d.children);
-        }).value();
-        //.addSupergroupMethods()
-    return new ValueList(nodes);
-
-    /* OLD CODE, not sure how old
-    var ret = [this];
-    if (typeof level === "undefined") {
-      level = Infinity;
-    }
-    if (level !== 0 && this.children && this.children.length && (!level || this.depth < level)) {
-      ret = _.flatten(_.map(this.children, function(c) {
-        return c.leafNodes(level);
-      }), true);
-    }
-    return ret;
-    */
+    return new ValueList(this.descendants().filter(d=>!d._hasChildren));
   }
+  /*
   addRecordsAsChildrenToLeafNodes(truncateEmpty) {
     function fixLeaf(node) {
       node.children = node.records;
@@ -159,14 +145,15 @@ export class Value {
     }
     return this;
   }
+  */
   lookup(query) {
-    if (_.isArray(query)) {
+    if (Array.isArray(query)) {
       if (this.valueOf() == query[0]) { // allow string/num comparison to succeed?
         query = query.slice(1);
         if (query.length === 0)
           return this;
       }
-    } else if (_.isString(query)) {
+    } else if (typeof query === "string") {
       if (this.valueOf() == query) {
         return this;
       }
@@ -190,9 +177,9 @@ export class Value {
     }
   }
   aggregate(func, field) {
-    if (_.isFunction(field))
-      return func(_.map(this.records, field));
-    return func(_.pluck(this.records, field));
+    if (typeof field === "function")
+      return func(this.records.map(field));
+    return func(this.records.map(d=>d[field]));
   }
   rootList() {
     return this.parentList.rootList();
@@ -221,7 +208,7 @@ export class ValueList extends Array {
   /** lookup a value in a list, or, if query is an array
    *  it is interpreted as a path down the group hierarchy */
   lookup(query) {
-    if (_.isArray(query)) {
+    if (Array.isArray(query)) {
       // if group has children, can search down the tree
       var values = query.slice(0);
       var list = this;
@@ -255,7 +242,8 @@ export class ValueList extends Array {
 
   // lookup more than one thing at a time
   lookupMany(query) {
-    let many = _.chain(query).map(d => list.singleLookup(d)).compact().value();
+    let many = query.map(d => list.singleLookup(d)).filter(d=>typeof d === "undefined");
+    //let many = _.chain(query).map(d => list.singleLookup(d)).compact().value();
     return new ValueList(many);
     //return many;
     //return addSupergroupMethods(many);
