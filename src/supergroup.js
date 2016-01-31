@@ -1,188 +1,225 @@
 'use strict';
-/**
- * Supergroup module
- *
- * {@tutorial README.md}
- *
- * - #### Supergroup extends `Array`
- *   - `Array` values are `Values`
- *   - properties:
- *     - groupsmap: keys are the keys used to group Values, values are Values
- *     - recsmap:   keys are index into original records array, values are orig records
- *   - methods:
- *     - rawValues: returns keys from groupsmap
- *
- * - Values
- *     - children:  returns Values from groupsmap
- * @module supergroup
- * @description
- * Author: [Sigfried Gold](http://sigfried.org) 
- * License: [MIT](http://sigfried.mit-license.org/) 
- * Version: 2.0.0
- * (starting to convert to es6)
- *
- * usage examples at [http://sigfried.github.io/blog/supergroup](http://sigfried.github.io/blog/supergroup)
- *
- * Avaailable as _.supergroup, Underscore mixin
- *
+import _ from 'lodash';
+import assert from 'assert';
+
+/** 
+ * @Author: [Sigfried Gold](http://sigfried.org) 
+ * @License: [MIT](http://sigfried.mit-license.org/) 
+ * @Version: 2.0.0
  */
 ; // jshint -W053
 
-//require('babel-core');
-import _ from 'lodash';
-//let _ = require('lodash');
-import assert from 'assert';
-//const assert = require("assert");
-
-/*
-  */
-
-// private Supergroup methods:
-function groupBy(recsmap, keyfunc, keyname, depth=0, opts={}) {
-  //let sg = new Supergroup();
-  let groupsmap = new Map();
-  recsmap.forEach( (r,i) => {
-    let key = keyfunc(r);
-    let val;
-    //console.log(`making Value for ${keyname}:${key} by applying ${keyfunc} to ${JSON.stringify(r)}`);
-    if (!groupsmap.has(key)) {
-      if (opts.excludeValues) {
-        if (_.isArray(opts.excludeValues) && !_.find(opts.exludeValues(key))) {
-        } else if (opts.excludeValues instanceof Map && !opt.excludeValues.has(key)) {
+// @class Value
+// @description Supergroups and ValueLists are composed of Values which are
+// objects of any sort representing group values.
+export class Value {
+  constructor(val) {
+    this.val = val;
+    this._hasChildren = false;
+  }
+  get children() {
+    return this._hasChildren && this._children;
+  }
+  set children(sg) {
+    if (! (sg instanceof Supergroup))
+      throw new Error("Value children can only be Supergroups");
+    this._children = sg;
+    this._hasChildren = true;
+  }
+  toString() {
+    return this.val.toString();
+  }
+  get records() {
+    return [...this.recsMap.values()];
+  }
+  valueOf() {
+    return this.val.valueOf()
+  }
+  dimPath(opts) {
+    opts = delimOpts(opts);
+    opts.dimName = true;
+    return this.namePath(opts);
+  }
+  namePath(opts) {
+    opts = delimOpts(opts);
+    var path = this.pedigree(opts);
+    if (opts.dimName) path = _.pluck(path, 'dim');
+    if (opts.asArray) return path;
+    return path.join(opts.delim);
+    /*
+    var delim = opts.delim || '/';
+    return (this.parent ? 
+        this.parent.namePath(_.extend({},opts,{notLeaf:true})) : '') +
+      ((opts.noRoot && this.depth===0) ? '' : 
+        (this + (opts.notLeaf ? delim : ''))
+       )
+    */
+  }
+  pedigree(opts) {
+    opts = opts || {};
+    var path = [];
+    if (!opts.notThis) path.push(this);
+    var ptr = this;
+    while ((ptr = ptr.parentVal)) {
+      path.unshift(ptr);
+    }
+    if (opts.noRoot) path.shift();
+    if (opts.backwards || this.backwards) path.reverse(); //kludgy?
+    return path;
+    // CHANGING -- HOPE THIS DOESN'T BREAK STUFF (pedigree isn't
+    // documented yet)
+    if (!opts.asValues) return _.chain(path).invoke('valueOf').value();
+    return path;
+  }
+  path(opts) {
+    return this.pedigree(opts);
+  }
+  //Value.prototype.extendGroupBy = // backward compatibility
+  addLevel(dim, opts) {
+    opts = opts || {};
+    debugger;
+    _.each(this.leafNodes() || [this], function(d) {
+      opts.parentVal = d;
+      if (!('in' in d)) { // d.in means it's part of a diffList
+        d.children = new Supergroup(d.records, dim, opts);
+      } else { // allows adding levels to diffLists. haven't used for a long time
+        if (d['in'] === "both") {
+          d.children = diffList(d.from, d.to, dim, opts);
+        } else {
+          d.children = new Supergroup(d.records, dim, opts);
+          _.each(d.children, function(c) {
+            c['in'] = d['in'];
+            c[d['in']] = d[d['in']];
+          });
         }
-      } else {
-        val = new Value(key);
-        val.dim = keyname;
-        val.recsmap = new Map();
-        val.depth = depth;
-        groupsmap.set(key, val);
+      }
+      d.children.parentVal = d; // NOT TESTED, NOT USED, PROBABLY WRONG!!!
+    });
+  }
+  descendants(opts) {
+    // these two lines fix a treelike bug, hope they don't do harm
+    //this.children = this.children || [];
+    //_.addSupergroupMethods(this.children);
+
+    return this.children ? new ValueList(this.children.flattenTree()) : undefined;
+  }
+  leafNodes(level) {
+    // until commit 31278a35b91a8f4bd4ddc4376c840fb14d2723f9
+    // supported level param, to only go down so many levels
+    // not supporting that any more. wasn't using it
+
+    if (!this._hasChildren) return;
+
+    let nodes = _.chain(this.descendants()).filter(
+        function(d){
+          return _.isEmpty(d.children);
+        }).value();
+        //.addSupergroupMethods()
+    return new ValueList(nodes);
+
+    /* OLD CODE, not sure how old
+    var ret = [this];
+    if (typeof level === "undefined") {
+      level = Infinity;
+    }
+    if (level !== 0 && this.children && this.children.length && (!level || this.depth < level)) {
+      ret = _.flatten(_.map(this.children, function(c) {
+        return c.leafNodes(level);
+      }), true);
+    }
+    return ret;
+    */
+  }
+  addRecordsAsChildrenToLeafNodes(truncateEmpty) {
+    function fixLeaf(node) {
+      node.children = node.records;
+      _.each(node.children, function(rec) {
+        rec.parentVal = node;
+        rec.depth = node.depth + 1;
+        for(var method in Value.prototype) {
+          Object.defineProperty(rec, method, {
+            value: Value.prototype[method]
+          });
+        }
+      });
+    }
+    if (typeof truncateEmpty === "undefined")
+      truncateEmpty = true;
+    if (truncateEmpty) {
+      var self = this;
+      self.descendants().forEach(function(node) {
+        if (self.parentVal && self.parentVal.children.length === 1) {
+          fixLeaf(node);
+        }
+      });
+    } else {
+      _.each(this.leafNodes(), function(node) {
+        fixLeaf(node);
+      });
+    }
+    return this;
+  }
+  lookup(query) {
+    if (_.isArray(query)) {
+      if (this.valueOf() == query[0]) { // allow string/num comparison to succeed?
+        query = query.slice(1);
+        if (query.length === 0)
+          return this;
+      }
+    } else if (_.isString(query)) {
+      if (this.valueOf() == query) {
+        return this;
       }
     } else {
-      val = groupsmap.get(key);
+      throw new Error("invalid param: " + query);
     }
-    val.recsmap.set(i, r);
-  });
-  return groupsmap;
-}
-function nest(recsmap, keys, keynames=[], 
-              depth=0, opts={}, parent) {
-  let key = keys.shift();
-  let keyname = keynames.shift();
-  let keyfunc = key;
-  if (!_.isFunction(key)) {
-    keyname = keyname || key;
-    keyfunc = (d) => d[key];
+    if (!this.children)
+      throw new Error("can only call lookup on Values with kids");
+    return this.children.lookup(query);
   }
-  //console.log(`keyname: ${keyname}, keyfunc: ${keyfunc}`);
-  if (opts.preListRecsHook) {
-    throw new Error("preListRecsHook not re-implemented yet");
-    recs = opts.preListRecsHook ? opts.preListRecsHook(recs) : recs;
+  pct() {
+    return this.records.length / this.parentList.records.length;
   }
-  if (opts.truncateBranchOnEmptyVal) { // can't remember when this is used
-    throw new Error("truncateBranchOnEmptyVal not re-implemented yet");
-    recs = recs.filter(r => !_.isEmpty(r[dim]) || (_.isNumber(r[dim]) && isFinite(r[dim])));
-  }
-  let groupsmap = groupBy(recsmap, keyfunc, keyname, depth, opts);
-  //console.log(`MAPKEYS: ${[...groupsmap.keys()]}`);
-  groupsmap.forEach( (val, groupKey) => {
-    //console.log("depth---", depth, "groupKey---",groupKey,"val---", val);
-    val.parentList = parent;
-    if (keys.length) {
-      debugger;
-      val.children = nest(val.records, keys, keynames, depth+1, opts);
+  previous() {
+    if (this.parentList) {
+      // could store pos on each value, but not doing that now
+      var pos = this.parentList.indexOf(this);
+      if (pos > 0) {
+        return this.parentList[pos - 1];
+      }
     }
-  });
-  return groupsmap; // returns (nested) map
-}
-/** 
- * ### Class of grouped records masquerading as an array
- * A `Supergroup` object is an array of `Value` objects made by grouping
- * an array of json objects by some set of properties or functions performed
- * on those objects. Each `Value` represents a single group. Think of it as
- * a SQL group by:
- *
- *     SELECT state, zipcode, count(*)
- *     FROM addresses
- *     GROUP BY state, zipcode
- *
- * In Supergroup parlance: 'state' and 'zipcode' are _dimensions_; states 
- * ('Alabama', 'Alaska') and zipcodes (50032, 20002) are _values_, or, 
- * rather, value _keys_; and `count(*)` is an aggregation performed on the
- * group. In regular SQL the underlying records represented in a group are
- * not available, with Supergroup they are. So a `Value` has a `key` which
- * is the text or number or any javascript object used to form the group.
- * In a group of states, the _key_ of each value would be a `string`, for
- * zipdcodes it could be a `number`. (In previous versions of Supergroup,
- * these were `String` and `Number` objects, but now they are `string` 
- * literals or anything else returnable by a grouping function.)
- *
- * `Value` objects have a `key`, and `valueobj.valueOf()` will return that
- * key, and `valueobj.toString()` will return the results of the default
- * toString method on that key. `valueobj.records` is an array of the original
- * javascript objects included in the group represented by the key. And 
- * `valueobj.indexes` is an array of the positions of those records in the
- * original array.
- */
-export class Supergroup extends Array {
-
- /** 
-  * groups records and building tree structure
-  * @exported class supergroup.group(recs, dim, opts)
-  * @param {Object[]} recs list of records to be grouped
-  * @param {string or Function} dim either the property name to group by or a function returning a group by string or number
-  * @param {Object} [opts]
-  * @param {String[]} [opts.excludeValues] to exlude specific group values
-  * @param {function} [opts.preListRecsHook] run recs through this * function before continuing processing
-  * @param {function} [opts.dimName] defaults to the value of `dim`.  * If `dim` is a function, the dimName will be ugly.
-  * @param {function} [opts.truncateBranchOnEmptyVal] 
-  * @return {Array of Values} enhanced with all the List methods
+  }
+  aggregate(func, field) {
+    if (_.isFunction(field))
+      return func(_.map(this.records, field));
+    return func(_.pluck(this.records, field));
+  }
+  rootList() {
+    return this.parentList.rootList();
+  }
+  /* didn't make this yet, just copied from above
+  Value.prototype.descendants(level) {
+    var ret = [this];
+    if (level !== 0 && this[childProp] && (!level || this.depth < level))
+      ret = _.flatten(_.map(this[childProp], function(c) {
+        return c.leafNodes(level);
+      }), true);
+    return makeList(ret);
+  };
   */
-  constructor(recs, dims, opts={}, depth) {
-    let root = new Value(opts.rootVal || "root");
-    root.depth = opts.rootVal ? 0 : -1;
-    root.recsmap = new Map();
-    recs.forEach( (r,i) => {
-      root.recsmap.set(i, r)
-    });
-
-    if (!_.isArray(dims)) {
-      dims = [dims];
-    }
-    root.children = nest(root.recsmap, dims, 
-                                opts.dimName ? [opts.dimName] : opts.dimNames,
-                                0, opts, root);
-
-    if (opts.multiValuedGroup || opts.multiValuedGroups) {
-      throw new Error("multiValuedGroup not implemented in es6 version yet");
-    }
+}
+export class ValueList extends Array {
+  constructor(vals) {
     super();
-    this.push(...(root.children));
-  };
-  state() {
-    return new State(this);
+    if (vals && vals.length)
+      this.push(...vals);
   }
-
-  // sometimes a root value is needed as the top of a hierarchy
-  asRootVal(name, dimName) {
-    var val = new Value(name || 'Root');
-    val.dim = dimName || 'root';
-    val.depth = 0;
-    val.records = this.records;
-    val.children= this;
-    _.each(val.children, function(d) { d.parent = val; });
-    _.each(val.descendants(), function(d) { d.depth = d.depth + 1; });
-    return val;
-  };
-  leafNodes(level) {
-    return _.chain(this).invoke('leafNodes').flatten()
-      .addSupergroupMethods()
-      .value();
-  };
   rawValues() {
-    return this.map(String);
+    //console.log(`this.length: ${this.length}, this.groupsMap: ${!!this.groupsMap}, this.groupsMap.keys().length: ${this.groupsMap.keys().length}`);
+    return [...this.groupsMap.keys()];
   };
-  // lookup a value in a list, or, if query is an array
-  //   it is interpreted as a path down the group hierarchy
+  /** lookup a value in a list, or, if query is an array
+   *  it is interpreted as a path down the group hierarchy */
   lookup(query) {
     if (_.isArray(query)) {
       // if group has children, can search down the tree
@@ -218,31 +255,17 @@ export class Supergroup extends Array {
 
   // lookup more than one thing at a time
   lookupMany(query) {
-    var list = this;
-    return addSupergroupMethods(_.chain(query).map(function(d) { 
-      return list.singleLookup(d)
-    }).compact().value());
+    let many = _.chain(query).map(d => list.singleLookup(d)).compact().value();
+    return new ValueList(many);
+    //return many;
+    //return addSupergroupMethods(many);
   };
   flattenTree() {
-    return _.chain(this)
-          .map(function(d) {
-            var desc = d.descendants();
-            return [d].concat(desc);
-          })
-          .flatten()
-          .filter(_.identity) // expunge nulls
-          .value();
-  };
-  addLevel(dim, opts) {
-    _.each(this, function(val) {
-      val.addLevel(dim, opts);
-    });
-    return this;
+    return flatten(this.map(d => [d].concat(d.descendants()))).filter(d=>d);
   };
   namePaths(opts) {
-    return _.map(this, function(d) {
-      return d.namePath(opts);
-    });
+    console.log(`this: ${this}, this[0]: ${this[0]}, this[0] is Value: ${this[0] instanceof Value}`);
+    return this.map(d => d.namePath(opts));
   };
   // apply a function to the records of each group
   // 
@@ -276,6 +299,204 @@ export class Supergroup extends Array {
     return this;
   };
 
+}
+
+/** 
+ * ### [http://sigfried.github.io/supergroup/ -- Tutorial and demo]
+ * ### [http://www.toptal.com/javascript/ultimate-in-memory-data-collection-manipulation-with-supergroup-js](Article)
+ *
+ * usage examples at [http://sigfried.github.io/blog/supergroup](http://sigfried.github.io/blog/supergroup)
+ *
+ * Avaailable as _.supergroup, Underscore mixin
+ * ### Class of grouped records masquerading as an array
+ * A `Supergroup` object is an array of `Value` objects made by grouping
+ * an array of json objects by some set of properties or functions performed
+ * on those objects. Each `Value` represents a single group. Think of it as
+ * a SQL group by:
+ *
+ *     SELECT state, zipcode, count(*)
+ *     FROM addresses
+ *     GROUP BY state, zipcode
+ *
+ * In Supergroup parlance: 'state' and 'zipcode' are _dimensions_; states 
+ * ('Alabama', 'Alaska') and zipcodes (50032, 20002) are _values_, or, 
+ * rather, value _keys_; and `count(*)` is an aggregation performed on the
+ * group. In regular SQL the underlying records represented in a group are
+ * not available, with Supergroup they are. So a `Value` has a `key` which
+ * is the text or number or any javascript object used to form the group.
+ * In a group of states, the _key_ of each value would be a `string`, for
+ * zipdcodes it could be a `number`. (In previous versions of Supergroup,
+ * these were `String` and `Number` objects, but now they are `string` 
+ * literals or anything else returnable by a grouping function.)
+ *
+ * `Value` objects have a `key`, and `valueobj.valueOf()` will return that
+ * key, and `valueobj.toString()` will return the results of the default
+ * toString method on that key. `valueobj.records` is an array of the original
+ * javascript objects included in the group represented by the key. And 
+ * `valueobj.indexes` is an array of the positions of those records in the
+ * original array.
+ *
+ * - #### Supergroup extends `Array`
+ *   - `Array` values are `Values`
+ *   - properties:
+ *     - groupsMap: keys are the keys used to group Values, values are Values
+ *     - recsMap:   keys are index into original records array, values are orig records
+ *   - methods:
+ *     - rawValues: returns keys from groupsMap
+ *
+ * - Values
+ *     - depth:     same as the depth of its parentList (supergroup)
+ *     - children:  array of child Values collected in a supergroup (whose
+ *                  depth is one greater than the depth of this Value)
+ *
+ */
+export class Supergroup extends ValueList {
+
+ /** 
+  * Constructor groups records and builds tree structure
+  * @exported class supergroup.group(recs, dim, opts)
+  * @param {Object[]} recs array of objects, raw data
+  * @param {string[]} dims property names to be used for grouping the raw objects 
+  * @param {function[]} dims functions on raw objects that return any kind of 
+  *                          object to be used for grouping. property names and
+  *                          functions can be mixed in dims array. For single-level
+  *                          grouping, a single property name or function can be 
+  *                          used instead of an array.
+  * @param {string[]} [opts.dimNames] array (or single value) of dim names of 
+  *                                   same length as dims. Property name dims
+  *                                   are used as dimName by default.
+  * @param {Object} [opts] options for configuring supergroup behavior. opts are
+  *                        forwarded to Value constructors and subgroup constructors.
+  * @param {Object[]} [opts.excludeValues] to exlude specific group values
+  * @param {function} [opts.preListRecsHook] run recs through this function before continuing processing __currently unused__
+  * @param {function} [opts.truncateBranchOnEmptyVal] 
+  * @return {Array of Values} enhanced with all the List methods
+  */
+  constructor({ parentVal=null,
+                recs = [], 
+                dims=[], dimNames=[], opts={} // get rid of opts
+              } = {}) {
+    super();
+    this.parentVal = parentVal || Supergroup.makeRoot('root', -1, recs);
+    if (!this.parentVal) console.error("what's up?");
+    this.parentVal.children = this;
+    this.root = this.parentVal.root;
+
+    if (!_.isArray(dims)) dims = [dims];
+    this.dims = _.clone(dims);
+    dimNames = opts.dimName && [opts.dimName] ||
+               opts.dimNames || dimNames;
+    this.dimNames = _.clone(dimNames);
+    this.dim = dims.shift();
+    this.dimName = dimNames.shift();
+    this.recsMap = this.parentVal.recsMap;
+    this.depth = this.parentVal.depth + 1;
+    console.log(`depth: ${this.depth}, dims: ${this.dims}, dim: ${this.dim}`);
+    if (_.isFunction(this.dim)) {
+      this.dimFunc = this.dim;
+      this.dimName = this.dimName || this.dim.toString();
+    } else {
+      this.dimFunc = (d) => d[this.dim];
+      this.dimName = this.dimName || this.dim.toString();
+    }
+
+    if (opts.multiValuedGroup || opts.multiValuedGroups) {
+      throw new Error("multiValuedGroup not implemented in es6 version yet");
+    }
+    if (opts.preListRecsHook) {
+      throw new Error("preListRecsHook not re-implemented yet");
+      recs = opts.preListRecsHook ? opts.preListRecsHook(recs) : recs;
+    }
+    if (opts.truncateBranchOnEmptyVal) { // can't remember when this is used
+      throw new Error("truncateBranchOnEmptyVal not re-implemented yet");
+      recs = recs.filter(r => !_.isEmpty(r[dim]) || (_.isNumber(r[dim]) && isFinite(r[dim])));
+    }
+
+    this.groupsMap = new Map();
+    this.recsMap.forEach( (rec,i) => {
+      let key = this.dimFunc(rec);      // this is the key for grouping!
+      let val;
+      if (!this.groupsMap.has(key)) {
+        if (opts.excludeValues) {
+          if (_.isArray(opts.excludeValues) && !_.find(opts.exludeValues(key))) {
+          } else if (opts.excludeValues instanceof Map && !opt.excludeValues.has(key)) {
+          }
+        } else {
+          val = new Value(key);
+          val.dim = this.dimName;
+          val.recsMap = new Map();
+          val.depth = this.depth;
+          val.parentList = this;
+          this.groupsMap.set(key, val); // save the val in the keyed map
+          this.push(val);          // also save it as an array entry
+        }
+      } else {
+        val = this.groupsMap.get(key);
+      }
+      val.recsMap.set(i, rec); // each val gets records and index where
+                               // record is in the original array
+    });
+    if (dims.length) {
+      this.groupsMap.forEach( (val, groupKey) => {
+        //console.log(`ADDING CHILDREN to ${val}`);
+        val.children = new Supergroup({parentVal:val, 
+                                      dims:_.clone(dims), 
+                                      dimNames:_.clone(dimNames), opts});
+      });
+    }
+  }
+
+  /** There are time when you want to give your supergroup tree an explicit
+   *  root, like when creating hierarchies in D3. In that case call supergroup
+   *  like:
+   *
+   *      let root = makeRoot('Tree Top', 0, recs), 
+   *      let sg = new Supergroup({parent=root, dims=['state','zipcode']});
+   *
+   *  Otherwise Supergroup will make its own fake root with depth -1 instead
+   *  of depth 0;
+   */
+  static makeRoot(name, depth, recs, dimName) {
+    name = name || "root";
+    dimName = dimName || name;
+    let root = new Value(name)
+    root.dim = dimName;
+    root.depth = depth
+    root.root = root;
+    root.recsMap = new Map();
+    recs.forEach( (r,i) => {
+      root.recsMap.set(i, r)
+    });
+    return root;
+  }
+  state() {
+    return new State(this);
+  }
+
+  // sometimes a root value is needed as the top of a hierarchy
+  asRootVal(name, dimName) {
+    var val = new Value(name || 'Root');
+    val.dim = dimName || 'root';
+    val.depth = 0;
+    val.records = this.records;
+    val.children= this;
+    _.each(val.children, function(d) { d.parentVal = val; });
+    _.each(val.descendants(), function(d) { d.depth = d.depth + 1; });
+    return val;
+  };
+  leafNodes(level) {
+    let nodes = _.chain(this).invoke('leafNodes').flatten().value();
+    return new ValueList(nodes);
+      //.addSupergroupMethods()
+  };
+  /*
+  addLevel(dim, opts) {
+    _.each(this, function(val) {
+      val.addLevel(dim, opts);
+    });
+    return this;
+  };
+  */
   static wholeListNumeric(groups) {
     var isNumeric = _.every(_.keys(groups), function(k) {
       return   k === null ||
@@ -439,7 +660,8 @@ var hierarchicalTableToTree = function(data, parentPropchildProp) {
   var topParents = _.filter(parents, function(parent) { 
     var adoptiveParent = children.lookup(parent); // is this parent also a child?
     if (adoptiveParent) { // if so, make it the parent
-      adoptiveParent.children = addSupergroupMethods([]);
+      //adoptiveParent.children = addSupergroupMethods([]);
+      adoptiveParent.children = new ValueList([]);
       _.each(parent.children, function(c) { 
         c.parent = adoptiveParent; 
         adoptiveParent.children.push(c)
@@ -449,7 +671,8 @@ var hierarchicalTableToTree = function(data, parentPropchildProp) {
     }
     // if so, make use that child node, move this parent node's children over to it
   });
-  return addSupergroupMethods(topParents);
+  //return addSupergroupMethods(topParents);
+  return new ValueList(topParents);
 };
 
 // allows grouping by a field that contains an array of values rather than just a single value
@@ -515,193 +738,10 @@ State.prototype.selectedRecs = function() {
   return _.chain(this.selectedVals).pluck('records').flatten().value();
 }
 
-// @class Value
-// @description Supergroup Lists are composed of Values which are
-// String or Number objects representing group values.
-// Methods described below.
-export class Value {
-  constructor(val) {
-    this.val = val;
-  }
-  toString() {
-    return this.val.toString();
-  }
-  valueOf() {
-    return this.val.valueOf()
-  }
-  //Value.prototype.extendGroupBy = // backward compatibility
-  addLevel(dim, opts) {
-    opts = opts || {};
-    debugger;
-    _.each(this.leafNodes() || [this], function(d) {
-      opts.parent = d;
-      if (!('in' in d)) { // d.in means it's part of a diffList
-        d.children = new Supergroup(d.records, dim, opts);
-      } else { // allows adding levels to diffLists. haven't used for a long time
-        if (d['in'] === "both") {
-          d.children = diffList(d.from, d.to, dim, opts);
-        } else {
-          d.children = new Supergroup(d.records, dim, opts);
-          _.each(d.children, function(c) {
-            c['in'] = d['in'];
-            c[d['in']] = d[d['in']];
-          });
-        }
-      }
-      d.children.parentVal = d; // NOT TESTED, NOT USED, PROBABLY WRONG!!!
-    });
-  };
-  leafNodes(level) {
-    // until commit 31278a35b91a8f4bd4ddc4376c840fb14d2723f9
-    // supported level param, to only go down so many levels
-    // not supporting that any more. wasn't using it
-
-    if (!('children' in this)) return;
-
-    return _.chain(this.descendants()).filter(
-        function(d){
-          return _.isEmpty(d.children);
-        }).addSupergroupMethods().value();
-
-    var ret = [this];
-    if (typeof level === "undefined") {
-      level = Infinity;
-    }
-    if (level !== 0 && this.children && this.children.length && (!level || this.depth < level)) {
-      ret = _.flatten(_.map(this.children, function(c) {
-        return c.leafNodes(level);
-      }), true);
-    }
-    return ret;
-  };
-  addRecordsAsChildrenToLeafNodes(truncateEmpty) {
-    function fixLeaf(node) {
-      node.children = node.records;
-      _.each(node.children, function(rec) {
-        rec.parent = node;
-        rec.depth = node.depth + 1;
-        for(var method in Value.prototype) {
-          Object.defineProperty(rec, method, {
-            value: Value.prototype[method]
-          });
-        }
-      });
-    }
-    if (typeof truncateEmpty === "undefined")
-      truncateEmpty = true;
-    if (truncateEmpty) {
-      var self = this;
-      self.descendants().forEach(function(node) {
-        if (self.parent && self.parent.children.length === 1) {
-          fixLeaf(node);
-        }
-      });
-    } else {
-      _.each(this.leafNodes(), function(node) {
-        fixLeaf(node);
-      });
-    }
-    return this;
-  };
-  dimPath(opts) {
-    opts = delimOpts(opts);
-    opts.dimName = true;
-    return this.namePath(opts);
-  };
-  namePath(opts) {
-    opts = delimOpts(opts);
-    var path = this.pedigree(opts);
-    if (opts.dimName) path = _.pluck(path, 'dim');
-    if (opts.asArray) return path;
-    return path.join(opts.delim);
-    /*
-    var delim = opts.delim || '/';
-    return (this.parent ? 
-        this.parent.namePath(_.extend({},opts,{notLeaf:true})) : '') +
-      ((opts.noRoot && this.depth===0) ? '' : 
-        (this + (opts.notLeaf ? delim : ''))
-       )
-    */
-  };
-  pedigree(opts) {
-    opts = opts || {};
-    var path = [];
-    if (!opts.notThis) path.push(this);
-    var ptr = this;
-    while ((ptr = ptr.parent)) {
-      path.unshift(ptr);
-    }
-    if (opts.noRoot) path.shift();
-    if (opts.backwards || this.backwards) path.reverse(); //kludgy?
-    return path;
-    // CHANGING -- HOPE THIS DOESN'T BREAK STUFF (pedigree isn't
-    // documented yet)
-    if (!opts.asValues) return _.chain(path).invoke('valueOf').value();
-    return path;
-  };
-  path(opts) {
-    return this.pedigree(opts);
-  }
-  descendants(opts) {
-    // these two lines fix a treelike bug, hope they don't do harm
-    this.children = this.children || [];
-    _.addSupergroupMethods(this.children);
-
-    return this.children ? this.children.flattenTree() : undefined;
-  };
-  lookup(query) {
-    if (_.isArray(query)) {
-      if (this.valueOf() == query[0]) { // allow string/num comparison to succeed?
-        query = query.slice(1);
-        if (query.length === 0)
-          return this;
-      }
-    } else if (_.isString(query)) {
-      if (this.valueOf() == query) {
-        return this;
-      }
-    } else {
-      throw new Error("invalid param: " + query);
-    }
-    if (!this.children)
-      throw new Error("can only call lookup on Values with kids");
-    return this.children.lookup(query);
-  };
-  pct() {
-    return this.records.length / this.parentList.records.length;
-  };
-  previous() {
-    if (this.parentList) {
-      // could store pos on each value, but not doing that now
-      var pos = this.parentList.indexOf(this);
-      if (pos > 0) {
-        return this.parentList[pos - 1];
-      }
-    }
-  };
-  aggregate(func, field) {
-    if (_.isFunction(field))
-      return func(_.map(this.records, field));
-    return func(_.pluck(this.records, field));
-  };
-  rootList() {
-    return this.parentList.rootList();
-  };
-  /* didn't make this yet, just copied from above
-  Value.prototype.descendants(level) {
-    var ret = [this];
-    if (level !== 0 && this[childProp] && (!level || this.depth < level))
-      ret = _.flatten(_.map(this[childProp], function(c) {
-        return c.leafNodes(level);
-      }), true);
-    return makeList(ret);
-  };
-  */
-}
 
 _.mixin({
   //supergroup: supergroup.supergroup, 
-  supergroup: ((...args) => new Supergroup(...args)),
+  supergroup: (recs, dims, ...args) => new Supergroup({recs, dims, ...args}),
   //supergroup: function(d) { console.log('EEK'); debugger; throw new Error("blah");},
   //addSupergroupMethods: supergroup.addSupergroupMethods,
   multiValuedGroupBy: multiValuedGroupBy,
@@ -757,5 +797,8 @@ _.mixin({
     return tmpObj.length%2 ? tmpObj[Math.floor(tmpObj.length/2)] : (_.isNumber(tmpObj[tmpObj.length/2-1]) && _.isNumber(tmpObj[tmpObj.length/2])) ? (tmpObj[tmpObj.length/2-1]+tmpObj[tmpObj.length/2]) /2 : tmpObj[tmpObj.length/2-1];
   },
 });
+export const flatten = list => list.reduce(
+      (a, b) => a.concat(Array.isArray(b) ? flatten(b) : b), []
+);
 export default _;
 //export default function() { console.log('hi')};

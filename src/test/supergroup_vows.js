@@ -15,7 +15,7 @@ var gradeBook = [
 ];
 //var gradesByLastName = _.supergroup(gradeBook, 'lastName');
 
-var gradesByLastName = new Supergroup(gradeBook, 'lastName');
+var gradesByLastName = _.supergroup(gradeBook, 'lastName');
 
 var gradesByName = _.supergroup(gradeBook, function(d) { 
   return d.firstName + ' ' + d.lastName; }, {dimName: 'fullName'});
@@ -54,6 +54,12 @@ suite.addBatch({
   "multi-level supergroups have top-level rawValues": function() {
     assert.deepEqual(gradesByGradeLastName.rawValues().sort(), ["A","B","C"]);
   },
+  "multi-level supergroups have children": function() {
+    assert.equal(gradesByGradeLastName[1]._hasChildren, true);
+  },
+  "multi-level supergroups have second-level rawValues": function() {
+    assert.deepEqual(gradesByGradeLastName[1].children.rawValues().sort(), ["Androy","Gold"]);
+  },
   "first group contains three raw records": function() {
     assert.deepEqual(gradesByLastName[0].records.slice(0), [
       {"lastName":"Gold","firstName":"Sigfried","class":"Remedial Programming","grade":"C","num":2},
@@ -65,7 +71,7 @@ suite.addBatch({
     assert.equal(gradesByLastName.lookup("Sassoon").records[0], gradeBook[3])
   },
   "two groups for 'B'": function() {
-    console.log('lookup:', gradesByGradeLastName.lookup("B"));
+    //console.log('lookup:', gradesByGradeLastName.lookup("B"));
     assert.deepEqual(gradesByGradeLastName.lookup("B").children.rawValues(), ["Gold","Androy"]);
   },
   "leafnodes": function() {

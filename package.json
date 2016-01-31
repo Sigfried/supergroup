@@ -34,7 +34,7 @@
     "vows": "babel-node node_modules/argg src/test/*.js",
     "watchHOLD": "npm run compile && npm run vows",
     "watchcmd": "npm run doc && npm run vows",
-    "watch": "fswatch -0 -o ./src .package.json conf.json README.md | xargs -0 -n 1 -I {} npm run watchcmd"
+    "watch": "fswatch -0 -o ./src doc.md package.json conf.json README.md | xargs -0 -n 1 -I {} npm run watchcmd"
   },
   "devDependencies": {
     "argg": "0.0.2",

@@ -4,5 +4,8 @@
     "README"
   ],
   "source": "./src",
-  "destination": "./doc"
+  "destination": "./doc",
+  "manual": {
+    "demo": ["http://sigfried.github.io/supergroup/"]
+  }
 }
