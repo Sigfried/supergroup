@@ -2,7 +2,7 @@
 
 import assert from 'assert';
 import vows from 'vows';
-import _, {Supergroup} from '../supergroup';
+import _, {Supergroup, Value} from '../supergroup';
 
 var suite = vows.describe("supergroup");
 
@@ -60,6 +60,9 @@ suite.addBatch({
   "multi-level supergroups have second-level rawValues": function() {
     assert.deepEqual(gradesByGradeLastName[1].children.rawValues().sort(), ["Androy","Gold"]);
   },
+  "multi-level supergroups have Value at second-level": function() {
+    assert.equal(gradesByGradeLastName[1].children[0] instanceof Value, true);
+  },
   "first group contains three raw records": function() {
     assert.deepEqual(gradesByLastName[0].records.slice(0), [
       {"lastName":"Gold","firstName":"Sigfried","class":"Remedial Programming","grade":"C","num":2},
@@ -73,6 +76,16 @@ suite.addBatch({
   "two groups for 'B'": function() {
     //console.log('lookup:', gradesByGradeLastName.lookup("B"));
     assert.deepEqual(gradesByGradeLastName.lookup("B").children.rawValues(), ["Gold","Androy"]);
+  },
+  "leafnodes on leaf returns Value": function() {
+    let leafNode = gradesByGradeLastName[1].children[0].leafNodes()[0];
+    //console.log(`leafNode is Value: ${leafNode instanceof Value}, leafNode: ${leafNode}`);
+    assert.equal(leafNode instanceof Value, true);
+  },
+  "leafnodes on supergroup returns Values": function() {
+    let leafNode = gradesByGradeLastName.leafNodes()[0];
+    console.log(`leafNode is Value: ${leafNode instanceof Value}, its a ${leafNode.constructor}, leafNode: ${leafNode}`);
+    assert.equal(gradesByGradeLastName.leafNodes()[0] instanceof Value, true);
   },
   "leafnodes": function() {
     assert.deepEqual(gradesByGradeLastName.leafNodes().namePaths(), 

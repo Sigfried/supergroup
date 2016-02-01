@@ -69,9 +69,7 @@ export class Value {
     return path;
     // CHANGING -- HOPE THIS DOESN'T BREAK STUFF (pedigree isn't
     // documented yet)
-    if (!opts.asValues) return path;
-    // why was I calling valueOf?
-      _.chain(path).invoke('valueOf').value();
+    if (!opts.asValues) return path.map(d=>d.val);
     return path;
   }
   path(opts) {
@@ -108,11 +106,12 @@ export class Value {
     return this.children ? new ValueList(this.children.flattenTree()) : undefined;
   }
   leafNodes(level) {
+    console.log(`this is Value: ${this instanceof Value}, this: ${this}`);
     // until commit 31278a35b91a8f4bd4ddc4376c840fb14d2723f9
     // supported level param, to only go down so many levels
     // not supporting that any more. wasn't using it
 
-    if (!this._hasChildren) return;
+    if (!this._hasChildren) return new ValueList([this]);
     return new ValueList(this.descendants().filter(d=>!d._hasChildren));
   }
   /*
@@ -473,7 +472,8 @@ export class Supergroup extends ValueList {
     return val;
   };
   leafNodes(level) {
-    let nodes = _.chain(this).invoke('leafNodes').flatten().value();
+    let nodes = [].concat(this.map(d=>d.leafNodes().slice(0)));
+    //let nodes = _.chain(this).invoke('leafNodes').flatten().value();
     return new ValueList(nodes);
       //.addSupergroupMethods()
   };
