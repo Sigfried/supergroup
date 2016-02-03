@@ -9,11 +9,11 @@ import assert from 'assert';
  */
 ; // jshint -W053
 
-// @class Value
-// @description Supergroups and ValueLists are composed of Values which are
+// @class SGNode
+// @description Supergroups and SGNodeLists are composed of SGNodes which are
 // objects of any sort representing group values.
-export class Value {
-  constructor(val) {
+export class SGNode {
+  constructor(val) { // changed class name from Value to SGNode, havent fixed all the code yet
     this.val = val;
     this._hasChildren = false;
   }
@@ -21,8 +21,10 @@ export class Value {
     return this._hasChildren && this._children;
   }
   set children(sg) {
-    if (! (sg instanceof Supergroup))
-      throw new Error("Value children can only be Supergroups");
+    //console.log(`in set children with a ${sg.constructor}`);
+    if (! (sg instanceof SGNodeList))
+      throw new Error("SGNode children can only be Supergroups");
+    //console.log("set children worked this time");
     this._children = sg;
     this._hasChildren = true;
   }
@@ -61,7 +63,7 @@ export class Value {
     var path = [];
     if (!opts.notThis) path.push(this);
     var ptr = this;
-    while ((ptr = ptr.parentVal)) {
+    while ((ptr.depth > 0 && (ptr = ptr.parentVal))) {
       path.unshift(ptr);
     }
     if (opts.noRoot) path.shift();
@@ -69,13 +71,13 @@ export class Value {
     return path;
     // CHANGING -- HOPE THIS DOESN'T BREAK STUFF (pedigree isn't
     // documented yet)
-    if (!opts.asValues) return path.map(d=>d.val);
+    if (!opts.asNodes) return path.map(d=>d.val);
     return path;
   }
   path(opts) {
     return this.pedigree(opts);
   }
-  //Value.prototype.extendGroupBy = // backward compatibility
+  //SGNode.prototype.extendGroupBy = // backward compatibility
   /*
   addLevel(dim, opts) {
     opts = opts || {};
@@ -98,21 +100,34 @@ export class Value {
       d.children.parentVal = d; // NOT TESTED, NOT USED, PROBABLY WRONG!!!
     });
   } */
-  descendants(opts) {
-    // these two lines fix a treelike bug, hope they don't do harm
-    //this.children = this.children || [];
-    //_.addSupergroupMethods(this.children);
+  _descendants(opts) {
+    // should descendants include self? yes for now
 
-    return this.children ? new ValueList(this.children.flattenTree()) : undefined;
+    // (old) these two lines fix a treelike bug, hope they don't do harm
+    //this.children = this.children || [];
+
+    let nodeList = this._hasChildren && 
+                        _.flatten([d].concat(
+                          this.children.map(d => d._descendants())), true) || 
+                        [this];
+    return nodeList;
   }
-  leafNodes(level) {
-    console.log(`this is Value: ${this instanceof Value}, this: ${this}`);
+  descendants(opts) {
+    return new SGNodeList(this._descendants(opts));
+  }
+  _leafNodes(level) {
+    //console.log(`this is SGNode: ${this instanceof SGNode}, this: ${this}`);
     // until commit 31278a35b91a8f4bd4ddc4376c840fb14d2723f9
     // supported level param, to only go down so many levels
     // not supporting that any more. wasn't using it
 
-    if (!this._hasChildren) return new ValueList([this]);
-    return new ValueList(this.descendants().filter(d=>!d._hasChildren));
+    let nodeList = this._hasChildren && 
+                        _.flatten(this.children.map(d => d._leafNodes()), true) || 
+                        [this];
+    return nodeList;
+  }
+  leafNodes(opts) {
+    return new SGNodeList(this._leafNodes(opts));
   }
   /*
   addRecordsAsChildrenToLeafNodes(truncateEmpty) {
@@ -121,9 +136,9 @@ export class Value {
       _.each(node.children, function(rec) {
         rec.parentVal = node;
         rec.depth = node.depth + 1;
-        for(var method in Value.prototype) {
+        for(var method in SGNode.prototype) {
           Object.defineProperty(rec, method, {
-            value: Value.prototype[method]
+            value: SGNode.prototype[method]
           });
         }
       });
@@ -160,7 +175,7 @@ export class Value {
       throw new Error("invalid param: " + query);
     }
     if (!this.children)
-      throw new Error("can only call lookup on Values with kids");
+      throw new Error("can only call lookup on SGNodes with kids");
     return this.children.lookup(query);
   }
   pct() {
@@ -184,7 +199,7 @@ export class Value {
     return this.parentList.rootList();
   }
   /* didn't make this yet, just copied from above
-  Value.prototype.descendants(level) {
+  SGNode.prototype.descendants(level) {
     var ret = [this];
     if (level !== 0 && this[childProp] && (!level || this.depth < level))
       ret = _.flatten(_.map(this[childProp], function(c) {
@@ -194,16 +209,23 @@ export class Value {
   };
   */
 }
-export class ValueList extends Array {
-  constructor(vals) {
-    super();
-    if (vals && vals.length)
-      this.push(...vals);
+export class SGNodeList extends Array {
+  constructor(arr) {
+    arr = arr || [];
+    if (_.any(arr, d => !(d instanceof SGNode))) {
+      throw new Error("only SGNodes in SGNodeLists");
+    }
+    super(...arr);
+    //super(Array.from(arr));
+    //this.otherConstructorArgs = args;
   }
-  rawValues() {
+  rawNodes() {
     //console.log(`this.length: ${this.length}, this.groupsMap: ${!!this.groupsMap}, this.groupsMap.keys().length: ${this.groupsMap.keys().length}`);
-    return [...this.groupsMap.keys()];
+    return this.map(String);
   };
+  rawValues() {
+    return this.rawNodes();
+  }
   /** lookup a value in a list, or, if query is an array
    *  it is interpreted as a path down the group hierarchy */
   lookup(query) {
@@ -243,15 +265,12 @@ export class ValueList extends Array {
   lookupMany(query) {
     let many = query.map(d => list.singleLookup(d)).filter(d=>typeof d === "undefined");
     //let many = _.chain(query).map(d => list.singleLookup(d)).compact().value();
-    return new ValueList(many);
+    return new SGNodeList(many);
     //return many;
     //return addSupergroupMethods(many);
   };
-  flattenTree() {
-    return flatten(this.map(d => [d].concat(d.descendants()))).filter(d=>d);
-  };
   namePaths(opts) {
-    console.log(`this: ${this}, this[0]: ${this[0]}, this[0] is Value: ${this[0] instanceof Value}`);
+    //console.log(`this: ${this}, this[0]: ${this[0]}, this[0] is SGNode: ${this[0] instanceof SGNode}`);
     return this.map(d => d.namePath(opts));
   };
   // apply a function to the records of each group
@@ -284,8 +303,10 @@ export class ValueList extends Array {
     if ('parentVal' in this)
       return this.parentVal.rootList();
     return this;
-  };
-
+  }
+  state() {
+    return new State(this);
+  }
 }
 
 /** 
@@ -296,9 +317,9 @@ export class ValueList extends Array {
  *
  * Avaailable as _.supergroup, Underscore mixin
  * ### Class of grouped records masquerading as an array
- * A `Supergroup` object is an array of `Value` objects made by grouping
+ * A `Supergroup` object is an array of `SGNode` objects made by grouping
  * an array of json objects by some set of properties or functions performed
- * on those objects. Each `Value` represents a single group. Think of it as
+ * on those objects. Each `SGNode` represents a single group. Think of it as
  * a SQL group by:
  *
  *     SELECT state, zipcode, count(*)
@@ -309,14 +330,14 @@ export class ValueList extends Array {
  * ('Alabama', 'Alaska') and zipcodes (50032, 20002) are _values_, or, 
  * rather, value _keys_; and `count(*)` is an aggregation performed on the
  * group. In regular SQL the underlying records represented in a group are
- * not available, with Supergroup they are. So a `Value` has a `key` which
+ * not available, with Supergroup they are. So a `SGNode` has a `key` which
  * is the text or number or any javascript object used to form the group.
  * In a group of states, the _key_ of each value would be a `string`, for
  * zipdcodes it could be a `number`. (In previous versions of Supergroup,
  * these were `String` and `Number` objects, but now they are `string` 
  * literals or anything else returnable by a grouping function.)
  *
- * `Value` objects have a `key`, and `valueobj.valueOf()` will return that
+ * `SGNode` objects have a `key`, and `valueobj.valueOf()` will return that
  * key, and `valueobj.toString()` will return the results of the default
  * toString method on that key. `valueobj.records` is an array of the original
  * javascript objects included in the group represented by the key. And 
@@ -324,20 +345,20 @@ export class ValueList extends Array {
  * original array.
  *
  * - #### Supergroup extends `Array`
- *   - `Array` values are `Values`
+ *   - `Array` values are `SGNodes`
  *   - properties:
- *     - groupsMap: keys are the keys used to group Values, values are Values
+ *     - groupsMap: keys are the keys used to group SGNodes, values are SGNodes
  *     - recsMap:   keys are index into original records array, values are orig records
  *   - methods:
- *     - rawValues: returns keys from groupsMap
+ *     - rawNodes: returns keys from groupsMap
  *
- * - Values
+ * - SGNodes
  *     - depth:     same as the depth of its parentList (supergroup)
- *     - children:  array of child Values collected in a supergroup (whose
- *                  depth is one greater than the depth of this Value)
+ *     - children:  array of child SGNodes collected in a supergroup (whose
+ *                  depth is one greater than the depth of this SGNode)
  *
  */
-export class Supergroup extends ValueList {
+export class Supergroup extends SGNodeList {
 
  /** 
   * Constructor groups records and builds tree structure
@@ -353,11 +374,11 @@ export class Supergroup extends ValueList {
   *                                   same length as dims. Property name dims
   *                                   are used as dimName by default.
   * @param {Object} [opts] options for configuring supergroup behavior. opts are
-  *                        forwarded to Value constructors and subgroup constructors.
-  * @param {Object[]} [opts.excludeValues] to exlude specific group values
+  *                        forwarded to SGNode constructors and subgroup constructors.
+  * @param {Object[]} [opts.excludeNodes] to exlude specific group values
   * @param {function} [opts.preListRecsHook] run recs through this function before continuing processing __currently unused__
   * @param {function} [opts.truncateBranchOnEmptyVal] 
-  * @return {Array of Values} enhanced with all the List methods
+  * @return {Array of SGNodes} enhanced with all the List methods
   */
   constructor({ parentVal=null,
                 recs = [], 
@@ -378,7 +399,7 @@ export class Supergroup extends ValueList {
     this.dimName = dimNames.shift();
     this.recsMap = this.parentVal.recsMap;
     this.depth = this.parentVal.depth + 1;
-    console.log(`depth: ${this.depth}, dims: ${this.dims}, dim: ${this.dim}`);
+    //console.log(`depth: ${this.depth}, dims: ${this.dims}, dim: ${this.dim}`);
     if (_.isFunction(this.dim)) {
       this.dimFunc = this.dim;
       this.dimName = this.dimName || this.dim.toString();
@@ -401,19 +422,21 @@ export class Supergroup extends ValueList {
 
     this.groupsMap = new Map();
     this.recsMap.forEach( (rec,i) => {
+      //console.log(rec);
       let key = this.dimFunc(rec);      // this is the key for grouping!
       let val;
       if (!this.groupsMap.has(key)) {
-        if (opts.excludeValues) {
-          if (_.isArray(opts.excludeValues) && !_.find(opts.exludeValues(key))) {
-          } else if (opts.excludeValues instanceof Map && !opt.excludeValues.has(key)) {
+        if (opts.excludeNodes) {
+          if (_.isArray(opts.excludeNodes) && !_.find(opts.exludeNodes(key))) {
+          } else if (opts.excludeNodes instanceof Map && !opt.excludeNodes.has(key)) {
           }
         } else {
-          val = new Value(key);
+          val = new SGNode(key);
           val.dim = this.dimName;
           val.recsMap = new Map();
           val.depth = this.depth;
           val.parentList = this;
+          val.parentVal = this.parentVal;
           this.groupsMap.set(key, val); // save the val in the keyed map
           this.push(val);          // also save it as an array entry
         }
@@ -446,7 +469,7 @@ export class Supergroup extends ValueList {
   static makeRoot(name, depth, recs, dimName) {
     name = name || "root";
     dimName = dimName || name;
-    let root = new Value(name)
+    let root = new SGNode(name)
     root.dim = dimName;
     root.depth = depth
     root.root = root;
@@ -456,13 +479,12 @@ export class Supergroup extends ValueList {
     });
     return root;
   }
-  state() {
-    return new State(this);
-  }
 
   // sometimes a root value is needed as the top of a hierarchy
   asRootVal(name, dimName) {
-    var val = new Value(name || 'Root');
+    return this.parentVal;
+    /*
+    var val = new SGNode(name || 'Root');
     val.dim = dimName || 'root';
     val.depth = 0;
     val.records = this.records;
@@ -470,13 +492,22 @@ export class Supergroup extends ValueList {
     _.each(val.children, function(d) { d.parentVal = val; });
     _.each(val.descendants(), function(d) { d.depth = d.depth + 1; });
     return val;
+    */
   };
-  leafNodes(level) {
-    let nodes = [].concat(this.map(d=>d.leafNodes().slice(0)));
-    //let nodes = _.chain(this).invoke('leafNodes').flatten().value();
-    return new ValueList(nodes);
-      //.addSupergroupMethods()
+  leafNodes() {
+    return this.parentVal.leafNodes();
   };
+  flattenTree() {
+    return this.parentVal.descendants();
+    //return flatten(this.map(d => [d].concat(d.descendants()))).filter(d=>d);
+  };
+  rawNodes() {
+    //console.log(`this.length: ${this.length}, this.groupsMap: ${!!this.groupsMap}, this.groupsMap.keys().length: ${this.groupsMap.keys().length}`);
+    return [...this.groupsMap.keys()];
+  };
+  rawValues() {
+    return this.rawNodes();
+  }
   /*
   addLevel(dim, opts) {
     _.each(this, function(val) {
@@ -582,7 +613,7 @@ var compare = function(A, B, dim) {
   var list = _.chain(comp).values().sort(function(a,b) {
     return (a.fromIdx - b.fromIdx) || (a.toIdx - b.toIdx);
   }).map(function(d) {
-    var val = new Value(d.name);
+    var val = new SGNode(d.name);
     _.extend(val, d);
     val.records = [];
     if ('from' in d)
@@ -600,19 +631,19 @@ var compare = function(A, B, dim) {
   return list;
 };
 
-/** Concatenate two Values into a new one (??)
+/** Concatenate two SGNodes into a new one (??)
   *
   * @param {from} ...
   * @param {to} ...
   *
   * @memberof supergroup
   */
-var compareValue = function(from, to) { // any reason to keep this?
+var compareNode = function(from, to) { // any reason to keep this?
   if (from.dim !== to.dim) {
     throw new Error("not sure what you're trying to do");
   }
   var name = from + ' to ' + to;
-  var val = new Value(name);
+  var val = new SGNode(name);
   val.from = from;
   val.to = to;
   val.depth = 0;
@@ -622,21 +653,12 @@ var compareValue = function(from, to) { // any reason to keep this?
   val.dim = from.dim;
   return val;
 };
-//_.extend(StringValue.prototype, Value.prototype);
-//_.extend(NumberValue.prototype, Value.prototype);
-
-/** Sometimes a List gets turned into a standard array,
-  * sg.g., through slicing or sorting or filtering. 
-  * addListMethods turns it back into a List
-  *
-  * `List` would be a constructor if IE10 supported
-  * \_\_proto\_\_, so it pretends to be one instead.
-  *
-  * @param {Array} Array to be extended
-  *
-  * @memberof supergroup
-  */
-
+function delimOpts(opts) {
+  if (typeof opts === "string") opts = {delim: opts};
+  opts = opts || {};
+  if (!_(opts).has('delim')) opts.delim = '/';
+  return opts;
+}
 
 
 var hierarchicalTableToTree = function(data, parentPropchildProp) {
@@ -649,7 +671,7 @@ var hierarchicalTableToTree = function(data, parentPropchildProp) {
     var adoptiveParent = children.lookup(parent); // is this parent also a child?
     if (adoptiveParent) { // if so, make it the parent
       //adoptiveParent.children = addSupergroupMethods([]);
-      adoptiveParent.children = new ValueList([]);
+      adoptiveParent.children = new SGNodeList([]);
       _.each(parent.children, function(c) { 
         c.parent = adoptiveParent; 
         adoptiveParent.children.push(c)
@@ -660,7 +682,7 @@ var hierarchicalTableToTree = function(data, parentPropchildProp) {
     // if so, make use that child node, move this parent node's children over to it
   });
   //return addSupergroupMethods(topParents);
-  return new ValueList(topParents);
+  return new SGNodeList(topParents);
 };
 
 // allows grouping by a field that contains an array of values rather than just a single value
@@ -735,7 +757,7 @@ _.mixin({
   multiValuedGroupBy: multiValuedGroupBy,
   sgDiffList: diffList,
   sgCompare: compare,
-  sgCompareValue: compareValue,
+  sgCompareNode: compareNode,
   sgAggregate: aggregate,
   hierarchicalTableToTree: hierarchicalTableToTree,
   stateClass: State,

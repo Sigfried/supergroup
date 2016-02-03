@@ -2,8 +2,7 @@
 
 import assert from 'assert';
 import vows from 'vows';
-import _, {Supergroup, Value} from '../supergroup';
-
+import _, {Supergroup, Value, ValueList} from '../supergroup';
 var suite = vows.describe("supergroup");
 
 var gradeBook = [
@@ -77,10 +76,25 @@ suite.addBatch({
     //console.log('lookup:', gradesByGradeLastName.lookup("B"));
     assert.deepEqual(gradesByGradeLastName.lookup("B").children.rawValues(), ["Gold","Androy"]);
   },
+  "leafnodes on leaf returns ValueList": function() {
+    let leafNodes = gradesByGradeLastName[1].leafNodes();
+    assert.equal(leafNodes instanceof ValueList, true);
+  },
   "leafnodes on leaf returns Value": function() {
-    let leafNode = gradesByGradeLastName[1].children[0].leafNodes()[0];
-    //console.log(`leafNode is Value: ${leafNode instanceof Value}, leafNode: ${leafNode}`);
-    assert.equal(leafNode instanceof Value, true);
+    let leafNodes = gradesByGradeLastName[1].children[0].leafNodes();
+    assert.equal(leafNodes.length , 1);
+    assert.equal(leafNodes[0] instanceof Value, true);
+  },
+  "leafnodes on Value returns Values": function() {
+    let leafNodes = gradesByGradeLastName[1].leafNodes();
+    assert.equal(leafNodes.length , 2);
+    assert.equal(leafNodes[0] instanceof Value, true);
+  },
+  "leafnodes on Supergroup returns ValueList": function() {
+    let leafNodes = gradesByGradeLastName.leafNodes();
+    assert.deepEqual(leafNodes.rawValues(), ["Gold","Androy"]);
+    assert.equal(leafNodes.length, 4);
+    assert.equal(leafNodes instanceof ValueList, true);
   },
   "leafnodes on supergroup returns Values": function() {
     let leafNode = gradesByGradeLastName.leafNodes()[0];
@@ -152,3 +166,35 @@ suite.addBatch({
 });
 
 suite.run();
+/*
+var test_data = [
+  {"person_id": "0", "domain_id": "Condition", "concept_name": "Impacted cerumen", "drug_era_start_date": "2008-02-19", "drug_era_end_date": "2008-02-19"},
+  {"person_id": "0", "domain_id": "Condition", "concept_name": "Otogenic otalgia", "drug_era_start_date": "2008-02-19", "drug_era_end_date": "2008-02-19"},
+  {"person_id": "0", "domain_id": "Condition", "concept_name": "Acquired trigger finger", "drug_era_start_date": "2008-02-23", "drug_era_end_date": "2008-02-23"},
+  {"person_id": "0", "domain_id": "Drug", "concept_name": "Methylprednisolone", "drug_era_start_date": "2008-02-23", "drug_era_end_date": "2008-02-23"},
+  {"person_id": "0", "domain_id": "Condition", "concept_name": "Pes anserinus bursitis", "drug_era_start_date": "2008-02-23", "drug_era_end_date": "2008-02-23"},
+  {"person_id": "0", "domain_id": "Condition", "concept_name": "Benign essential hypertension", "drug_era_start_date": "2008-02-28", "drug_era_end_date": "2008-02-28"},
+  {"person_id": "0", "domain_id": "Condition", "concept_name": "Familial hyperchylomicronemia", "drug_era_start_date": "2008-02-28", "drug_era_end_date": "2008-02-28"},
+  {"person_id": "0", "domain_id": "Condition", "concept_name": "Hyperlipidemia", "drug_era_start_date": "2008-02-28", "drug_era_end_date": "2008-02-28"},
+  {"person_id": "0", "domain_id": "Condition", "concept_name": "Tachycardia", "drug_era_start_date": "2008-02-28", "drug_era_end_date": "2008-02-28"},
+  {"person_id": "0", "domain_id": "Condition", "concept_name": "Amblyopia", "drug_era_start_date": "2008-03-09", "drug_era_end_date": "2008-03-09"},
+  {"person_id": "0", "domain_id": "Condition", "concept_name": "Astigmatism", "drug_era_start_date": "2008-03-09", "drug_era_end_date": "2008-03-09"},
+  {"person_id": "0", "domain_id": "Condition", "concept_name": "Myopia", "drug_era_start_date": "2008-03-09", "drug_era_end_date": "2008-03-09"},
+  {"person_id": "0", "domain_id": "Condition", "concept_name": "Nonexudative age-related macular degeneration", "drug_era_start_date": "2008-03-09", "drug_era_end_date": "2008-03-09"},
+  {"person_id": "0", "domain_id": "Condition", "concept_name": "Malignant lymphoma of intra-abdominal lymph nodes", "drug_era_start_date": "2008-03-31", "drug_era_end_date": "2008-03-31"},
+  {"person_id": "0", "domain_id": "Drug", "concept_name": "pantoprazole", "drug_era_start_date": "2008-03-31", "drug_era_end_date": "2008-03-31"},
+  {"person_id": "0", "domain_id": "Condition", "concept_name": "Mobitz type II atrioventricular block", "drug_era_start_date": "2008-04-04", "drug_era_end_date": "2008-04-04"},
+  {"person_id": "0", "domain_id": "Condition", "concept_name": "Benign prostatic hypertrophy with outflow obstruction", "drug_era_start_date": "2008-04-24", "drug_era_end_date": "2008-04-24"},
+  {"person_id": "0", "domain_id": "Condition", "concept_name": "Chronic cystitis", "drug_era_start_date": "2008-04-24", "drug_era_end_date": "2008-04-24"},
+  {"person_id": "0", "domain_id": "Condition", "concept_name": "Chronic hepatitis C", "drug_era_start_date": "2008-04-24", "drug_era_end_date": "2008-04-24"},
+  {"person_id": "0", "domain_id": "Condition", "concept_name": "Acute pyelonephritis with medullary necrosis", "drug_era_start_date": "2008-05-08", "drug_era_end_date": "2008-05-08"},
+  {"person_id": "0", "domain_id": "Condition", "concept_name": "Urinary tract infectious disease", "drug_era_start_date": "2008-05-08", "drug_era_end_date": "2008-05-08"},
+  {"person_id": "0", "domain_id": "Condition", "concept_name": "Exudative age-related macular degeneration", "drug_era_start_date": "2008-05-20", "drug_era_end_date": "2008-05-20"},
+  {"person_id": "1494", "domain_id": "Condition", "concept_name": "Disorder of lipid metabolism", "drug_era_start_date": "2010-12-01", "drug_era_end_date": "2010-12-01"},
+  {"person_id": "1494", "domain_id": "Condition", "concept_name": "Open wound of foot except toes with complication", "drug_era_start_date": "2010-12-01", "drug_era_end_date": "2010-12-01"},
+  {"person_id": "1494", "domain_id": "Condition", "concept_name": "Peripheral vascular disease", "drug_era_start_date": "2010-12-01", "drug_era_end_date": "2010-12-01"}];
+
+var domcon = _.supergroup(test_data, ['domain_id','concept_name']);
+//var domcon = _.supergroup(person_eras, ['domain_id']);
+console.log(domcon.rawValues());
+*/

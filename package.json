@@ -32,13 +32,14 @@
     "documentationNOT_USING": "documentation -c conf.json -o doc -f html -R ./README src/supergroup.js",
     "doc": "esdoc -c conf.json",
     "vows": "babel-node node_modules/argg src/test/*.js",
+    "test": "mocha --require babel-core/register src/test/supergroup_mocha.js",
     "watchHOLD": "npm run compile && npm run vows",
-    "watchcmd": "npm run doc && npm run vows",
+    "watchcmdHOLD": "npm run doc && npm run vows",
+    "watchcmd": "npm run test",
     "watch": "fswatch -0 -o ./src doc.md package.json conf.json README.md | xargs -0 -n 1 -I {} npm run watchcmd"
   },
   "devDependencies": {
     "argg": "0.0.2",
-    "babel": "^5",
     "babel-eslint": "^4.1.0",
     "babel-loader": "^6.2.1",
     "babel-preset-es2015": "^6.3.13",
@@ -46,10 +47,21 @@
     "babel-preset-stage-0": "^6.3.13",
     "coveralls": "^2.11.4",
     "eslint": "^1.2.1",
+    "expect.js": "^0.3.1",
     "istanbul": "^0.3.18",
+    "lodash": "^3.9.3",
+    "mocha": "^2.4.5",
+    "mocha-loader": "^0.7.1",
+    "mochify": "^2.16.0",
     "plato": "^1.5.0",
     "tape": "^4.2.0",
-    "vows": "^0.8.1",
-    "lodash": "^3.9.3"
+    "vows": "^0.8.1"
+  },
+  "dependencies": {
+    "babel": "^5",
+    "babel-core": "^6.4.5",
+    "babel-plugin-transform-builtin-extend": "^1.1.0",
+    "babel-polyfill": "^6.3.14",
+    "webpack": "^1.12.12"
   }
 }
