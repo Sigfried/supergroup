@@ -63,7 +63,7 @@ export class SGNode {
     var path = [];
     if (!opts.notThis) path.push(this);
     var ptr = this;
-    while ((ptr.depth > 0 && (ptr = ptr.parentVal))) {
+    while ((ptr.depth > 0 && (ptr = ptr.parentNode))) {
       path.unshift(ptr);
     }
     if (opts.noRoot) path.shift();
@@ -83,7 +83,7 @@ export class SGNode {
     opts = opts || {};
     debugger;
     _.each(this.leafNodes() || [this], function(d) {
-      opts.parentVal = d;
+      opts.parentNode = d;
       if (!('in' in d)) { // d.in means it's part of a diffList
         d.children = new Supergroup(d.records, dim, opts);
       } else { // allows adding levels to diffLists. haven't used for a long time
@@ -97,7 +97,7 @@ export class SGNode {
           });
         }
       }
-      d.children.parentVal = d; // NOT TESTED, NOT USED, PROBABLY WRONG!!!
+      d.children.parentNode = d; // NOT TESTED, NOT USED, PROBABLY WRONG!!!
     });
   } */
   _descendants(opts) {
@@ -134,7 +134,7 @@ export class SGNode {
     function fixLeaf(node) {
       node.children = node.records;
       _.each(node.children, function(rec) {
-        rec.parentVal = node;
+        rec.parentNode = node;
         rec.depth = node.depth + 1;
         for(var method in SGNode.prototype) {
           Object.defineProperty(rec, method, {
@@ -148,7 +148,7 @@ export class SGNode {
     if (truncateEmpty) {
       var self = this;
       self.descendants().forEach(function(node) {
-        if (self.parentVal && self.parentVal.children.length === 1) {
+        if (self.parentNode && self.parentNode.children.length === 1) {
           fixLeaf(node);
         }
       });
@@ -195,9 +195,6 @@ export class SGNode {
       return func(this.records.map(field));
     return func(this.records.map(d=>d[field]));
   }
-  rootList() {
-    return this.parentList.rootList();
-  }
   /* didn't make this yet, just copied from above
   SGNode.prototype.descendants(level) {
     var ret = [this];
@@ -229,6 +226,7 @@ export class SGNodeList extends Array {
   /** lookup a value in a list, or, if query is an array
    *  it is interpreted as a path down the group hierarchy */
   lookup(query) {
+    // fix to take advantage of es6 Map
     if (Array.isArray(query)) {
       // if group has children, can search down the tree
       var values = query.slice(0);
@@ -299,13 +297,8 @@ export class SGNodeList extends Array {
         return [val+'', val.records];
       }).object().value();
   }
-  rootList(func) {
-    if ('parentVal' in this)
-      return this.parentVal.rootList();
-    return this;
-  }
   state() {
-    return new State(this);
+    return new SGState(this);
   }
 }
 
@@ -380,15 +373,15 @@ export class Supergroup extends SGNodeList {
   * @param {function} [opts.truncateBranchOnEmptyVal] 
   * @return {Array of SGNodes} enhanced with all the List methods
   */
-  constructor({ parentVal=null,
+  constructor({ parentNode=null,
                 recs = [], 
                 dims=[], dimNames=[], opts={} // get rid of opts
               } = {}) {
     super();
-    this.parentVal = parentVal || Supergroup.makeRoot('root', -1, recs);
-    if (!this.parentVal) console.error("what's up?");
-    this.parentVal.children = this;
-    this.root = this.parentVal.root;
+    this.parentNode = parentNode || Supergroup.makeRoot('root', -1, recs);
+    if (!this.parentNode) console.error("what's up?");
+    this.parentNode.children = this;
+    this.root = this.parentNode.root;
 
     if (!_.isArray(dims)) dims = [dims];
     this.dims = _.clone(dims);
@@ -397,8 +390,8 @@ export class Supergroup extends SGNodeList {
     this.dimNames = _.clone(dimNames);
     this.dim = dims.shift();
     this.dimName = dimNames.shift();
-    this.recsMap = this.parentVal.recsMap;
-    this.depth = this.parentVal.depth + 1;
+    this.recsMap = this.parentNode.recsMap;
+    this.depth = this.parentNode.depth + 1;
     //console.log(`depth: ${this.depth}, dims: ${this.dims}, dim: ${this.dim}`);
     if (_.isFunction(this.dim)) {
       this.dimFunc = this.dim;
@@ -436,7 +429,7 @@ export class Supergroup extends SGNodeList {
           val.recsMap = new Map();
           val.depth = this.depth;
           val.parentList = this;
-          val.parentVal = this.parentVal;
+          val.parentNode = this.parentNode;
           this.groupsMap.set(key, val); // save the val in the keyed map
           this.push(val);          // also save it as an array entry
         }
@@ -449,7 +442,7 @@ export class Supergroup extends SGNodeList {
     if (dims.length) {
       this.groupsMap.forEach( (val, groupKey) => {
         //console.log(`ADDING CHILDREN to ${val}`);
-        val.children = new Supergroup({parentVal:val, 
+        val.children = new Supergroup({parentNode:val, 
                                       dims:_.clone(dims), 
                                       dimNames:_.clone(dimNames), opts});
       });
@@ -482,23 +475,23 @@ export class Supergroup extends SGNodeList {
 
   // sometimes a root value is needed as the top of a hierarchy
   asRootVal(name, dimName) {
-    return this.parentVal;
+    return this.parentNode;
     /*
     var val = new SGNode(name || 'Root');
     val.dim = dimName || 'root';
     val.depth = 0;
     val.records = this.records;
     val.children= this;
-    _.each(val.children, function(d) { d.parentVal = val; });
+    _.each(val.children, function(d) { d.parentNode = val; });
     _.each(val.descendants(), function(d) { d.depth = d.depth + 1; });
     return val;
     */
   };
   leafNodes() {
-    return this.parentVal.leafNodes();
+    return this.parentNode.leafNodes();
   };
   flattenTree() {
-    return this.parentVal.descendants();
+    return this.parentNode.descendants();
     //return flatten(this.map(d => [d].concat(d.descendants()))).filter(d=>d);
   };
   rawNodes() {
@@ -625,7 +618,7 @@ var compare = function(A, B, dim) {
   }).value();
   _.chain(list).map(function(d) {
     d.parentList = list; // NOT TESTED, NOT USED, PROBABLY WRONG
-    d.records.parentVal = d; // NOT TESTED, NOT USED, PROBABLY WRONG
+    d.records.parentNode = d; // NOT TESTED, NOT USED, PROBABLY WRONG
   }).value();
 
   return list;
@@ -649,7 +642,7 @@ var compareNode = function(from, to) { // any reason to keep this?
   val.depth = 0;
   val['in'] = "both";
   val.records = [].concat(from.records,to.records);
-  val.records.parentVal = val; // NOT TESTED, NOT USED, PROBABLY WRONG
+  val.records.parentNode = val; // NOT TESTED, NOT USED, PROBABLY WRONG
   val.dim = from.dim;
   return val;
 };
@@ -703,24 +696,37 @@ if (_.createAggregator) {
  * Class for managing filter state while leaving Supgergroups immutable
  * as much as possible.
  */
-class State {
-  constructor(sglist) {
-    this.list = sglist;
+export class SGState {
+  constructor(listOrNode) {
+    this.sgRoot = listOrNode.root;
     this.filters = new Map();
   }
   addFilter(type, key, filt, ids) {
   }
   selectByVal(val) {
-    assert.equal(val.rootList(), this.list); // assume state only on root lists
+    assert.equal(val.root, this.root); // assume state only on root lists
     this.selectedVals.push(val);
+  }
+  selectByFilter(filt) {
+    this.selectedVals.push(val);
+  }
+  selectedRecs() {
+    return _.chain(this.selectedVals).pluck('records').flatten().value();
   }
 }
 
 class Filter {
+ /** 
+  * @param {String} type one of: excludeNodes, includeNodes, recordFilter
+  * @param {SGNodeList} filt SGNodeList or function to filter records
+  * @param {function} filt
+  * @param {String} key SGNode value (not necessarily a string) or filter function name
+  * @param {int[]} ids record ids matched by this filter
+  */
   constructor(type, key, filt, ids) {
     this.type = type;
-    this.key = key;
     this.filt = filt;
+    this.key = key;
     this.ids = ids;
   }
 }
@@ -739,14 +745,6 @@ console.log(w.has(b));
 console.log(w);
 debugger;
 */
-State.prototype.selectByFilter = function(filt) {
-  
-  
-  this.selectedVals.push(val);
-}
-State.prototype.selectedRecs = function() {
-  return _.chain(this.selectedVals).pluck('records').flatten().value();
-}
 
 
 _.mixin({
@@ -760,7 +758,6 @@ _.mixin({
   sgCompareNode: compareNode,
   sgAggregate: aggregate,
   hierarchicalTableToTree: hierarchicalTableToTree,
-  stateClass: State,
 
   // FROM https://gist.github.com/AndreasBriese/1670507
   // Return aritmethic mean of the elements

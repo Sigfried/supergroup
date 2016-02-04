@@ -5,7 +5,7 @@ import assert from 'assert';
 import expect from 'expect.js';
 //import mocha from 'mocha';
 //import vows from 'vows';
-import _, {Supergroup, SGNode, SGNodeList} from '../supergroup';
+import _, {Supergroup, SGNode, SGNodeList, SGState} from '../supergroup';
 
 /*
 debugger;
@@ -112,6 +112,33 @@ describe('Supergroup', function() {
     })
   });
 });
+describe('Supergroup State', function() {
+  let selector = gradesByGradeLastName.state();
+  describe('#a Supergroup State object', function () {
+    it("should be an SGState", function() {
+      assert.equal(selector instanceof SGState, true);
+    });
+    describe("should allow selection by value", function() {
+      selector.selectByVal(gradesByGradeLastName.lookup("A"));
+      assert.deepEqual(selector.selectedRecs(), [gradeBook[3]]);
+    });
+  });
+});
+  /*
+suite.addBatch({
+ "supergroup state": {
+  topic: gradesByGradeLastName.state(),
+  "should be a Supergroup State": function(selector) {
+    assert.instanceOf(selector, _.stateClass);
+  },
+  "should allow selection by filter": function(selector) {
+    selector.selectByVal(gradesByGradeLastName.lookup("A"));
+    assert.deepEqual(selector.selectedRecs(), [gradeBook[3]]);
+  },
+ }
+});
+  */
+
 
 // really old stuff from https://github.com/Sigfried/supergroup/blob/f632d9623cb11ec7da090d5ab2b261bf934f65d4/supergroup_spec.js
 /*
@@ -171,41 +198,6 @@ describe('Supergroup', function() {
         });
     });
 
-    /*
-    describe('rawNodes', function() {
-        function get_raw(array) {
-            var groups = supergroup.addListMethods(array);
-            return groups.rawNodes();
-        }
-        it('should do nothing for empty arrays', function() {
-            expect(get_raw([])).toEqual([]);
-        });
-        it('should do nothing for string arrays', function() {
-            expect(get_raw(['one', 'two'])).toEqual(['one', 'two']);
-        });
-        it('should turn numeric types into strings', function() {
-            expect(get_raw([1, 2])).toEqual(['1', '2']);
-        });
-        it('should turn boolean types into strings', function() {
-            expect(get_raw([true, false])).toEqual(['true', 'false']);
-        });
-    });
-    */
-    /*
-    describe('underscoreMethods', function() {
-        //var arr;
-        function addMethods(array) {
-            var groups = supergroup.addListMethods(array);
-            return groups;
-        }
-        it('should add all the methods', function() {
-            var arr = addMethods([1,2,3]);
-            _(enlightenedData.underscoreMethods).each(function(method) {
-                expect(typeof arr[method]).toEqual("function");
-            });
-        });
-    });
-    */
 
 
 
@@ -335,25 +327,6 @@ suite.addBatch({
  }
 });
 */
-  /*
-suite.addBatch({
- "supergroup state": {
-  topic: gradesByGradeLastName.state(),
-  "should be a Supergroup State": function(selector) {
-    assert.instanceOf(selector, _.stateClass);
-  },
-  "should allow selection by value": function(selector) {
-    selector.selectByVal(gradesByGradeLastName.lookup("A"));
-    assert.deepEqual(selector.selectedRecs(), [gradeBook[3]]);
-  },
-  "should allow selection by filter": function(selector) {
-    selector.selectByVal(gradesByGradeLastName.lookup("A"));
-    assert.deepEqual(selector.selectedRecs(), [gradeBook[3]]);
-  },
- }
-});
-  */
-
 
 //suite.run();
 /*
