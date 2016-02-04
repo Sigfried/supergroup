@@ -5,54 +5,33 @@ import assert from 'assert';
 /** 
  * @Author: [Sigfried Gold](http://sigfried.org) 
  * @License: [MIT](http://sigfried.mit-license.org/) 
- * @Version: 2.0.0
+ * @Version: 0.0.1
  */
-; // jshint -W053
 
-
-/** A way of bundling data for trees
- */
-export class TreeNode {
-  constructor(key, payload= {}) { // {} BAD?
-    this._key = key; // called key rather than val because it will be key in ArrayMap
-    this._payload = payload;
-    this._hasChildren = false;
-    this._isRoot = false;
+// @class SGTree
+// @description 
+export class SGTree {
+  constructor(rootNode = {}, startLevel = -1, children = []) {
+    this.root = rootNode;
+    this.root.level = startLevel;
+    this.addLeaves(this.root, children)
   }
-  set children(arr) {
-    //console.log(`in set children with a ${sg.constructor}`);
-    //if (! (sg instanceof SGNodeList))
-      //throw new Error("SGNode children can only be Supergroups");
-    //console.log("set children worked this time");
-    this._children = arr;
-    this._hasChildren = true;
+  addLeaves(parentNode, children) {
+    parentNode.children = children;
   }
   get children() {
     return this._hasChildren && this._children;
   }
-  valueOf() {
-    return this._payload;
-  }
-  get key {
-    return this._key;
+  set children(sg) {
+    //console.log(`in set children with a ${sg.constructor}`);
+    if (! (sg instanceof SGNodeList))
+      throw new Error("SGNode children can only be Supergroups");
+    //console.log("set children worked this time");
+    this._children = sg;
+    this._hasChildren = true;
   }
   toString() {
-    return this.key.toString();
-  }
-}
-
-// @class SGNode
-// @description Supergroups and SGNodeLists are composed of SGNodes which are
-// objects of any sort representing group values.
-export class SGNode extends TreeNode {
-  /** 
-   * @param {Object} val anything: Object, string, number, date
-   * @param {ArrayMap} recsMap already constructed
-   */
-  constructor(val, recsMap) {
-    super(val, records);
-    //this.val = val;
-    //this._hasChildren = false;
+    return this.val.toString();
   }
   get records() {
     return [...this.recsMap.values()];
@@ -228,14 +207,6 @@ export class SGNode extends TreeNode {
     return makeList(ret);
   };
   */
-}
-/**
- * An ArrayMap is a redundant structure: elements are stored in a 
- * public-facing array and also in a private Map. The Map allows
- * elements to be retrieved by key. By default the object appears
- * as an array of objects.
- */
-export class ArrayMap extends Array {
 }
 export class SGNodeList extends Array {
   constructor(arr) {
@@ -505,7 +476,7 @@ export class Supergroup extends SGNodeList {
   }
 
   // sometimes a root value is needed as the top of a hierarchy
-  asRootNode(name, dimName) {
+  asRootVal(name, dimName) {
     return this.parentNode;
     /*
     var val = new SGNode(name || 'Root');
@@ -729,55 +700,36 @@ if (_.createAggregator) {
  */
 export class SGState {
   constructor(listOrNode) {
-    this.rootNode = listOrNode.root;
-    this.filters = [];
+    this.sgRoot = listOrNode.root;
+    this.filters = new Map();
   }
-  excludeNodes(nodes) {
-    nodes = Array.isArray(ndoes) && nodes || [nodes];
-    this.filters.push(new Filter(
-  }
-  
   addFilter(type, key, filt, ids) {
   }
-  selectByNode(val) {
+  selectByVal(val) {
     assert.equal(val.root, this.root); // assume state only on root lists
-    this.selectedNodes.push(val);
+    this.selectedVals.push(val);
   }
   selectByFilter(filt) {
-    this.selectedNodes.push(val);
+    this.selectedVals.push(val);
   }
   selectedRecs() {
-    return _.chain(this.selectedNodes).pluck('records').flatten().value();
+    return _.chain(this.selectedVals).pluck('records').flatten().value();
   }
 }
 
 class Filter {
  /** 
-  * abstract Filter class
-  */
-  constructor(key, filt, ids) {
-    if (new.target === Filter) {
-      throw new TypeError("Cannot construct Filter instances directly");
-    }
-    this.key = key;
-    this.filt = filt;
-    this.ids = ids;
-  }
-}
-class ExcludeNodeFilter extends Filter {
- /** 
-  * @param {SGNodeList} filt SGNodeList whose records should be filtered
-  * @param {String} key SGNode value (not necessarily a string), 
+  * @param {String} type one of: excludeNodes, includeNodes, recordFilter
+  * @param {SGNodeList} filt SGNodeList or function to filter records
+  * @param {function} filt
+  * @param {String} key SGNode value (not necessarily a string) or filter function name
   * @param {int[]} ids record ids matched by this filter
   */
   constructor(type, key, filt, ids) {
-    if (new.target === Filter) {
-      throw new TypeError("Cannot construct Filter instances directly");
-    }
     this.type = type;
     this.filt = filt;
     this.key = key;
-    this.ids = ids;   // records ids matched by this filter
+    this.ids = ids;
   }
 }
 
