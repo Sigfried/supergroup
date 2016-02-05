@@ -765,6 +765,7 @@ export class FilterSet {
     this.rootNode = listOrNode.root; // every node and list should point up to 
                                      // the same root, including the root itself
     this.filters = [];
+    this.selectedNodes = [];
   }
   excludeNodes(nodes) {
     nodes = Array.isArray(ndoes) && nodes || [nodes];
@@ -775,12 +776,12 @@ export class FilterSet {
   
   addFilter(type, key, filt, ids) {
   }
-  selectByNode(val) {
-    assert.equal(val.root, this.root); // assume state only on root lists
-    this.selectedNodes.push(val);
+  selectByNode(node) {
+    assert.equal(node.root, node.root); // assume state only on root lists
+    this.selectedNodes.push(node);
   }
   selectByFilter(filt) {
-    this.selectedNodes.push(val);
+    this.selectedNodes.push(node);
   }
   selectedRecs() {
     return _.chain(this.selectedNodes).pluck('records').flatten().value();

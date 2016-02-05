@@ -144,12 +144,10 @@ describe('Supergroup FilterSet', function() {
     it("should be a FilterSet", function() {
       assert.equal(filts instanceof FilterSet, true);
     });
-    /*
-    describe("should allow selection by value", function() {
-      filts.selectByVal(gradesByGradeLastName.lookup("A"));
+    it("should allow selection by value", function() {
+      filts.selectByNode(gradesByGradeLastName.lookup("A"));
       assert.deepEqual(filts.selectedRecs(), [gradeBook[3]]);
     });
-    */
   });
 });
 /*
