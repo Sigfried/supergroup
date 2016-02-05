@@ -5,25 +5,8 @@ import assert from 'assert';
 import expect from 'expect.js';
 //import mocha from 'mocha';
 //import vows from 'vows';
-import _, {Supergroup, SGNode, SGNodeList, SGState} from '../supergroup';
-
-/*
-debugger;
-mocha.setup('bdd')
-mocha.checkLeaks();
-//mocha.globals(['jQuery']);
-mocha.run();
-*/
-
-describe('Array', function() {
-  describe('#indexOf()', function () {
-    it('should return -1 when the value is not present', function () {
-      assert.equal(-1, [1,2,3].indexOf(5));
-      assert.equal(-1, [1,2,3].indexOf(0));
-    });
-  });
-});
- console.log("heelo?");
+import _, {Supergroup, SGNode, SGNodeList, 
+  SGState, ArrayMap, RecsMap, FilterSet} from '../supergroup';
 
 //var suite = vows.describe("supergroup");
 
@@ -66,38 +49,38 @@ describe('Supergroup', function() {
     it("should should show top level of nested groups", function() {
       assert.deepEqual(gradesByGradeLastName.rawNodes().sort(), ["A","B","C"]);
     });
-    it('should have a referrence to all its records', function() {
-      assert.deepEqual(
-        JSON.stringify(_.sortBy(gradesByName.lookup('Sigfried Gold').records,
-                                d=>d.class)),
-        JSON.stringify(
-                _.sortBy(gradeBook.slice(0,3), d=>d.class, d=>d.class)));
+    /*
+    describe('#a recsMap', function () {
+      /*
+      it("should be in a Node", function() {
+        assert.deepEqual(gradesByLastName.root.recsMap instanceof RecsMap, true);
+      });
+      * /
+      it("should hold all recs for a root Node", function() {
+        assert.deepEqual(gradesByLastName.root.records, gradeBook);
+      });
+      it("should hold correct records for a Node", function() {
+        assert.deepEqual(gradesByGradeLastName.lookup("A").records, 
+                        [gradeBook[3]]);
+      });
     });
-    it('should assign records to the right groups', function() {
-      assert.deepEqual(gradesByLastName[0].records.slice(0), [
-            {"lastName":"Gold","firstName":"Sigfried","class":"Remedial Programming","grade":"C","num":2},
-            {"lastName":"Gold","firstName":"Sigfried","class":"Literary Posturing","grade":"B","num":3},
-            {"lastName":"Gold","firstName":"Sigfried","class":"Documenting with Pretty Colors","grade":"B","num":3}
-        ]); 
+    */
+    it("should hold all recs for a root Node", function() {
+      assert.deepEqual(gradesByLastName.root.records, gradeBook);
     });
     it('should have SGNodes for elements', function() {
       assert.equal(_.all(gradesByGradeLastName,
                     d => d instanceof SGNode), true);
     });
-    it('should have lookup and children', function() {
+    it('should have lookup', function() {
+      assert.equal(gradesByGradeLastName.lookup('B') instanceof SGNode, true);
+    });
+    it('should have children', function() {
       assert.equal(gradesByGradeLastName.lookup('B').children.length, 2);
     });
-    describe('#a Node object', function () {
-      it("should have a namePath", function() {
-        assert.equal('namePath' in gradesByGradeLastName[0].children[0], true)
-      });
-      it("should have a reasonable namePath", function() {
-        assert.equal(gradesByGradeLastName[0].children[0].namePath(), 'C/Gold')
-      });
-      it('should have leafNodes starting from level 1', function() {
-        assert.equal(gradesByGradeLastName.lookup('B').leafNodes()+'',
-                        'Gold,Androy')
-      });
+    it("should have lookup paths", function() {
+      assert.equal(gradesByGradeLastName.lookup(['A','Sassoon']),
+                   gradesByGradeLastName.lookup('A').lookup('Sassoon'));
     });
     it('should have leafNodes starting from level 1, testing one of them', function() {
       assert.deepEqual(gradesByGradeLastName.leafNodes()[0] + '',
@@ -110,35 +93,67 @@ describe('Supergroup', function() {
     it('should sort to an SGNodeList', function() {
       assert.equal(gradesByGradeLastName.leafNodes().sort() instanceof SGNodeList, true);
     })
+    describe('#a Node object', function () {
+      it('should have lookup', function() {
+        assert.equal(gradesByGradeLastName[1].lookup('B').children+'', 'Gold,Androy');
+      });
+      it("should have a root with all recs", function() {
+        assert.deepEqual(gradesByLastName[0].root.records, gradeBook);
+      });
+      it('should have a referrence to all its records', function() {
+        assert.deepEqual(
+          JSON.stringify(_.sortBy(gradesByName.lookup('Sigfried Gold').records,
+                                  d=>d.class)),
+          JSON.stringify(
+                  _.sortBy(gradeBook.slice(0,3), d=>d.class, d=>d.class)));
+      });
+      it('should assign records to the right groups', function() {
+        assert.deepEqual(gradesByLastName[0].records.slice(0), [
+              {"lastName":"Gold","firstName":"Sigfried","class":"Remedial Programming","grade":"C","num":2},
+              {"lastName":"Gold","firstName":"Sigfried","class":"Literary Posturing","grade":"B","num":3},
+              {"lastName":"Gold","firstName":"Sigfried","class":"Documenting with Pretty Colors","grade":"B","num":3}
+          ]); 
+      });
+      it("should have a namePath", function() {
+        assert.equal('namePath' in gradesByGradeLastName[0].children[0], true)
+      });
+      it("should have a reasonable namePath", function() {
+        assert.equal(gradesByGradeLastName[0].children[0].namePath(), 'C/Gold')
+      });
+      it('should have leafNodes starting from level 1', function() {
+        assert.equal(gradesByGradeLastName.lookup('B').leafNodes()+'',
+                        'Gold,Androy')
+      });
+    });
   });
 });
-describe('Supergroup State', function() {
-  let selector = gradesByGradeLastName.state();
-  describe('#a Supergroup State object', function () {
-    it("should be an SGState", function() {
-      assert.equal(selector instanceof SGState, true);
+describe('ArrayMap', function() {
+  let arrayMap = new ArrayMap([1,4,9,16,25,36,49,64,81], Math.sqrt);
+  describe('#an ArrayMap', function () {
+    it("should act like an array (sort of?)", function() {
+      assert.deepEqual(arrayMap.slice(0), [1,4,9,16,25,36,49,64,81]);
     });
+    it("should have keys", function() {
+      assert.deepEqual(arrayMap.keys(), [1,2,3,4,5,6,7,8,9]);
+    });
+  });
+});
+describe('Supergroup FilterSet', function() {
+  let filts = gradesByGradeLastName.filterSet();
+  describe('#a Supergroup FilterSet object', function () {
+    it("should be a FilterSet", function() {
+      assert.equal(filts instanceof FilterSet, true);
+    });
+    /*
     describe("should allow selection by value", function() {
-      selector.selectByVal(gradesByGradeLastName.lookup("A"));
-      assert.deepEqual(selector.selectedRecs(), [gradeBook[3]]);
+      filts.selectByVal(gradesByGradeLastName.lookup("A"));
+      assert.deepEqual(filts.selectedRecs(), [gradeBook[3]]);
     });
+    */
   });
 });
-  /*
-suite.addBatch({
- "supergroup state": {
-  topic: gradesByGradeLastName.state(),
-  "should be a Supergroup State": function(selector) {
-    assert.instanceOf(selector, _.stateClass);
-  },
-  "should allow selection by filter": function(selector) {
-    selector.selectByVal(gradesByGradeLastName.lookup("A"));
-    assert.deepEqual(selector.selectedRecs(), [gradeBook[3]]);
-  },
- }
-});
-  */
-
+/*
+*/
 
 // really old stuff from https://github.com/Sigfried/supergroup/blob/f632d9623cb11ec7da090d5ab2b261bf934f65d4/supergroup_spec.js
 /*
@@ -283,10 +298,6 @@ suite.addBatch({
   "previous": function() {
     assert.deepEqual(gradesByGradeLastName.sort()[2].previous().namePath(),
           "B");
-  },
-  "vals should have rootList": function() {
-    assert.equal(gradesByGradeLastName.lookup(['A','Sassoon']).rootList(),
-           gradesByGradeLastName);
   },
   * /
  },

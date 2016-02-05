@@ -32,7 +32,7 @@ export class SGNode {
     return this.val.toString();
   }
   get records() {
-    return [...this.recsMap.values()];
+    return Array.from(this.recsMap.values());
   }
   valueOf() {
     return this.val.valueOf()
@@ -160,7 +160,11 @@ export class SGNode {
     return this;
   }
   */
-  lookup(query) {
+  lookup(key) {
+    return this.children && this.children.lookup(key) ||
+           key === this.valueOf() && this;
+  }
+  OLDlookup(query) {
     if (Array.isArray(query)) {
       if (this.valueOf() == query[0]) { // allow string/num comparison to succeed?
         query = query.slice(1);
@@ -206,26 +210,87 @@ export class SGNode {
   };
   */
 }
-export class SGNodeList extends Array {
-  constructor(arr) {
-    arr = arr || [];
-    if (_.any(arr, d => !(d instanceof SGNode))) {
-      throw new Error("only SGNodes in SGNodeLists");
-    }
+/**
+ * An ArrayMap is a redundant structure: elements are stored in a 
+ * public-facing array and also in a private Map. The Map allows
+ * elements to be retrieved by key. By default the object appears
+ * as an array of objects.
+ * REVISION: an optional key function associates a key with an element.
+ * You can also associate each element with an index number which is
+ * not necessarily its position in the current array (usually it will
+ * be its position in some other (parent) array).
+ * With a key you can retrieve its element and vice versa. Also you
+ * can retrieve an index for an element or key.
+ * @param {Object[]} arr Array of anything
+ * @param {function} [keyfunc] generates an object to key on by being called
+ *                             with parameters (obj, i)
+ */
+export class ArrayMap extends Array {
+  constructor(arr = [], keyFunc) {
     super(...arr);
-    //super(Array.from(arr));
-    //this.otherConstructorArgs = args;
+    this._keyMap = new Map();    // map from key to index
+    this._keyFunc = keyFunc;
+    this.forEach((element,i) => {
+      let key = keyFunc && keyFunc(element) || 
+                (typeof element.val !== "undefined") && element.val ||
+                i;
+      this._keyMap.set(key, i);
+    })
   }
+  lookup(key) {
+    return this[this._keyMap.get(key)];
+  }
+  has(key) {
+    return this._keyMap.has(key);
+  }
+  keys() {
+    return Array.from(this.keyIterator());
+  }
+  keyIterator() {
+    return this._keyMap.keys();
+  }
+}
+
+/** 
+ * @param {int[]} [indices] List of indexes into rawArray
+ * @param {Object[]} rawArray Array or another RecsMap
+ */
+export class RecsMap extends Array {
+  constructor(rawArray, indices) {
+    super( ...(indices && indices.map(i=>rawArray[i]) || rawArray));
+    this.indices = indices;
+    this.rawArray = rawArray;
+    if (rawArray instanceof RecsMap) {
+      // this.arrayLookupFunc...
+    } else if (Array.isArray(rawArray)) {
+    }
+  }
+  subset(indices) {
+    return new RecsMap(this.rawArray, indices);
+  }
+  filter(filterFunc) {
+    let indices = [];
+    let recs = this.filter((d,i) => {
+      let include = filterFunc(d);
+      if (include) {
+        indices.push(this.indices[i]);
+      }
+    });
+    return this.subset(indices);
+  }
+}
+export class SGNodeList extends ArrayMap {
   rawNodes() {
-    //console.log(`this.length: ${this.length}, this.groupsMap: ${!!this.groupsMap}, this.groupsMap.keys().length: ${this.groupsMap.keys().length}`);
-    return this.map(String);
+    //console.log(`this.length: ${this.length}, this.keyMap: ${!!this.keyMap}, this.keyMap.keys().length: ${this.keyMap.keys().length}`);
+    return this.keys();
+    //return this.keyMap(String);
   };
   rawValues() {
     return this.rawNodes();
   }
   /** lookup a value in a list, or, if query is an array
    *  it is interpreted as a path down the group hierarchy */
-  lookup(query) {
+  OLDlookup(query) { // THIS BELONGS ON SUPERGROUP, NOT HERE
     // fix to take advantage of es6 Map
     if (Array.isArray(query)) {
       // if group has children, can search down the tree
@@ -242,7 +307,7 @@ export class SGNodeList extends Array {
     }
   };
 
-  getLookupMap() {
+  OLDgetLookupMap() {
     var self = this;
     if (! ('lookupMap' in self)) {
       self.lookupMap = {};
@@ -297,8 +362,8 @@ export class SGNodeList extends Array {
         return [val+'', val.records];
       }).object().value();
   }
-  state() {
-    return new SGState(this);
+  filterSet() {
+    return new FilterSet(this);
   }
 }
 
@@ -340,16 +405,33 @@ export class SGNodeList extends Array {
  * - #### Supergroup extends `Array`
  *   - `Array` values are `SGNodes`
  *   - properties:
- *     - groupsMap: keys are the keys used to group SGNodes, values are SGNodes
+ *     - map: keys are the keys used to group SGNodes, values are SGNodes
  *     - recsMap:   keys are index into original records array, values are orig records
  *   - methods:
- *     - rawNodes: returns keys from groupsMap
+ *     - rawNodes: returns keys from map
  *
  * - SGNodes
  *     - depth:     same as the depth of its parentList (supergroup)
  *     - children:  array of child SGNodes collected in a supergroup (whose
  *                  depth is one greater than the depth of this SGNode)
  *
+ * Inherits
+ *  - from `ArrayMap`
+ *    - Acting like an array of Nodes
+ *    - `keys()`: an array of Node keys
+ *    - `keyIterator()`: iterator over Node keys
+ *  - from `SGNodeList`
+ *    - `rawNodes()`
+ *    - `rawValues()`
+ *    - lookup(key)`
+ *    - `getLookupMap()`
+ *    - `singleLookup(key)`
+ *    - `lookupMany(key)`
+ *    - `namePaths(opts)`
+ *    - `aggregates(func, field, ret)`
+ *    - `d3NestEntries()`
+ *    - `d3NestMap()`
+ *    - `filterSet()`
  */
 export class Supergroup extends SGNodeList {
 
@@ -375,32 +457,84 @@ export class Supergroup extends SGNodeList {
   */
   constructor({ parentNode=null,
                 recs = [], 
-                dims=[], dimNames=[], opts={} // get rid of opts
+                dims=[], dimNames=[], indices,
+                opts={} // get rid of opts
               } = {}) {
-    super();
-    this.parentNode = parentNode || Supergroup.makeRoot('root', -1, recs);
-    if (!this.parentNode) console.error("what's up?");
+    indices = indices || _.range(recs.length);
+    Supergroup.processOpts(opts);
+    parentNode = parentNode || Supergroup.makeRoot('root', -1, recs);
+    if (!parentNode) console.error("what's up?");
+
+    if (!Array.isArray(dims)) dims = [dims];
+    dims = _.clone(dims);
+    let dim = dims.shift();
+    dimNames = _.clone( opts.dimName && [opts.dimName] ||
+                        opts.dimNames || dimNames);
+    let dimName = dimNames.shift();
+    let depth = parentNode.depth + 1;
+    //console.log(`depth: ${depth}, dims: ${dims}, dim: ${dim}`);
+    let dimFunc;
+    if (_.isFunction(dim)) {
+      dimFunc = dim;
+      dimName = dimName || dim.toString();
+    } else {
+      dimFunc = (d) => d[dim];
+      dimName = dimName || dim.toString();
+    }
+
+    let groupsMap = new Map();
+    let recsMap = parentNode.recsMap;
+    recsMap.forEach( (rec,i) => {
+      let key = dimFunc(rec);      // this is the key for grouping!
+      let val;
+      if (!groupsMap.has(key)) {
+        if (opts.excludeNodes) {
+          if (_.isArray(opts.excludeNodes) && !_.find(opts.exludeNodes(key))) {
+          } else if (opts.excludeNodes instanceof Map && !opt.excludeNodes.has(key)) {
+          }
+        } else {
+          val = new SGNode(key); // val.val = key
+          val.dim = dimName;
+          val.depth = depth;
+          val.parentNode = parentNode;
+          val.indices = [];
+          groupsMap.set(key, val); // save the val in the keyed map
+        }
+      } else {
+        val = groupsMap.get(key);
+      }
+      val.indices.push(indices[i]);
+      //val.recsMap.set(i, rec); // each val gets records and index where
+                               // record is in the original array
+    });
+    // ArrayMap.constructor(arr = [], keyFunc, indices) 
+    super(Array.from(groupsMap.values()), d=>d.val);
+    this.parentNode = parentNode;
+    this.recsMap = recsMap;
     this.parentNode.children = this;
     this.root = this.parentNode.root;
 
-    if (!_.isArray(dims)) dims = [dims];
-    this.dims = _.clone(dims);
-    dimNames = opts.dimName && [opts.dimName] ||
-               opts.dimNames || dimNames;
-    this.dimNames = _.clone(dimNames);
-    this.dim = dims.shift();
-    this.dimName = dimNames.shift();
-    this.recsMap = this.parentNode.recsMap;
-    this.depth = this.parentNode.depth + 1;
-    //console.log(`depth: ${this.depth}, dims: ${this.dims}, dim: ${this.dim}`);
-    if (_.isFunction(this.dim)) {
-      this.dimFunc = this.dim;
-      this.dimName = this.dimName || this.dim.toString();
-    } else {
-      this.dimFunc = (d) => d[this.dim];
-      this.dimName = this.dimName || this.dim.toString();
-    }
-
+    this.dims = dims;
+    this.dimNames = dimNames;
+    this.dim = dim;
+    this.dimName = dimName;
+    this.depth = depth;
+    this.dimFunc = dimFunc;
+    this.forEach( (val) => {
+      val.parentList = this;
+      val.root = this.root;
+      val.recsMap = this.recsMap.subset(val.indices);
+      if (dims.length) {
+        //console.log(`ADDING CHILDREN to ${val}`);
+        /* Supergroup.constructor({ parentNode=null, recs = [], dims=[], 
+        *                           dimNames=[], opts={} } = {}) */
+        val.children = new Supergroup({parentNode:val, recs:val.recsMap,
+                                      dims:_.clone(dims), 
+                                      dimNames:_.clone(dimNames), opts});
+      }
+    });
+  }
+  static processOpts(opts) {
     if (opts.multiValuedGroup || opts.multiValuedGroups) {
       throw new Error("multiValuedGroup not implemented in es6 version yet");
     }
@@ -411,41 +545,6 @@ export class Supergroup extends SGNodeList {
     if (opts.truncateBranchOnEmptyVal) { // can't remember when this is used
       throw new Error("truncateBranchOnEmptyVal not re-implemented yet");
       recs = recs.filter(r => !_.isEmpty(r[dim]) || (_.isNumber(r[dim]) && isFinite(r[dim])));
-    }
-
-    this.groupsMap = new Map();
-    this.recsMap.forEach( (rec,i) => {
-      //console.log(rec);
-      let key = this.dimFunc(rec);      // this is the key for grouping!
-      let val;
-      if (!this.groupsMap.has(key)) {
-        if (opts.excludeNodes) {
-          if (_.isArray(opts.excludeNodes) && !_.find(opts.exludeNodes(key))) {
-          } else if (opts.excludeNodes instanceof Map && !opt.excludeNodes.has(key)) {
-          }
-        } else {
-          val = new SGNode(key);
-          val.dim = this.dimName;
-          val.recsMap = new Map();
-          val.depth = this.depth;
-          val.parentList = this;
-          val.parentNode = this.parentNode;
-          this.groupsMap.set(key, val); // save the val in the keyed map
-          this.push(val);          // also save it as an array entry
-        }
-      } else {
-        val = this.groupsMap.get(key);
-      }
-      val.recsMap.set(i, rec); // each val gets records and index where
-                               // record is in the original array
-    });
-    if (dims.length) {
-      this.groupsMap.forEach( (val, groupKey) => {
-        //console.log(`ADDING CHILDREN to ${val}`);
-        val.children = new Supergroup({parentNode:val, 
-                                      dims:_.clone(dims), 
-                                      dimNames:_.clone(dimNames), opts});
-      });
     }
   }
 
@@ -466,15 +565,31 @@ export class Supergroup extends SGNodeList {
     root.dim = dimName;
     root.depth = depth
     root.root = root;
-    root.recsMap = new Map();
-    recs.forEach( (r,i) => {
-      root.recsMap.set(i, r)
-    });
+    root.recsMap = new RecsMap(recs);
     return root;
+  }
+  /** lookup a value in a list, or, if key is an array
+   *  it is interpreted as a path down the group hierarchy */
+  lookup(key) {
+    // fix to take advantage of es6 Map
+    if (Array.isArray(key)) {
+      return this.lookupPath(key);
+    }
+    return super.lookup(key);
+  }
+  lookupPath(keys) {
+    keys = keys.slice(0);
+    var sg = this;
+    var ret;
+    while(keys.length) {
+      ret = sg.lookup(keys.shift());
+      sg = ret.children;
+    }
+    return ret;
   }
 
   // sometimes a root value is needed as the top of a hierarchy
-  asRootVal(name, dimName) {
+  asRootNode(name, dimName) {
     return this.parentNode;
     /*
     var val = new SGNode(name || 'Root');
@@ -495,11 +610,14 @@ export class Supergroup extends SGNodeList {
     //return flatten(this.map(d => [d].concat(d.descendants()))).filter(d=>d);
   };
   rawNodes() {
-    //console.log(`this.length: ${this.length}, this.groupsMap: ${!!this.groupsMap}, this.groupsMap.keys().length: ${this.groupsMap.keys().length}`);
-    return [...this.groupsMap.keys()];
+    //console.log(`this.length: ${this.length}, this.map: ${!!this.map}, this.map.keys().length: ${this.map.keys().length}`);
+    return Array.from(this.keys());
   };
   rawValues() {
     return this.rawNodes();
+  }
+  filterSet() {
+    return new FilterSet(this);
   }
   /*
   addLevel(dim, opts) {
@@ -696,38 +814,60 @@ if (_.createAggregator) {
  * Class for managing filter state while leaving Supgergroups immutable
  * as much as possible.
  */
-export class SGState {
+export class FilterSet {
   constructor(listOrNode) {
-    this.sgRoot = listOrNode.root;
-    this.filters = new Map();
+    this.rootNode = listOrNode.root; // every node and list should point up to 
+                                     // the same root, including the root itself
+    this.filters = [];
   }
+  excludeNodes(nodes) {
+    nodes = Array.isArray(ndoes) && nodes || [nodes];
+    nodes.forEach( node => 
+      this.filters.push(new ExcludeNodeFilter(node))
+                 );
+  }
+  
   addFilter(type, key, filt, ids) {
   }
-  selectByVal(val) {
+  selectByNode(val) {
     assert.equal(val.root, this.root); // assume state only on root lists
-    this.selectedVals.push(val);
+    this.selectedNodes.push(val);
   }
   selectByFilter(filt) {
-    this.selectedVals.push(val);
+    this.selectedNodes.push(val);
   }
   selectedRecs() {
-    return _.chain(this.selectedVals).pluck('records').flatten().value();
+    return _.chain(this.selectedNodes).pluck('records').flatten().value();
   }
 }
 
 class Filter {
  /** 
-  * @param {String} type one of: excludeNodes, includeNodes, recordFilter
-  * @param {SGNodeList} filt SGNodeList or function to filter records
-  * @param {function} filt
-  * @param {String} key SGNode value (not necessarily a string) or filter function name
+  * abstract Filter class
+  */
+  constructor(key, recsMap) {
+    if (new.target === Filter) {
+      throw new TypeError("Cannot construct Filter instances directly");
+    }
+    this.key = key;
+    this.filt = filt;
+    this.recsMap = recsMap;
+  }
+}
+class NodeFilter extends Filter {
+ /** 
+  * @param {SGNodeList} filt SGNodeList whose records should be filtered
+  * @param {String} key SGNode value (not necessarily a string), 
   * @param {int[]} ids record ids matched by this filter
   */
-  constructor(type, key, filt, ids) {
-    this.type = type;
+  constructor(node, filt, ids) {
+    if (new.target === Filter) {
+      throw new TypeError("Cannot construct Filter instances directly");
+    }
+    super(node.key, node.recsMap)
+    this.node = node;
     this.filt = filt;
-    this.key = key;
-    this.ids = ids;
+    this.ids = ids;   // records ids matched by this filter
   }
 }
 
