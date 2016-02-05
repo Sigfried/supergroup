@@ -164,24 +164,6 @@ export class SGNode {
     return this.children && this.children.lookup(key) ||
            key === this.valueOf() && this;
   }
-  OLDlookup(query) {
-    if (Array.isArray(query)) {
-      if (this.valueOf() == query[0]) { // allow string/num comparison to succeed?
-        query = query.slice(1);
-        if (query.length === 0)
-          return this;
-      }
-    } else if (typeof query === "string") {
-      if (this.valueOf() == query) {
-        return this;
-      }
-    } else {
-      throw new Error("invalid param: " + query);
-    }
-    if (!this.children)
-      throw new Error("can only call lookup on SGNodes with kids");
-    return this.children.lookup(query);
-  }
   pct() {
     return this.records.length / this.parentList.records.length;
   }
@@ -288,41 +270,6 @@ export class SGNodeList extends ArrayMap {
   rawValues() {
     return this.rawNodes();
   }
-  /** lookup a value in a list, or, if query is an array
-   *  it is interpreted as a path down the group hierarchy */
-  OLDlookup(query) { // THIS BELONGS ON SUPERGROUP, NOT HERE
-    // fix to take advantage of es6 Map
-    if (Array.isArray(query)) {
-      // if group has children, can search down the tree
-      var values = query.slice(0);
-      var list = this;
-      var ret;
-      while(values.length) {
-        ret = list.singleLookup(values.shift());
-        list = ret.children;
-      }
-      return ret;
-    } else {
-      return this.singleLookup(query);
-    }
-  };
-
-  OLDgetLookupMap() {
-    var self = this;
-    if (! ('lookupMap' in self)) {
-      self.lookupMap = {};
-      self.forEach(function(d) {
-        if (d in self.lookupMap)
-          console.warn('multiple occurrence of ' + d + 
-            ' in list. Lookup will only get the last');
-        self.lookupMap[d] = d;
-      });
-    }
-    return self.lookupMap;
-  };
-  singleLookup(query) {
-    return this.getLookupMap()[query];
-  };
 
   // lookup more than one thing at a time
   lookupMany(query) {
@@ -571,7 +518,6 @@ export class Supergroup extends SGNodeList {
   /** lookup a value in a list, or, if key is an array
    *  it is interpreted as a path down the group hierarchy */
   lookup(key) {
-    // fix to take advantage of es6 Map
     if (Array.isArray(key)) {
       return this.lookupPath(key);
     }
