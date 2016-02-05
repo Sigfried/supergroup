@@ -192,6 +192,68 @@ export class SGNode {
   };
   */
 }
+
+/** 
+ * @param {int[]} [indices] List of indexes into rawArray. Defaults to 0..rawArray.length
+ * @param {Object[]} rawArray Array or another ArraySet
+ */
+export class ArraySet extends Array {
+  constructor(rawArray, indices) {
+    super( ...(indices && indices.map(i=>rawArray[i]) || rawArray));
+    this.indices = indices || _.range(rawArray.length);;
+    this.rawArray = rawArray;
+    if (rawArray instanceof ArraySet) {
+      // this.arrayLookupFunc...
+    } else if (Array.isArray(rawArray)) {
+    }
+  }
+  indices() {
+    return this.indices;
+  }
+  subset(indices) {
+    return this.intersection(indices);
+  }
+  newSet(indices) {
+    return new ArraySet(this.rawArray, indices);
+  }
+  filter(filterFunc) {
+    let indices = [];
+    let recs = this.filter((d,i) => {
+      let include = filterFunc(d);
+      if (include) {
+        indices.push(this.indices[i]);
+      }
+    });
+    return this.subset(indices);
+  }
+  sameUniverse(set) {
+    return set instanceof ArraySet && set.rawArray === this.rawArray ||
+      _.union(this.indices, set).length === this.length;  // set should be a subset of indices
+                                               // if not an ArraySet from the same universe
+  }
+  union(set) {
+    assert(this.sameUniverse(set));
+    return this.newSet(_.union(this.indices, set.indices));
+  }
+  intersection(set) {
+    assert(this.sameUniverse(set));
+    return this.newSet(_.intersection(this.indices, set.indices));
+  }
+  minus(set) {
+    assert(this.sameUniverse(set));
+    return this.newSet(_.difference(this.indices, set.indices));
+  }
+  static union(sets) {
+    let u = sets.shift();
+    sets.forEach(set => u = u.union(set));
+    return u;
+  }
+  static intersection(sets) {
+    let i = sets.shift();
+    sets.forEach(set => i = i.intersection(set));
+    return i;
+  }
+}
 /**
  * An ArrayMap is a redundant structure: elements are stored in a 
  * public-facing array and also in a private Map. The Map allows
@@ -207,9 +269,9 @@ export class SGNode {
  * @param {function} [keyfunc] generates an object to key on by being called
  *                             with parameters (obj, i)
  */
-export class ArrayMap extends Array {
+export class ArrayMap extends ArraySet {
   constructor(arr = [], keyFunc) {
-    super(...arr);
+    super(arr);
     this._keyMap = new Map();    // map from key to index
     this._keyFunc = keyFunc;
     this.forEach((element,i) => {
@@ -230,35 +292,6 @@ export class ArrayMap extends Array {
   }
   keyIterator() {
     return this._keyMap.keys();
-  }
-}
-
-/** 
- * @param {int[]} [indices] List of indexes into rawArray
- * @param {Object[]} rawArray Array or another RecsMap
- */
-export class RecsMap extends Array {
-  constructor(rawArray, indices) {
-    super( ...(indices && indices.map(i=>rawArray[i]) || rawArray));
-    this.indices = indices;
-    this.rawArray = rawArray;
-    if (rawArray instanceof RecsMap) {
-      // this.arrayLookupFunc...
-    } else if (Array.isArray(rawArray)) {
-    }
-  }
-  subset(indices) {
-    return new RecsMap(this.rawArray, indices);
-  }
-  filter(filterFunc) {
-    let indices = [];
-    let recs = this.filter((d,i) => {
-      let include = filterFunc(d);
-      if (include) {
-        indices.push(this.indices[i]);
-      }
-    });
-    return this.subset(indices);
   }
 }
 export class SGNodeList extends ArrayMap {
@@ -512,7 +545,7 @@ export class Supergroup extends SGNodeList {
     root.dim = dimName;
     root.depth = depth
     root.root = root;
-    root.recsMap = new RecsMap(recs);
+    root.recsMap = new ArraySet(recs);
     return root;
   }
   /** lookup a value in a list, or, if key is an array
