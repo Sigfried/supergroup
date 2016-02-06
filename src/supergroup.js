@@ -200,7 +200,7 @@ export class SGNode {
 export class ArraySet extends Array {
   constructor(rawArray, indices) {
     super( ...(indices && indices.map(i=>rawArray[i]) || rawArray));
-    this.indices = indices || _.range(rawArray.length);;
+    this.indices = indices || _.range(rawArray.length);
     this.rawArray = rawArray;
     if (rawArray instanceof ArraySet) {
       // this.arrayLookupFunc...
@@ -210,10 +210,25 @@ export class ArraySet extends Array {
   indices() {
     return this.indices;
   }
+  /*
   subset(indices) {
     return this.intersection(indices);
   }
+  */
+  subset(indices) { // actually a subset of the original array
+    if (indices instanceof ArraySet)
+      throw new Error("didn't expect that");
+    let intersect = this.intersection(indices).indices;
+    console.log(indices, intersect);
+    if (indices.join(',') !== intersect.join(','))
+      throw new Error('eek');
+    return this.intersection(indices);
+    return new ArraySet(this.rawArray, indices);
+  }
   newSet(indices) {
+    if (indices instanceof ArraySet)
+      throw new Error("didn't expect that");
+      //indices = indices.indices;
     return new ArraySet(this.rawArray, indices);
   }
   filter(filterFunc) {
@@ -228,20 +243,21 @@ export class ArraySet extends Array {
   }
   sameUniverse(set) {
     return set instanceof ArraySet && set.rawArray === this.rawArray ||
+      !(set instanceof ArraySet) &&
       _.union(this.indices, set).length === this.length;  // set should be a subset of indices
                                                // if not an ArraySet from the same universe
   }
   union(set) {
-    assert(this.sameUniverse(set));
-    return this.newSet(_.union(this.indices, set.indices));
+    //assert(this.sameUniverse(set));
+    return this.newSet(_.union(this.indices, set instanceof ArraySet && set.indices || set));
   }
   intersection(set) {
-    assert(this.sameUniverse(set));
-    return this.newSet(_.intersection(this.indices, set.indices));
+    //assert(this.sameUniverse(set));
+    return this.newSet(_.intersection(this.indices, set instanceof ArraySet && set.indices || set));
   }
   minus(set) {
-    assert(this.sameUniverse(set));
-    return this.newSet(_.difference(this.indices, set.indices));
+    //assert(this.sameUniverse(set));
+    return this.newSet(_.difference(this.indices, set instanceof ArraySet && set.indices || set));
   }
   static union(sets) {
     let u = sets.shift();
@@ -269,9 +285,9 @@ export class ArraySet extends Array {
  * @param {function} [keyfunc] generates an object to key on by being called
  *                             with parameters (obj, i)
  */
-export class ArrayMap extends ArraySet {
+export class ArrayMap extends Array {
   constructor(arr = [], keyFunc) {
-    super(arr);
+    super(...arr);
     this._keyMap = new Map();    // map from key to index
     this._keyFunc = keyFunc;
     this.forEach((element,i) => {
@@ -437,20 +453,24 @@ export class Supergroup extends SGNodeList {
   */
   constructor({ parentNode=null,
                 recs = [], 
-                dims=[], dimNames=[], indices,
+                dims=[], dimNames, indices,
                 opts={} // get rid of opts
               } = {}) {
     indices = indices || _.range(recs.length);
     Supergroup.processOpts(opts);
-    parentNode = parentNode || Supergroup.makeRoot('root', -1, recs);
-    if (!parentNode) console.error("what's up?");
 
     if (!Array.isArray(dims)) dims = [dims];
-    dims = _.clone(dims);
-    let dim = dims.shift();
-    dimNames = _.clone( opts.dimName && [opts.dimName] ||
-                        opts.dimNames || dimNames);
-    let dimName = dimNames.shift();
+    let dims_local = _.clone(dims); // don't want to mess with original
+    parentNode = parentNode || Supergroup.makeRoot('root', -1, recs, dim, dimName, dims, dimNames);
+    if (!parentNode) console.error("what's up?");
+    let dim = dims_local.shift();
+    dimNames = dimNames || _.clone(dims);
+    let dimNames_local = _.clone(dimNames);
+    // forget opts for now
+    //dimNames = opts.dimName && opts.dimName.length && [opts.dimName] ||
+                        //opts.dimNames || dimNames || dims;
+    let dimName = dimNames_local.shift();
+    console.log(`${dims}: ${dim}, ${dimNames}: ${dimName}, ${indices}`);
     let depth = parentNode.depth + 1;
     //console.log(`depth: ${depth}, dims: ${dims}, dim: ${dim}`);
     let dimFunc;
@@ -494,8 +514,8 @@ export class Supergroup extends SGNodeList {
     this.parentNode.children = this;
     this.root = this.parentNode.root;
 
-    this.dims = dims;
-    this.dimNames = dimNames;
+    this.dims = dims_local;
+    this.dimNames = dimNames_local;
     this.dim = dim;
     this.dimName = dimName;
     this.depth = depth;
@@ -504,15 +524,41 @@ export class Supergroup extends SGNodeList {
       val.parentList = this;
       val.root = this.root;
       val.recsMap = this.recsMap.subset(val.indices);
-      if (dims.length) {
+      if (dims_local.length) {
         //console.log(`ADDING CHILDREN to ${val}`);
         /* Supergroup.constructor({ parentNode=null, recs = [], dims=[], 
         *                           dimNames=[], opts={} } = {}) */
         val.children = new Supergroup({parentNode:val, recs:val.recsMap,
-                                      dims:_.clone(dims), 
-                                      dimNames:_.clone(dimNames), opts});
+                                      dims:_.clone(dims_local), 
+                                      dimNames:_.clone(dimNames_local), 
+                                      indices: val.indices,
+                                      opts});
       }
     });
+  }
+  /** There are time when you want to give your supergroup tree an explicit
+   *  root, like when creating hierarchies in D3. In that case call supergroup
+   *  like:
+   *
+   *      let root = makeRoot('Tree Top', 0, recs), 
+   *      let sg = new Supergroup({parent=root, dims=['state','zipcode']});
+   *
+   *  Otherwise Supergroup will make its own fake root with depth -1 instead
+   *  of depth 0;
+   */
+  static makeRoot(name, depth, recs, dim, dimName, dims, dimNames) {
+    name = name || "root";
+    dimName = dimName || name;
+    let root = new SGNode(name)
+    root.dim = dim;
+    root.dimName = dimName;
+    root.dims = dims;
+    root.dimNames = dimNames;
+    root.depth = depth
+    root.root = root;
+    root.recsMap = new ArraySet(recs);
+    root.indices = root.recsMap.indices;
+    return root;
   }
   static processOpts(opts) {
     if (opts.multiValuedGroup || opts.multiValuedGroups) {
@@ -528,26 +574,6 @@ export class Supergroup extends SGNodeList {
     }
   }
 
-  /** There are time when you want to give your supergroup tree an explicit
-   *  root, like when creating hierarchies in D3. In that case call supergroup
-   *  like:
-   *
-   *      let root = makeRoot('Tree Top', 0, recs), 
-   *      let sg = new Supergroup({parent=root, dims=['state','zipcode']});
-   *
-   *  Otherwise Supergroup will make its own fake root with depth -1 instead
-   *  of depth 0;
-   */
-  static makeRoot(name, depth, recs, dimName) {
-    name = name || "root";
-    dimName = dimName || name;
-    let root = new SGNode(name)
-    root.dim = dimName;
-    root.depth = depth
-    root.root = root;
-    root.recsMap = new ArraySet(recs);
-    return root;
-  }
   /** lookup a value in a list, or, if key is an array
    *  it is interpreted as a path down the group hierarchy */
   lookup(key) {
