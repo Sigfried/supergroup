@@ -219,7 +219,7 @@ export class ArraySet extends Array {
     if (indices instanceof ArraySet)
       throw new Error("didn't expect that");
     let intersect = this.intersection(indices).indices;
-    console.log(indices, intersect);
+    //console.log(indices, intersect);
     if (indices.join(',') !== intersect.join(','))
       throw new Error('eek');
     return this.intersection(indices);
@@ -470,7 +470,7 @@ export class Supergroup extends SGNodeList {
     //dimNames = opts.dimName && opts.dimName.length && [opts.dimName] ||
                         //opts.dimNames || dimNames || dims;
     let dimName = dimNames_local.shift();
-    console.log(`${dims}: ${dim}, ${dimNames}: ${dimName}, ${indices}`);
+    //console.log(`${dims}: ${dim}, ${dimNames}: ${dimName}, ${indices}`);
     let depth = parentNode.depth + 1;
     //console.log(`depth: ${depth}, dims: ${dims}, dim: ${dim}`);
     let dimFunc;
