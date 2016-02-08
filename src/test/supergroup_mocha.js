@@ -6,7 +6,7 @@ import expect from 'expect.js';
 //import mocha from 'mocha';
 //import vows from 'vows';
 import _, {Supergroup, SGNode, SGNodeList, 
-  SGState, ArrayMap, RecsMap, FilterSet} from '../supergroup';
+  SGState, ArrayMap, ArraySet, FilterSet} from '../supergroup';
 
 var gradeBook = [
   {lastName: "Gold",    firstName: "Sigfried", class: "Remedial Programming",           grade: "C", num: 2},
@@ -61,7 +61,7 @@ describe('Supergroup', function() {
     describe('#a recsMap', function () {
       /*
       it("should be in a Node", function() {
-        assert.deepEqual(gradesByLastName.root.recsMap instanceof RecsMap, true);
+        assert.deepEqual(gradesByLastName.root.recsMap instanceof ArraySet, true);
       });
       * /
       it("should hold all recs for a root Node", function() {

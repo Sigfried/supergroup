@@ -40,9 +40,10 @@ export class SGNode {
     return this.val.toString();
   }
   set records(recs) {
-    WARN && console.warn("TEMP SETTER");
-    this._records = recs;
-    //return Array.from(this.recsMap.values());
+    //this._records = recs;
+    this._records = new ArraySet(recs);
+    //WARN && console.warn("TEMP SETTER");
+    //this._records = recs;
   }
   get records() {
     WARN && console.warn("TEMP GETTER");
@@ -209,10 +210,45 @@ export class SGNode {
 }
 
 /** 
- * @param {int[]} [indices] List of indexes into rawArray. Defaults to 0..rawArray.length
  * @param {Object[]} rawArray Array or another ArraySet
  */
 export class ArraySet extends Array {
+  constructor(arr) {
+    super();
+    this.push(...arr);
+  }
+  filter(filt) {
+    let arr = Array.filter(this, filt);
+    return new ArraySet(arr);
+  }
+  union(arrSet) {
+    //assert(this.sameRootArray(arrSet));
+    return new ArraySet(_.union(this, arrSet))
+  }
+  intersection(arrSet) {
+    //assert(this.sameRootArray(arrSet));
+    return new ArraySet(_.intersection(this, arrSet))
+  }
+  minus(arrSet) {
+    //assert(this.sameRootArray(arrSet));
+    return new ArraySet(_.difference(this, arrSet))
+  }
+  static union(sets) {
+    let u = sets.shift();
+    sets.forEach(set => u = u.union(set));
+    return u;
+  }
+  static intersection(sets) {
+    let i = sets.shift();
+    sets.forEach(set => i = i.intersection(set));
+    return i;
+  }
+}
+/** 
+ * @param {int[]} [indices] List of indexes into rawArray. Defaults to 0..rawArray.length
+ * @param {Object[]} rawArray Array or another ArraySet
+ */
+export class ArraySetWITH_INDICES extends Array {
   constructor(rawArray, indices) {
     super( ...(indices && indices.map(i=>rawArray[i]) || rawArray));
     this.indices = indices || _.range(rawArray.length);
@@ -468,6 +504,26 @@ export class Supergroup extends SGNodeList {
   * @param {function} [opts.truncateBranchOnEmptyVal] 
   * @return {Array of SGNodes} enhanced with all the List methods
   */
+  constructor(recs, dims, opts={ parentNode:null,
+                recs : [], 
+                groups:[], // not for real use
+                dims:[], dimNames, indices,
+              }) {
+
+    // missing args constructor probably not permanent:
+    if (opts.groups.length) {
+      super(opts.groups);
+      return;
+    }
+    throw new Error("not sure what should be happening here yet.");
+    if (recs.length === 0) {
+      return super();
+    }
+    if (dims.length === 0) {
+      return super(recs);
+    }
+  }
+ /*
   constructor({ parentNode=null,
                 recs = [], 
                 groups=[], // not for real use
@@ -544,7 +600,7 @@ export class Supergroup extends SGNodeList {
       if (dims_local.length) {
         //console.log(`ADDING CHILDREN to ${val}`);
         /* Supergroup.constructor({ parentNode=null, recs = [], dims=[], 
-        *                           dimNames=[], opts={} } = {}) */
+        *                           dimNames=[], opts={} } = {}) * /
         val.children = new Supergroup({parentNode:val, recs:val.recsMap,
                                       dims:_.clone(dims_local), 
                                       dimNames:_.clone(dimNames_local), 
@@ -553,6 +609,7 @@ export class Supergroup extends SGNodeList {
       }
     });
   }
+  */
   /** There are time when you want to give your supergroup tree an explicit
    *  root, like when creating hierarchies in D3. In that case call supergroup
    *  like:
@@ -701,14 +758,16 @@ export class Supergroup extends SGNodeList {
     return Object.setPrototypeOf(Array.concat(this, ...args), Supergroup.prototype);
   }
   get records() {
-    WARN && console.warn("TEMP GETTER");
-    return this._records;
-    return this.root.records;
+    //WARN && console.warn("TEMP GETTER");
+    //return this._records;
+    return this.root._records;
   }
   set records(recs) {
-    WARN && console.warn("TEMP SETTER");
-    this._records = recs;
-    //this.root.records = recs;
+    this.parentNode._records = recs;
+    //this.root._records = recs;
+    //recs = new ArraySet(recs);
+    //WARN && console.warn("TEMP SETTER");
+    //this._records = recs;
   }
 }
 /**

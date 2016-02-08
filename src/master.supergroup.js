@@ -11,7 +11,7 @@
 'use strict';
 const WARN = false;
 import _, {Supergroup, SGNode, SGNodeList, 
-  SGState, ArrayMap, RecsMap, FilterSet} from './es6.supergroup';
+  SGState, ArrayMap, ArraySet, FilterSet} from './es6.supergroup';
 
 var sg = {};
 var childProp = 'children';
@@ -340,6 +340,7 @@ var supergroup = (function() {
      * @param {string or Function} dim either the property name to
         group by or a function returning a group by string or number
      * @param {Object} [opts]
+     * @param {String} opts.parentNode=root
      * @param {String} opts.childProp='children' If group ends up being
         * hierarchical, this will be the property name of any children
      * @param {String[]} [opts.excludeValues] to exlude specific group values
@@ -405,6 +406,7 @@ var supergroup = (function() {
                   node.records = [];
                   node.depth = depth;
                   node.parentNode = parentNode;
+                  node.dimFunc = dimFunc;
                   groups[key] = node; // save the val in the keyed map
                 }
               } else {
@@ -413,11 +415,19 @@ var supergroup = (function() {
               node.records.push(rec);
             });
         }
-  groups = new Supergroup({recs:Object.values(groups)});
+        groups = new Supergroup(null, null, {groups:Object.values(groups)});
         //groups = sg.addListMethods(groups); // turns groups into a List object
-        Object.setPrototypeOf(groups, Supergroup.prototype);
+        groups.parentNode = parentNode;
+        groups.parentNode.children = groups;
+        groups.root = groups.parentNode.root;
         groups.records = recs; // NOT TESTED, NOT USED, PROBABLY WRONG
-        groups.dim = (opts.dimName) ? opts.dimName : dim;
+
+        groups.dims = dims_local;
+        groups.dimNames = dimNames_local;
+        groups.dim = dim;
+        groups.dimName = dimName;
+        groups.depth = depth;
+        groups.dimFunc = dimFunc;
 
         _.each(groups, function(group, i) { 
             group.parentList = groups;
@@ -710,6 +720,7 @@ if (_.createAggregator) {
 _.mixin({
     supergroup: supergroup.supergroup, 
     //supergroup: _.supergroupES6,
+    arraySet: arr => new ArraySet(arr),
     addSupergroupMethods: supergroup.addSupergroupMethods,
     multiValuedGroupBy: multiValuedGroupBy,
     sgDiffList: supergroup.diffList,
@@ -767,4 +778,4 @@ _.mixin({
 
 export default _;
 export {Supergroup, SGNode, SGNodeList, 
-  SGState, ArrayMap, RecsMap, FilterSet};
+  SGState, ArrayMap, ArraySet, FilterSet};
