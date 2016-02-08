@@ -91,12 +91,12 @@ describe('Supergroup', function() {
                    gradesByGradeLastName.lookup('A').lookup('Sassoon'));
     });
     it('should have leafNodes starting from level 1, testing one of them', function() {
-      assert.deepEqual(gradesByGradeLastName.leafNodes()[0] + '',
-                       'Gold')
+      assert.deepEqual(gradesByGradeLastName.leafNodes().sort()[0] + '',
+                       'Androy')
     });
     it('should have leafNodes with namePaths()', function() {
-      assert.deepEqual(gradesByGradeLastName.leafNodes().namePaths(),
-                       ['C/Gold','B/Gold','B/Androy','A/Sassoon' ]);
+      assert.deepEqual(gradesByGradeLastName.leafNodes().namePaths().sort(),
+                       ['A/Sassoon','B/Androy','B/Gold','C/Gold']);
     });
     it('should sort to an SGNodeList', function() {
       assert.equal(gradesByGradeLastName.leafNodes().sort() instanceof SGNodeList, true);
@@ -126,7 +126,7 @@ describe('Supergroup', function() {
         assert.equal('namePath' in gradesByGradeLastName[0].children[0], true)
       });
       it("should have a reasonable namePath", function() {
-        assert.equal(gradesByGradeLastName[0].children[0].namePath(), 'C/Gold')
+        assert.equal(gradesByGradeLastName.sort()[0].children.sort()[0].namePath(), 'A/Sassoon')
       });
       it('should have leafNodes starting from level 1', function() {
         assert.equal(gradesByGradeLastName.lookup('B').leafNodes()+'',

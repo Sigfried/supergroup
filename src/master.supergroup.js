@@ -407,6 +407,7 @@ var supergroup = (function() {
                   node.depth = depth;
                   node.parentNode = parentNode;
                   node.dimFunc = dimFunc;
+                  node.root = parentNode.root;
                   groups[key] = node; // save the val in the keyed map
                 }
               } else {
@@ -415,6 +416,7 @@ var supergroup = (function() {
               node.records.push(rec);
             });
         }
+        //groups = new SGNodeList(Object.values(groups));
         groups = new Supergroup(null, null, {groups:Object.values(groups)});
         //groups = sg.addListMethods(groups); // turns groups into a List object
         groups.parentNode = parentNode;
