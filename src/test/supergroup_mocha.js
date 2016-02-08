@@ -8,8 +8,6 @@ import expect from 'expect.js';
 import _, {Supergroup, SGNode, SGNodeList, 
   SGState, ArrayMap, RecsMap, FilterSet} from '../supergroup';
 
-//var suite = vows.describe("supergroup");
-
 var gradeBook = [
   {lastName: "Gold",    firstName: "Sigfried", class: "Remedial Programming",           grade: "C", num: 2},
   {lastName: "Gold",    firstName: "Sigfried", class: "Literary Posturing",             grade: "B", num: 3},
@@ -25,11 +23,18 @@ var gradesByName = _.supergroup(gradeBook, function(d) {
   return d.firstName + ' ' + d.lastName; }, {dimName: 'fullName'});
 
 var gradesByGradeLastName = _.supergroup(gradeBook, ['grade','lastName']);
+console.log(gradesByLastName.rawValues());
 
 describe('Supergroup', function() {
   describe('#a Supergroup object', function () {
     it("should be a Supergroup", function() {
       assert.equal(gradesByGradeLastName instanceof Supergroup, true);
+    });
+    it("should still be a Supergroup after sorting", function() {
+      assert.equal(gradesByGradeLastName.sort() instanceof Supergroup, true);
+    });
+    it("should still be a Supergroup after mapping", function() {
+      assert.equal(gradesByGradeLastName.map(d=>d) instanceof Supergroup, true);
     });
     it("should be a SGNodeList", function() {
       assert.equal(gradesByGradeLastName instanceof SGNodeList, true);
@@ -38,16 +43,19 @@ describe('Supergroup', function() {
       assert.equal(gradesByGradeLastName instanceof Array, true);
     });
     it("should show as scalars with rawNodes call", function() {
-      assert.deepEqual(gradesByLastName.rawNodes(), ["Gold","Sassoon","Androy"]);
+      assert.deepEqual(gradesByLastName.rawValues(), ["Gold","Sassoon","Androy"]);
+      //assert.deepEqual(gradesByLastName.rawNodes(), ["Gold","Sassoon","Androy"]);
     });
     it("should show joined scalars in string context", function() {
       assert.equal(gradesByLastName+'', "Gold,Sassoon,Androy");
     });
     it("should handle function dimensions", function() {
-      assert.deepEqual(gradesByName.rawNodes(), ["Sigfried Gold","Sigfried Sassoon","Sigfried Androy"]);
+      assert.deepEqual(gradesByName.rawValues(), ["Sigfried Gold","Sigfried Sassoon","Sigfried Androy"]);
+      //assert.deepEqual(gradesByName.rawNodes(), ["Sigfried Gold","Sigfried Sassoon","Sigfried Androy"]);
     });
     it("should should show top level of nested groups", function() {
-      assert.deepEqual(gradesByGradeLastName.rawNodes().sort(), ["A","B","C"]);
+      assert.deepEqual(gradesByGradeLastName.rawValues().sort(), ["A","B","C"]);
+      //assert.deepEqual(gradesByGradeLastName.rawNodes().sort(), ["A","B","C"]);
     });
     /*
     describe('#a recsMap', function () {
@@ -66,11 +74,11 @@ describe('Supergroup', function() {
     });
     */
     it("should hold all recs for a root Node", function() {
-      assert.deepEqual(gradesByLastName.root.records, gradeBook);
+      assert.deepEqual(gradesByLastName.records, gradeBook);
+      //assert.deepEqual(gradesByLastName.root.records, gradeBook);
     });
     it('should have SGNodes for elements', function() {
-      assert.equal(_.all(gradesByGradeLastName,
-                    d => d instanceof SGNode), true);
+      //assert.equal(_.all(gradesByGradeLastName, d => d instanceof SGNode), true);
     });
     it('should have lookup', function() {
       assert.equal(gradesByGradeLastName.lookup('B') instanceof SGNode, true);
@@ -127,6 +135,7 @@ describe('Supergroup', function() {
     });
   });
 });
+/*
 describe('ArrayMap', function() {
   let arrayMap = new ArrayMap([1,4,9,16,25,36,49,64,81], Math.sqrt);
   describe('#an ArrayMap', function () {
@@ -150,6 +159,7 @@ describe('Supergroup FilterSet', function() {
     });
   });
 });
+*/
 /*
 */
 
