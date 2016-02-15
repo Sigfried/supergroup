@@ -1000,21 +1000,6 @@ if (_.createAggregator) {
   var multiValuedGroupBy = function() { throw new Error("couldn't install multiValuedGroupBy") };
 }
 
-/*
-var g = function *test(n) {for(let i=0; i<n; i++){ yield i}; return; };
-
-let a,b,c;
-[a,b,c]=[{a:1},{a:2},{a:3}]
-let w = new WeakSet([a,b,c]);
-console.log(w);
-a = null;
-console.log(w.has(a));
-console.log(w.has(b));
-console.log(w);
-debugger;
-*/
-
-
 _.mixin({
   sgroup: _.supergroup,
 });
@@ -1081,6 +1066,3 @@ export const flatten = list => list.reduce(
       (a, b) => a.concat(Array.isArray(b) ? flatten(b) : b), []
 );
 export default _;
-/*    RESTORE THIS!!!
-*/
-//export default function() { console.log('hi')};
