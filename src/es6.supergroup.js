@@ -215,7 +215,9 @@ export class SGNode {
 export class ArraySet extends Array {
   constructor(arr) {
     super();
-    this.push(...arr);
+    for (let i = 0; i < arr.length; i++)
+      this[i] = arr[i];
+    //this.push(...arr);
   }
   filter(filt) {
     let arr = Array.filter(this, filt);
@@ -343,7 +345,10 @@ export class ArraySetWITH_INDICES extends Array {
  */
 export class ArrayMap extends Array {
   constructor(arr = [], keyFunc) {
-    super(...arr);
+    //super(...arr);
+    super();
+    for (let i = 0; i < arr.length; i++)
+      this[i] = arr[i];
     if (typeof keyFunc !== "function")
       throw new Error("making ArrayMap without keyFunc");
     this._keyMap = new Map();    // map from key to index
