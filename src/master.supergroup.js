@@ -42,6 +42,7 @@ List.prototype.rawValues = function() {
     WARN && console.warn("POLUTING SUPERGROUP");
     return this.map(d=>d.valueOf())
 };
+/*
 // lookup a value in a list, or, if query is an array
 //      it is interpreted as a path down the group hierarchy
 Supergroup.prototype.lookup =
@@ -90,6 +91,7 @@ List.prototype.lookupMany = function(query) {
         return list.singleLookup(d)
     }).compact().value());
 };
+*/
 List.prototype.flattenTree = function() {
     return _.chain(this)
                 .map(function(d) {
@@ -417,7 +419,7 @@ var supergroup = (function() {
             });
         }
         //groups = new SGNodeList(Object.values(groups));
-        groups = new Supergroup(null, null, {groups:Object.values(groups)});
+        groups = new Supergroup(null, null, {groups:_.values(groups)});
         //groups = sg.addListMethods(groups); // turns groups into a List object
         groups.parentNode = parentNode;
         groups.parentNode.children = groups;

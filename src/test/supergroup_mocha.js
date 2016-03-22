@@ -9,11 +9,11 @@ import _, {Supergroup, SGNode, SGNodeList,
   SGState, ArrayMap, ArraySet, FilterSet} from '../supergroup';
 
 var gradeBook = [
-  {lastName: "Gold",    firstName: "Sigfried", class: "Remedial Programming",           grade: "C", num: 2},
-  {lastName: "Gold",    firstName: "Sigfried", class: "Literary Posturing",             grade: "B", num: 3},
+  {lastName: "Gold",    firstName: "Sigfried", class: "Remedial Programming",           grade: "C", num: 2, empty: null},
+  {lastName: "Gold",    firstName: "Sigfried", class: "Literary Posturing",             grade: "B", num: 3, empty: ''},
   {lastName: "Gold",    firstName: "Sigfried", class: "Documenting with Pretty Colors", grade: "B", num: 3},
-  {lastName: "Sassoon", firstName: "Sigfried", class: "Remedial Programming",           grade: "A", num: 3},
-  {lastName: "Androy",  firstName: "Sigfried", class: "Remedial Programming",           grade: "B", num: 3}
+  {lastName: "Sassoon", firstName: "Sigfried", class: "Remedial Programming",           grade: "A", num: 3, empty: NaN},
+  {lastName: "Androy",  firstName: "Sigfried", class: "Remedial Programming",           grade: "B", num: 3, empty: 0}
 ];
 //var gradesByLastName = _.supergroup(gradeBook, 'lastName');
 
@@ -22,8 +22,10 @@ var gradesByLastName = _.supergroup(gradeBook, 'lastName');
 var gradesByName = _.supergroup(gradeBook, function(d) { 
   return d.firstName + ' ' + d.lastName; }, {dimName: 'fullName'});
 
-var gradesByGradeLastName = _.supergroup(gradeBook, ['grade','lastName']);
+var gradesByGradeLastName = _.supergroupES6(gradeBook, ['grade','lastName']);
 console.log(gradesByLastName.rawValues());
+
+var gradesByEmptyVals = _.supergroup(gradeBook, 'empty');
 
 describe('Supergroup', function() {
   describe('#a Supergroup object', function () {
@@ -46,6 +48,14 @@ describe('Supergroup', function() {
       assert.deepEqual(gradesByLastName.rawValues(), ["Gold","Sassoon","Androy"]);
       //assert.deepEqual(gradesByLastName.rawNodes(), ["Gold","Sassoon","Androy"]);
     });
+    it("should show as strings with toString call", function() {
+      assert.deepEqual(gradesByLastName.map(d=>d.toString()), ["Gold","Sassoon","Androy"]);
+      //assert.deepEqual(gradesByLastName.rawNodes(), ["Gold","Sassoon","Androy"]);
+    });
+    it("should show as strings with mapping to String", function() {
+      assert.deepEqual(gradesByLastName.map(String), ["Gold","Sassoon","Androy"]);
+      //assert.deepEqual(gradesByLastName.rawNodes(), ["Gold","Sassoon","Androy"]);
+    });
     it("should show joined scalars in string context", function() {
       assert.equal(gradesByLastName+'', "Gold,Sassoon,Androy");
     });
@@ -54,6 +64,7 @@ describe('Supergroup', function() {
       //assert.deepEqual(gradesByName.rawNodes(), ["Sigfried Gold","Sigfried Sassoon","Sigfried Androy"]);
     });
     it("should should show top level of nested groups", function() {
+      console.log('GRADE??', gradesByGradeLastName);
       assert.deepEqual(gradesByGradeLastName.rawValues().sort(), ["A","B","C"]);
       //assert.deepEqual(gradesByGradeLastName.rawNodes().sort(), ["A","B","C"]);
     });
@@ -90,6 +101,9 @@ describe('Supergroup', function() {
       assert.equal(gradesByGradeLastName.lookup(['A','Sassoon']),
                    gradesByGradeLastName.lookup('A').lookup('Sassoon'));
     });
+    it('should  lookup null', function() {
+      assert.equal(gradesByEmptyVals.lookup(null)[0].Grade, 'C');
+    });
     it('should have leafNodes starting from level 1, testing one of them', function() {
       assert.deepEqual(gradesByGradeLastName.leafNodes().sort()[0] + '',
                        'Androy')
@@ -116,11 +130,8 @@ describe('Supergroup', function() {
                   _.sortBy(gradeBook.slice(0,3), d=>d.class, d=>d.class)));
       });
       it('should assign records to the right groups', function() {
-        assert.deepEqual(gradesByLastName[0].records.slice(0), [
-              {"lastName":"Gold","firstName":"Sigfried","class":"Remedial Programming","grade":"C","num":2},
-              {"lastName":"Gold","firstName":"Sigfried","class":"Literary Posturing","grade":"B","num":3},
-              {"lastName":"Gold","firstName":"Sigfried","class":"Documenting with Pretty Colors","grade":"B","num":3}
-          ]); 
+        console.log(gradesByLastName.lookup('Gold').records.plainArray());
+        assert.deepEqual(gradesByLastName.lookup('Gold').records, _.where(gradeBook, {lastName:'Gold'}));
       });
       it("should have a namePath", function() {
         assert.equal('namePath' in gradesByGradeLastName[0].children[0], true)

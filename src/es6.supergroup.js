@@ -233,6 +233,9 @@ export class ArraySet extends Array {
     //assert(this.sameRootArray(arrSet));
     return new ArraySet(_.difference(this, arrSet))
   }
+  plainArray() {
+    return this.slice(0);
+  }
   static union(sets) {
     let u = sets.shift();
     sets.forEach(set => u = u.union(set));
@@ -507,11 +510,11 @@ export class Supergroup extends SGNodeList {
   constructor(recs, dims, opts={ parentNode:null,
                 recs : [], 
                 groups:[], // not for real use
-                dims:[], dimNames, indices,
+                dims:[], dimNames:[],// indices,
               }) {
 
     // missing args constructor probably not permanent:
-    if (opts.groups.length) {
+    if ('groups' in opts) {
       super(opts.groups);
       return;
     }
