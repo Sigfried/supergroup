@@ -37,7 +37,7 @@ export class SGNode {
     this._hasChildren = true;
   }
   toString() {
-    return this.val.toString();
+    return this.val && this.val.toString && this.val.toString() || this.val;
   }
   set records(recs) {
     //this._records = recs;
@@ -143,7 +143,7 @@ export class SGNode {
     return nodeList;
   }
   leafNodes(opts) {
-    return new SGNodeList(this._leafNodes(opts));
+    return new SGNodeList(this._leafNodes(opts), d=>d.val);
   }
   /*
   addRecordsAsChildrenToLeafNodes(truncateEmpty) {
@@ -251,6 +251,7 @@ export class ArraySet extends Array {
  * @param {int[]} [indices] List of indexes into rawArray. Defaults to 0..rawArray.length
  * @param {Object[]} rawArray Array or another ArraySet
  */
+/*
 export class ArraySetWITH_INDICES extends Array {
   constructor(rawArray, indices) {
     super( ...(indices && indices.map(i=>rawArray[i]) || rawArray));
@@ -268,7 +269,7 @@ export class ArraySetWITH_INDICES extends Array {
   subset(indices) {
     return this.intersection(indices);
   }
-  */
+  * /
   subset(indices) { // actually a subset of the original array
     if (indices instanceof ArraySet)
       throw new Error("didn't expect that");
@@ -324,6 +325,7 @@ export class ArraySetWITH_INDICES extends Array {
     return i;
   }
 }
+*/
 /**
  * An ArrayMap is a redundant structure: elements are stored in a 
  * public-facing array and also in a private Map. The Map allows
@@ -342,18 +344,25 @@ export class ArraySetWITH_INDICES extends Array {
 export class ArrayMap extends Array {
   constructor(arr = [], keyFunc) {
     super(...arr);
-    if (typeof keyFunc !== "function") return;
+    if (typeof keyFunc !== "function")
+      throw new Error("making ArrayMap without keyFunc");
     this._keyMap = new Map();    // map from key to index
     this._keyFunc = keyFunc;
     this.forEach((element,i) => {
+      let key = keyFunc(element);
+      /*
       let key = keyFunc && keyFunc(element) || 
                 (typeof element.val !== "undefined") && element.val ||
                 i;
-      this._keyMap.set(key, i);
+      */
+      this._keyMap.set(key, element);
     })
   }
   lookup(key) {
-    return this[this._keyMap.get(key)];
+    const ret = this._keyMap.get(key);
+    //console.log(this._keyMap);
+    //console.log(`${this}.lookup(${key}) = ${ret}`);
+    return ret;
   }
   has(key) {
     return this._keyMap.has(key);
@@ -508,59 +517,41 @@ export class Supergroup extends SGNodeList {
   * @return {Array of SGNodes} enhanced with all the List methods
   */
   constructor(recs, dims, opts={ parentNode:null,
-                recs : [], 
-                groups:[], // not for real use
-                dims:[], dimNames:[],// indices,
+                //recs : [], 
+                //groups:[], // not for real use
+                //dims:[], 
+                dimNames:[],// indices,
               }) {
 
     // missing args constructor probably not permanent:
-    if ('groups' in opts) {
+    if ('groups' in opts) {  // why are groups already calculated?
       super(opts.groups);
       return;
     }
-    throw new Error("not sure what should be happening here yet.");
+    //throw new Error("not sure what should be happening here yet.");
     if (recs.length === 0) {
       return super();
     }
     if (dims.length === 0) {
       return super(recs);
     }
-  }
- /*
-  constructor({ parentNode=null,
-                recs = [], 
-                groups=[], // not for real use
-                dims=[], dimNames, indices,
-                opts={} // get rid of opts
-              } = {}) {
 
-    // missing args constructor probably not permanent:
-    if (groups.length) {
-      return Object.setPrototypeOf(groups, Supergroup.prototype);
-    }
-    if (recs.length === 0) {
-      return super();
-    }
-    if (dims.length === 0) {
-      return super(recs);
-    }
-    //throw new Error("how'd we get here?");
     Supergroup.processOpts(opts); // just throws errors for unsupported opts
 
     let [dims_local, dim, dimNames_local, dimName, dimFunc] =
-      Supergroup.handleDimStuff(dims, dimNames);
+      Supergroup.handleDimStuff(dims, opts.dimNames);
 
-    indices = indices || _.range(recs.length);
+    //indices = indices || _.range(recs.length);
 
-    parentNode = parentNode || Supergroup.makeRoot('root', -1, recs, dim, dimName, dims, dimNames);
+    let parentNode = opts.parentNode || Supergroup.makeRoot('root', -1, recs, dim, dimName, dims, opts.dimNames);
     if (!parentNode) console.error("what's up?");
     //console.log(`${dims}: ${dim}, ${dimNames}: ${dimName}, ${indices}`);
     let depth = parentNode.depth + 1;
     //console.log(`depth: ${depth}, dims: ${dims}, dim: ${dim}`);
 
     let groupsMap = new Map();
-    let recsMap = parentNode.recsMap;
-    recsMap.forEach( (rec,i) => {
+    let records = parentNode.records;
+    records.forEach( (rec,i) => {
       let key = dimFunc(rec);      // this is the key for grouping!
       let val;
       if (!groupsMap.has(key)) {
@@ -573,20 +564,24 @@ export class Supergroup extends SGNodeList {
           val.dim = dimName;
           val.depth = depth;
           val.parentNode = parentNode;
-          val.indices = [];
+          val._recs = [];
+          //val.indices = [];
           groupsMap.set(key, val); // save the val in the keyed map
         }
       } else {
         val = groupsMap.get(key);
       }
-      val.indices.push(indices[i]);
+      val._recs.push(rec);
+      //val.indices.push(indices[i]);
       //val.recsMap.set(i, rec); // each val gets records and index where
                                // record is in the original array
     });
+    //console.log(groupsMap);
+    //throw new Error("stop here");
     // ArrayMap.constructor(arr = [], keyFunc, indices) 
     super(Array.from(groupsMap.values()), d=>d.val);
     this.parentNode = parentNode;
-    this.recsMap = recsMap;
+    this.records = records;
     this.parentNode.children = this;
     this.root = this.parentNode.root;
 
@@ -599,20 +594,21 @@ export class Supergroup extends SGNodeList {
     this.forEach( (val) => {
       val.parentList = this;
       val.root = this.root;
-      val.recsMap = this.recsMap.subset(val.indices);
+      //val.recsMap = this.recsMap.subset(val.indices);
+      val.records = new ArraySet(val._recs);
       if (dims_local.length) {
         //console.log(`ADDING CHILDREN to ${val}`);
         /* Supergroup.constructor({ parentNode=null, recs = [], dims=[], 
-        *                           dimNames=[], opts={} } = {}) * /
-        val.children = new Supergroup({parentNode:val, recs:val.recsMap,
-                                      dims:_.clone(dims_local), 
+        *                           dimNames=[], opts={} } = {}) */
+        val.children = new Supergroup(val.records, _.clone(dims_local),
+                                      {parentNode:val, //recs:val.records,
+                                      //dims:_.clone(dims_local), 
                                       dimNames:_.clone(dimNames_local), 
-                                      indices: val.indices,
-                                      opts});
+                                      //indices: val.indices,
+                                      ...opts});
       }
     });
   }
-  */
   /** There are time when you want to give your supergroup tree an explicit
    *  root, like when creating hierarchies in D3. In that case call supergroup
    *  like:
@@ -633,8 +629,8 @@ export class Supergroup extends SGNodeList {
     root.dimNames = dimNames;
     root.depth = depth
     root.root = root;
-    root.recsMap = new ArraySet(recs);
-    root.indices = root.recsMap.indices;
+    root.records = new ArraySet(recs);
+    //root.indices = root.recsMap.indices;
     return root;
   }
   static processOpts(opts) {
@@ -684,7 +680,10 @@ export class Supergroup extends SGNodeList {
     var sg = this;
     var ret;
     while(keys.length) {
-      ret = sg.lookup(keys.shift());
+      let key = keys.shift();
+      ret = sg.lookup(key);
+      if (!ret)
+        throw new Error(`can't find ${key} in supergroup ${sg}`);
       sg = ret.children;
     }
     return ret;
@@ -1007,9 +1006,9 @@ _.mixin({
   sgroup: _.supergroup,
 });
 _.mixin({
-  supergroup: (...args)=>{let sg=_.sgroup(...args);Object.setPrototypeOf(sg,Supergroup.prototype); return sg;},
+  //supergroup: (...args)=>{let sg=_.sgroup(...args);Object.setPrototypeOf(sg,Supergroup.prototype); return sg;},
   //supergroup: supergroup.supergroup, 
-  supergroupES6: (recs, dims, ...args) => new Supergroup({recs, dims, ...args}),
+  supergroup: (recs, dims, ...args) => new Supergroup(recs, dims, {...args}),
   //supergroup: (recs, dims, ...args) => new Supergroup({recs, dims, ...args}),
   //supergroup: function(d) { console.log('EEK'); debugger; throw new Error("blah");},
   //addSupergroupMethods: supergroup.addSupergroupMethods,

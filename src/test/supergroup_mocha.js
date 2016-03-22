@@ -6,7 +6,7 @@ import expect from 'expect.js';
 //import mocha from 'mocha';
 //import vows from 'vows';
 import _, {Supergroup, SGNode, SGNodeList, 
-  SGState, ArrayMap, ArraySet, FilterSet} from '../supergroup';
+  SGState, ArrayMap, ArraySet, FilterSet} from '../es6.supergroup';
 
 var gradeBook = [
   {lastName: "Gold",    firstName: "Sigfried", class: "Remedial Programming",           grade: "C", num: 2, empty: null},
@@ -22,8 +22,8 @@ var gradesByLastName = _.supergroup(gradeBook, 'lastName');
 var gradesByName = _.supergroup(gradeBook, function(d) { 
   return d.firstName + ' ' + d.lastName; }, {dimName: 'fullName'});
 
-var gradesByGradeLastName = _.supergroupES6(gradeBook, ['grade','lastName']);
-console.log(gradesByLastName.rawValues());
+var gradesByGradeLastName = _.supergroup(gradeBook, ['grade','lastName']);
+//console.log(gradesByLastName.rawValues());
 
 var gradesByEmptyVals = _.supergroup(gradeBook, 'empty');
 
@@ -64,7 +64,7 @@ describe('Supergroup', function() {
       //assert.deepEqual(gradesByName.rawNodes(), ["Sigfried Gold","Sigfried Sassoon","Sigfried Androy"]);
     });
     it("should should show top level of nested groups", function() {
-      console.log('GRADE??', gradesByGradeLastName);
+      //console.log('GRADE??', gradesByGradeLastName);
       assert.deepEqual(gradesByGradeLastName.rawValues().sort(), ["A","B","C"]);
       //assert.deepEqual(gradesByGradeLastName.rawNodes().sort(), ["A","B","C"]);
     });
@@ -101,8 +101,20 @@ describe('Supergroup', function() {
       assert.equal(gradesByGradeLastName.lookup(['A','Sassoon']),
                    gradesByGradeLastName.lookup('A').lookup('Sassoon'));
     });
-    it('should  lookup null', function() {
-      assert.equal(gradesByEmptyVals.lookup(null)[0].Grade, 'C');
+    it('should lookup null', function() {
+      assert.equal(gradesByEmptyVals.lookup(null).records[0].grade, 'C');
+    });
+    it('should lookup empty string', function() {
+      assert.equal(gradesByEmptyVals.lookup('').records[0].grade, 'B');
+    });
+    it('should lookup undefined', function() {
+      assert.equal(gradesByEmptyVals.lookup(undefined).records[0].grade, 'B');
+    });
+    it('should lookup NaN', function() {
+      assert.equal(gradesByEmptyVals.lookup(NaN).records[0].grade, 'A');
+    });
+    it('should lookup 0', function() {
+      assert.equal(gradesByEmptyVals.lookup(0).records[0].grade, 'B');
     });
     it('should have leafNodes starting from level 1, testing one of them', function() {
       assert.deepEqual(gradesByGradeLastName.leafNodes().sort()[0] + '',
@@ -130,7 +142,7 @@ describe('Supergroup', function() {
                   _.sortBy(gradeBook.slice(0,3), d=>d.class, d=>d.class)));
       });
       it('should assign records to the right groups', function() {
-        console.log(gradesByLastName.lookup('Gold').records.plainArray());
+        //console.log(gradesByLastName.lookup('Gold').records.plainArray());
         assert.deepEqual(gradesByLastName.lookup('Gold').records, _.where(gradeBook, {lastName:'Gold'}));
       });
       it("should have a namePath", function() {

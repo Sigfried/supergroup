@@ -1,1 +1,1 @@
-master.supergroup.js
+es6.supergroup.js
