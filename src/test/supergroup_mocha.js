@@ -6,7 +6,7 @@ import expect from 'expect.js';
 //import mocha from 'mocha';
 //import vows from 'vows';
 import _, {Supergroup, SGNode, SGNodeList, 
-  SGState, ArrayMap, ArraySet, FilterSet} from '../es6.supergroup';
+  SGState, ArrayMap, ArraySet, FilterSet} from '../supergroup';
 
 var gradeBook = [
   {lastName: "Gold",    firstName: "Sigfried", class: "Remedial Programming",           grade: "C", num: 2, empty: null},
