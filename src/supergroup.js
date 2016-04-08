@@ -558,6 +558,9 @@ export class Supergroup extends SGNodeList {
     let records = parentNode.records;
     records.forEach( (rec,i) => {
       let key = dimFunc(rec);      // this is the key for grouping!
+      let isDate = (key instanceof Date);
+      if (isDate)
+        key = key.getTime();
       let val;
       if (!groupsMap.has(key)) {
         if (opts.excludeNodes) {
@@ -566,6 +569,8 @@ export class Supergroup extends SGNodeList {
           }
         } else {
           val = new SGNode(key); // val.val = key
+          if (isDate)
+            val.val = new Date(val.val);
           val.dim = dimName;
           val.depth = depth;
           val.parentNode = parentNode;

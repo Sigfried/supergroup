@@ -156,6 +156,10 @@ describe('Supergroup', function() {
                         'Gold,Androy')
       });
     });
+    it("should group Dates even though == doesn't work for Dates", function() {
+      let sg = _.supergroup([{d:new Date('2008-03-01')},{d:new Date('2008-03-01')}], 'd');
+      assert.equal(sg.length, 1);
+    })
   });
 });
 /*
