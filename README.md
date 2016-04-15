@@ -1,3 +1,9 @@
+### Help wanted!
+Supergroup has proved its value, at least to me and maybe to you. Are you willing to help me port it to Python? Let me know!
+
+Also -- checkout the new version in the es6 branch. sg.sort() or sg.map(d=>d) now returns a supergroup (or, basically equivalent, an SGNodeList). Grouping on dates now works.
+
+
 Supergroup
 ==========
 Supergroup performs single- or multi-level grouping on collections of records. It provides a host of utitily and conveniece methods on the returned array of group values as well as on each of these specific group values. If a multi-level grouping is performed, each value's `children` array also acts as a Supergroup list.
