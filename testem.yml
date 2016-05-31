@@ -1,7 +1,7 @@
 {
   "framework": "jasmine",
   "src_files": [
-    "./lodash.custom.js",
+    "./node_modules/lodash/lodash.js",
     "./node_modules/d3/d3.js",
     "./supergroup.js",
     "./supergroup_spec.js"

@@ -77,7 +77,7 @@ var supergroup = (function() {
         var isNumeric = _(opts).has('isNumeric') ? 
                             opts.isNumeric :
                             wholeListNumeric(groups); // does every group Value look like a number or a missing value?
-        var groups = _.map(_.pairs(groups), function(pair, i) { // setup Values for each group in List
+        var groups = _.map(_.toPairs(groups), function(pair, i) { // setup Values for each group in List
             var rawVal = pair[0];
             var val;
             if(isNumeric) {
@@ -132,7 +132,7 @@ var supergroup = (function() {
     sg.multiDimList = function(recs, dims, opts) {
         opts.wasMultiDim = true;  // pretty kludgy
         var groups = sg.supergroup(recs, dims[0], opts);
-        _.chain(dims).rest().each(function(dim) {
+        _.chain(dims).tail().each(function(dim) {
             groups.addLevel(dim, opts);
         }).value();
         return groups;
@@ -168,7 +168,7 @@ var supergroup = (function() {
     }
     */
     State.prototype.selectedRecs = function() {
-        return _.chain(this.selectedVals).pluck('records').flatten().value();
+        return _.chain(this.selectedVals).map('records').flatten().value();
     }
 
     List.prototype.state = function() {
@@ -187,7 +187,7 @@ var supergroup = (function() {
         return val;
     };
     List.prototype.leafNodes = function(level) {
-        return _.chain(this).invoke('leafNodes').flatten()
+        return _.chain(this).invokeMap('leafNodes').flatten()
             .addSupergroupMethods()
             .value();
     };
@@ -444,7 +444,7 @@ var supergroup = (function() {
     Value.prototype.namePath = function(opts) {
         opts = delimOpts(opts);
         var path = this.pedigree(opts);
-        if (opts.dimName) path = _.pluck(path, 'dim');
+        if (opts.dimName) path = _.map(path, 'dim');
         if (opts.asArray) return path;
         return path.join(opts.delim);
         /*
@@ -470,7 +470,7 @@ var supergroup = (function() {
         return path;
         // CHANGING -- HOPE THIS DOESN'T BREAK STUFF (pedigree isn't
         // documented yet)
-        if (!opts.asValues) return _.chain(path).invoke('valueOf').value();
+        if (!opts.asValues) return _.chain(path).invokeMap('valueOf').value();
         return path;
     };
     Value.prototype.descendants = function(opts) {
@@ -513,7 +513,7 @@ var supergroup = (function() {
     Value.prototype.aggregate = function(func, field) {
         if (_.isFunction(field))
             return func(_.map(this.records, field));
-        return func(_.pluck(this.records, field));
+        return func(_.map(this.records, field));
     };
     Value.prototype.rootList = function() {
         return this.parentList.rootList();
@@ -528,7 +528,7 @@ var supergroup = (function() {
      */
     sg.aggregate = function(list, numericDim) { 
         if (numericDim) {
-            list = _.pluck(list, numericDim);
+            list = _.map(list, numericDim);
         }
         return _.reduce(list, function(memo,num){
                     memo.sum+=num;
