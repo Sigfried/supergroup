@@ -54,8 +54,9 @@ var supergroup = (function() {
                     if (_(opts.multiValuedGroups).contains(dim)) {
                         var groups = _.multiValuedGroupBy(recs, dim);
                     } else {
-                        if (opts.truncateBranchOnEmptyVal)
-                          recs = recs.filter(r => !_.isEmpty(r[dim]) || (_.isNumber(r[dim]) && isFinite(r[dim])));
+                        if (opts.truncateBranchOnEmptyVal) {
+                          recs = filterOutEmpty(recs, dim);
+                        }
                         var groups = _.groupBy(recs, dim);
                     }
                 } else {
@@ -66,10 +67,10 @@ var supergroup = (function() {
             }
         } else {
             if (opts.truncateBranchOnEmptyVal)
-              recs = recs.filter(r => !_.isEmpty(r[dim]) || (_.isNumber(r[dim]) && isFinite(r[dim])));
+              recs = filterOutEmpty(recs, dim);
             var groups = _.groupBy(recs, dim); // use Underscore's groupBy: http://underscorejs.org/#groupBy
         }
-        if (opts.excludeValues) {
+        if (opts.excludeValues) { // why isn't truncateBranchOnEmptyVal treated as an excludeValue?
             _.each(opts.excludeValues, function(d) {
                 delete groups[d];
             });
@@ -186,7 +187,7 @@ var supergroup = (function() {
         _.each(val.descendants(), function(d) { d.depth = d.depth + 1; });
         return val;
     };
-    List.prototype.leafNodes = function(level) {
+    List.prototype.leafNodes = function(level) { // level isn't passed along. probably broken
         return _.chain(this).invokeMap('leafNodes').flatten()
             .addSupergroupMethods()
             .value();
@@ -704,6 +705,12 @@ var supergroup = (function() {
         return sg.addSupergroupMethods(topParents);
     };
     return sg;
+
+    function filterOutEmpty(recs, dim) {
+        let func = _.isFunction(dim) ? dim : d=>d[dim];
+        recs = recs.filter(r => !_.isEmpty(func(r)) || (_.isNumber(func(r)) && isFinite(func(r)))); // _.isEmpty(0) === true
+        return recs;
+    }
 }());
 
 

@@ -16,6 +16,9 @@ describe('_.supergroup', function() {
             function(d) { return d.firstName + ' ' + d.lastName; },  
             {dimName: 'fullName'});
     self.gradesByGradeLastName = _.supergroup(gradeBook, ['grade','lastName']);
+    self.goodStudentsByGrade = _.supergroup(gradeBook, 
+            [function(d) { return d.grade.match(/[AB]/) ? d.grade : null },'lastName'],
+            { truncateBranchOnEmptyVal: true });
 
     it('should apply Groups methods to arrays', function() {
         expect(self.gradesByLastName.asRootVal).toBeDefined();
@@ -109,6 +112,12 @@ describe('_.supergroup', function() {
         it('should make this tree', function() {
             var paths = _.invokeMap(tree.flattenTree(), 'namePath');
             expect(paths).toEqual(["animal", "animal/mammal", "animal/mammal/primate", "animal/mammal/primate/monkey", "animal/mammal/primate/ape", "animal/mammal/primate/ape/chimpanzee", "animal/mammal/primate/ape/gorilla", "animal/mammal/primate/ape/me", "animal/mammal/bovine", "animal/mammal/bovine/cow", "animal/mammal/bovine/ox", "animal/reptile", "animal/fish", "animal/bird", "animal/bird/kiwi", "plant", "plant/tree", "plant/tree/oak", "plant/tree/oak/pin oak", "plant/tree/maple", "plant/bush", "plant/grass", "plant/fruit", "plant/fruit/kiwi", "plant/fruit/kiwi/orange tailed kiwi", "plant/fruit/kiwi/purple kiwi"]);
+        });
+    });
+
+    describe('truncateBranchOnEmpty', function() {
+        it('should exclude empty branch', function() {
+            expect(self.goodStudentsByGrade.rawValues().sort()).toEqual(['A', 'B']);
         });
     });
 
