@@ -373,7 +373,7 @@ var supergroup = (function() {
         // supported level param, to only go down so many levels
         // not supporting that any more. wasn't using it
 
-        if (!(childProp in this)) return;
+        if (!(childProp in this)) return [this];
 
         return _.chain(this.descendants()).filter(
                 function(d){
