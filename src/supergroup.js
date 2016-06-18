@@ -537,7 +537,7 @@ export class Supergroup extends SGNodeList {
     if (recs.length === 0) {
       return super();
     }
-    if (dims.length === 0) {
+    if (!(dims && dims.length > 0)) {
       return super(recs);
     }
 
