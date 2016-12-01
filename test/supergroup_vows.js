@@ -129,6 +129,14 @@ suite.addBatch({
     });
     */
 
+  },
+});
+suite.addBatch({
+  "dates": {
+    topic: _.supergroup([{d:new Date('2008-03-01')},{d:new Date('2008-03-01')},{d:new Date('2009-01-05')}], 'd'),
+    "should group Dates even though == doesn't work for Dates": function(topic) {
+      assert.equal(topic.length, 2);
+    },
   }
 });
 

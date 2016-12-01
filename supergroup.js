@@ -17,7 +17,7 @@ if (typeof require !== "undefined") {
     } else {
         var _ = require('lodash');
     }
-    var assert = require("assert");
+    //var assert = require(["assert"]);
 }
 
 var supergroup = (function() {
@@ -158,7 +158,8 @@ var supergroup = (function() {
     }
     sg.State = State;
     State.prototype.selectByVal = function(val) {
-        assert.equal(val.rootList(), this.list); // assume state only on root lists
+        if (val.rootList() !== this.list) // assume state only on root lists
+					throw new Error("state only on root lists (if state even does anything)");
         this.selectedVals.push(val);
     }
     /*
@@ -266,7 +267,7 @@ var supergroup = (function() {
             return val.aggregate(func, field);
         });
         if (ret === 'dict')
-            return _.object(this, results);
+            return _.zipObject(this, results);
         return results;
     };
 
@@ -707,7 +708,7 @@ var supergroup = (function() {
     return sg;
 
     function filterOutEmpty(recs, dim) {
-        let func = _.isFunction(dim) ? dim : d=>d[dim];
+        var func = _.isFunction(dim) ? dim : d=>d[dim];
         recs = recs.filter(r => !_.isEmpty(func(r)) || (_.isNumber(func(r)) && isFinite(func(r)))); // _.isEmpty(0) === true
         return recs;
     }
