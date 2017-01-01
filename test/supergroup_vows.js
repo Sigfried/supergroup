@@ -156,6 +156,22 @@ suite.addBatch({
     },
   }
 });
+suite.addBatch({
+  "multiValuedGroup": {
+    topic: [{A:[1,2]}, {A:[2,3]}],
+    "normal grouping of array values": function(topic) {
+      assert.deepEqual(
+        _.supergroup(topic, 'A').d3map(),
+        { "1,2": [{"A":[1,2]}], "2,3": [{"A":[2,3]}] })
+    },
+    "normal grouping of array values": function(topic) {
+      assert.deepEqual(
+        _.supergroup(topic, 'A', {multiValuedGroup:true}).d3map(),
+        { "1":[{"A":[1,2]}], "2":[{"A":[1,2]},{"A":[2,3]}], "3":[{"A":[2,3]}] }
+      );
+    },
+  }
+});
 
 
 suite.export(module);
