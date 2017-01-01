@@ -23,6 +23,9 @@ var gradesByName = _.supergroup(gradeBook,  function(d) {
 
 var gradesByGradeLastName = _.supergroup(gradeBook, ['grade','lastName']);
 
+var goodStudentsByGrade = _.supergroup(gradeBook, 
+            [function(d) { return d.grade.match(/[AB]/) ? d.grade : null },'lastName'],
+            { truncateBranchOnEmptyVal: true });
 
 suite.addBatch({
   "supergroup state": {
@@ -48,9 +51,22 @@ suite.addBatch({
 
 suite.addBatch({
   "supergroup general": {
-    topic: function(){ return null; }, 
-    "rawValues are group names": function() {
-        assert.deepEqual(gradesByLastName.rawValues(), ["Gold","Sassoon","Androy"]);
+    "rawValues and map(String)": function() {
+      assert.deepEqual(gradesByLastName.rawValues(), ["Gold","Sassoon","Androy"]);
+      function get_raw(array) {
+          var groups = _.addSupergroupMethods(array);
+          return groups.rawValues();
+      }
+      function get_strings(array) {
+          var groups = _.addSupergroupMethods(array);
+          return groups.map(String);
+      }
+      assert.deepEqual(get_raw([]), []);
+      assert.deepEqual(get_raw(['one', 'two']), ['one', 'two']);
+      assert.deepEqual(get_raw([1, 2]), [1, 2]);
+      assert.deepEqual(get_raw([true, false]), [true, false]);
+      assert.deepEqual(get_strings([1, 2]), ['1', '2']);
+      assert.deepEqual(get_strings([true, false]), ['true', 'false']);
     },
     "dimensions can be functions": function() {
         assert.deepEqual(gradesByName.rawValues(), ["Sigfried Gold","Sigfried Sassoon","Sigfried Androy"]);
@@ -113,23 +129,24 @@ suite.addBatch({
         assert.deepEqual(topic.gradesByGradeLastName.leafNodes().namePaths(),
           [ 'Root/C/Gold','Root/B/Gold','Root/B/Androy','Root/A/Sassoon' ]);
     }
-    /* haven't translated these yet
-
-    describe('hierarchicalTableToTree', function() {
-        var treePairs = [{"p":"animal","c":"mammal"},{"p":"animal","c":"reptile"},{"p":"animal","c":"fish"},{"p":"animal","c":"bird"},{"p":"bird","c":"kiwi"},{"p":"kiwi","c":"orange tailed kiwi"},{"p":"plant","c":"tree"},{"p":"plant","c":"bush"},{"p":"plant","c":"grass"},{"p":"plant","c":"fruit"},{"p":"fruit","c":"kiwi"},{"p":"kiwi","c":"purple kiwi"},{"p":"tree","c":"oak"},{"p":"tree","c":"maple"},{"p":"oak","c":"pin oak"},{"p":"mammal","c":"primate"},{"p":"mammal","c":"bovine"},{"p":"bovine","c":"cow"},{"p":"bovine","c":"ox"},{"p":"primate","c":"monkey"},{"p":"primate","c":"ape"},{"p":"ape","c":"chimpanzee"},{"p":"ape","c":"gorilla"},{"p":"ape","c":"me"}];
-        var tree;
-        it('should work with (data, parentProp, childProp) params', function() {
-            tree = _.hierarchicalTableToTree(treePairs, 'p', 'c');
-            expect(tree).toBeDefined();
-        });
-        it('should make this tree', function() {
-            var paths = _.invoke(tree.flattenTree(), 'namePath');
-            expect(paths).toEqual(["animal", "animal/mammal", "animal/mammal/primate", "animal/mammal/primate/monkey", "animal/mammal/primate/ape", "animal/mammal/primate/ape/chimpanzee", "animal/mammal/primate/ape/gorilla", "animal/mammal/primate/ape/me", "animal/mammal/bovine", "animal/mammal/bovine/cow", "animal/mammal/bovine/ox", "animal/reptile", "animal/fish", "animal/bird", "animal/bird/kiwi", "plant", "plant/tree", "plant/tree/oak", "plant/tree/oak/pin oak", "plant/tree/maple", "plant/bush", "plant/grass", "plant/fruit", "plant/fruit/kiwi", "plant/fruit/kiwi/orange tailed kiwi", "plant/fruit/kiwi/purple kiwi"]);
-        });
-    });
-    */
-
   },
+  "hierarchicalTableToTree": function() {
+    topic: [{"p":"animal","c":"mammal"},{"p":"animal","c":"reptile"},{"p":"animal","c":"fish"},{"p":"animal","c":"bird"},{"p":"bird","c":"kiwi"},{"p":"kiwi","c":"orange tailed kiwi"},{"p":"plant","c":"tree"},{"p":"plant","c":"bush"},{"p":"plant","c":"grass"},{"p":"plant","c":"fruit"},{"p":"fruit","c":"kiwi"},{"p":"kiwi","c":"purple kiwi"},{"p":"tree","c":"oak"},{"p":"tree","c":"maple"},{"p":"oak","c":"pin oak"},{"p":"mammal","c":"primate"},{"p":"mammal","c":"bovine"},{"p":"bovine","c":"cow"},{"p":"bovine","c":"ox"},{"p":"primate","c":"monkey"},{"p":"primate","c":"ape"},{"p":"ape","c":"chimpanzee"},{"p":"ape","c":"gorilla"},{"p":"ape","c":"me"}],
+    'should work with (data, parentProp, childProp) params', function(treePairs) {
+      var tree = _.hierarchicalTableToTree(treePairs, 'p', 'c');
+      var paths = _.invoke(tree.flattenTree(), 'namePath');
+      assert.deepEqual(paths,
+        ["animal", "animal/mammal", "animal/mammal/primate", "animal/mammal/primate/monkey", "animal/mammal/primate/ape", "animal/mammal/primate/ape/chimpanzee", "animal/mammal/primate/ape/gorilla", "animal/mammal/primate/ape/me", "animal/mammal/bovine", "animal/mammal/bovine/cow", "animal/mammal/bovine/ox", "animal/reptile", "animal/fish", "animal/bird", "animal/bird/kiwi", "plant", "plant/tree", "plant/tree/oak", "plant/tree/oak/pin oak", "plant/tree/maple", "plant/bush", "plant/grass", "plant/fruit", "plant/fruit/kiwi", "plant/fruit/kiwi/orange tailed kiwi", "plant/fruit/kiwi/purple kiwi"]);
+    }
+  },
+});
+suite.addBatch({
+  "truncateBranchOnEmpty": {
+    "should exclude empty branch": function(topic) {
+      assert.deepEqual(goodStudentsByGrade.rawValues().sort(),
+                   ['A', 'B']);
+    },
+  }
 });
 suite.addBatch({
   "dates": {

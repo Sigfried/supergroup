@@ -1,3 +1,8 @@
+/*
+ *
+ * i think everything here is copied over to supergroup_vows.js at this point
+ *
+ */
 'use strict';
 
 /* global: describe */
