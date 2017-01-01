@@ -12,12 +12,8 @@
 
 
 if (typeof require !== "undefined") {
-    if (typeof underscore !== "undefined" && underscore === "underscore") {
-        var _ = require('underscore');
-    } else {
-        var _ = require('lodash');
-    }
-    //var assert = require(["assert"]);
+    var _ = require('lodash');
+    var createAggregator = require('lodash/_createAggregator');
 }
 
 var supergroup = (function() {
@@ -283,8 +279,8 @@ var supergroup = (function() {
             function(val) {
                 if (val.children)
                     return [val+'', val.children.d3NestMap()];
-                return [val+'', val.records];
-            }).object().value();
+                return [val+'', val.records.slice(0)];
+            }).fromPairs().value();
     }
     List.prototype._sort = Array.prototype.sort;
     List.prototype.sort = function(func) {
@@ -716,8 +712,8 @@ var supergroup = (function() {
 
 
 // allows grouping by a field that contains an array of values rather than just a single value
-if (_.createAggregator) {
-    var multiValuedGroupBy = _.createAggregator(function(result, value, keys) {
+if (createAggregator) {
+    var multiValuedGroupBy = createAggregator(function(result, value, keys) {
         _.each(keys, function(key) {
             if (hasOwnProperty.call(result, key)) {
                 result[key].push(value);
