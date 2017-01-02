@@ -172,6 +172,42 @@ suite.addBatch({
     },
   }
 });
+suite.addBatch({
+  "nodesAtLevel": {
+    topic: _.supergroup(gradeBook, ['grade','lastName','class']),
+    "should work": function(topic) {
+      assert.deepEqual(topic.nodesAtLevel(1).namePaths().sort(),
+                       [
+                         'A/Sassoon',
+                         'B/Gold',
+                         'B/Androy',
+                         'C/Gold',
+                       ].sort());
+    },
+    "should work at third level": function(topic) {
+      assert.deepEqual(topic.nodesAtLevel(2).namePaths().sort(),
+                       [
+                         'A/Sassoon/Remedial Programming',
+                         'B/Gold/Documenting with Pretty Colors',
+                         'B/Gold/Literary Posturing',
+                         'B/Androy/Remedial Programming',
+                         'C/Gold/Remedial Programming',
+                       ].sort());
+    },
+    "should return correct nodes": function(topic) {
+      assert.deepEqual(topic.nodesAtLevel(1).map(d=>d.children.sort()+'').sort(),
+                       [
+                         'Remedial Programming',
+                         'Documenting with Pretty Colors,Literary Posturing',
+                         'Remedial Programming',
+                         'Remedial Programming',
+                       ].sort());
+    },
+    "complains when asking for too deep level": function(topic) {
+      assert.throws(()=>topic.nodesAtLevel(3), Error)
+    },
+  }
+});
 
 
 suite.export(module);

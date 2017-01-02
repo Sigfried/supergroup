@@ -245,6 +245,13 @@ var supergroup = (function() {
                     .tap(sg.addListMethods)
                     .value();
     };
+    List.prototype.nodesAtLevel = function(level, currentLevel = 0) {
+      if (level === currentLevel)
+        return this;
+      this.forEach(d => { if (!d.hasChildren()) throw new Error("asking for deeper level than exists") });
+      return sg.addListMethods(_.flatten(
+        this.map(d=>d.getChildren().nodesAtLevel(level, currentLevel + 1))));
+    };
     List.prototype.addLevel = function(dim, opts) {
         _.each(this, function(val) {
             val.addLevel(dim, opts);
@@ -370,7 +377,8 @@ var supergroup = (function() {
         // supported level param, to only go down so many levels
         // not supporting that any more. wasn't using it
 
-        if (!(childProp in this && this[childProp].length)) return [this];
+        //if (!(childProp in this && this[childProp].length)) return [this];
+        if (!this.hasChildren()) return [this];
 
         return _.chain(this.descendants()).filter(
                 function(d){
@@ -389,7 +397,17 @@ var supergroup = (function() {
         //return makeList(ret);
         return sg.addListMethods(ret);
     };
+    Value.prototype.getChildren = function(emptyListOk = false) {
+      if (emptyListOk)
+        return childProp in this && this[childProp];
+      return childProp in this && this[childProp].length && this[childProp];
+    };
+    Value.prototype.hasChildren = function(emptyListOk = false) {
+      return !!this.getChildren(emptyListOk);
+    };
     Value.prototype.addRecordsAsChildrenToLeafNodes = function(truncateEmpty) {
+        // this method is to help with d3 layouts that expect the leaf level
+        // to be an array of raw records
         function fixLeaf(node) {
             node.children = node.records;
             _.each(node.children, function(rec) {
