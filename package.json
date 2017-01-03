@@ -4,7 +4,8 @@
   "description": "Nested groups on arrays of objects where groups are Strings that know what you want them to know about themselves and their relatives.",
   "main": "supergroup.js",
   "scripts": {
-    "test": "vows test/supergroup_vows.js"
+    "test": "vows test/*.js --spec",
+    "debug": "node --inspect --debug-brk test/supergroup_vows.js"
   },
   "repository": {
     "type": "git",

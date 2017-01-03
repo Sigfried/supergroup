@@ -2,7 +2,7 @@
  * # supergroup.js
  * Author: [Sigfried Gold](http://sigfried.org)  
  * License: [MIT](http://sigfried.mit-license.org/)  
- * Version: 1.0.13
+ * Version: 1.1.6
  *
  * usage examples at [http://sigfried.github.io/blog/supergroup](http://sigfried.github.io/blog/supergroup)
  */
@@ -33,6 +33,8 @@ var supergroup = (function() {
      * @param {function} [opts.dimName] defaults to the value of `dim`.
         * If `dim` is a function, the dimName will be ugly.
      * @param {function} [opts.truncateBranchOnEmptyVal] 
+     * @param {boolean} [opts.multiValuedGroup=false]
+     * @param {boolean} [opts.preventScalarInMultiValuedGroup=false]
      * @return {Array of Values} enhanced with all the List methods
      *
      * Avaailable as _.supergroup, Underscore mixin
@@ -44,22 +46,22 @@ var supergroup = (function() {
         recs = opts.preListRecsHook ? opts.preListRecsHook(recs) : recs;
         childProp = opts.childProp || childProp;
 
-        if (opts.multiValuedGroup || opts.multiValuedGroups) {
+        if (opts.multiValuedGroup) {
             if (opts.wasMultiDim) {
-                if (opts.multiValuedGroups) {
-                    if (_(opts.multiValuedGroups).contains(dim)) {
-                        var groups = _.multiValuedGroupBy(recs, dim);
-                    } else {
-                        if (opts.truncateBranchOnEmptyVal) {
-                          recs = filterOutEmpty(recs, dim);
-                        }
-                        var groups = _.groupBy(recs, dim);
-                    }
-                } else {
-                    throw new Error("If you want multValuedGroups on multi-level groupings, you have to say which dims get multiValued: opts: { multiValuedGroups:[dim1,dim2] }");
-                }
+              throw new Error("If you want multValuedGroups on multi-level groupings, you need to use addLevel}");
             } else {
-                var groups = _.multiValuedGroupBy(recs, dim);
+                if (!opts.preventScalarInMultiValuedGroup) {
+                  var dimFunc = typeof dim === 'function'
+                                  ? dim : d => d[dim];
+                  var arrayAlwaysDim = 
+                    val => {
+                      var retVal = dimFunc(val);
+                      if (Array.isArray(retVal))
+                        return retVal;
+                      return [retVal];
+                    };
+                }
+                var groups = _.multiValuedGroupBy(recs, arrayAlwaysDim);
             }
         } else {
             if (opts.truncateBranchOnEmptyVal)
@@ -731,7 +733,12 @@ var supergroup = (function() {
 
 // allows grouping by a field that contains an array of values rather than just a single value
 if (createAggregator) {
-    var multiValuedGroupBy = createAggregator(function(result, value, keys) {
+    var multiValuedGroupBy = createAggregator(
+      function(result, value, keys) {
+        if (!Array.isArray(keys)) {
+          //if (preventScalarInMultiValuedGroup)
+          throw new Error("not array")
+        }
         _.each(keys, function(key) {
             if (hasOwnProperty.call(result, key)) {
                 result[key].push(value);
@@ -739,7 +746,7 @@ if (createAggregator) {
                 result[key] = [value];
             }
         });
-    });
+    }, null, preventScalarInMultiValuedGroup = false);
 } else {
     var multiValuedGroupBy = function() { throw new Error("couldn't install multiValuedGroupBy") };
 }

@@ -1,4 +1,4 @@
-throw new Error("this file is here so I can copy tests to supergroup version of d3.nest, but haven't done that yet (i think)");
+//throw new Error("this file is here so I can copy tests to supergroup version of d3.nest, but haven't done that yet (i think)");
 var vows = require("vows");
 var assert = require("assert");
 XMLHttpRequest = require('xhr2');

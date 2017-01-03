@@ -13,19 +13,18 @@ var gradeBook = [
     {lastName: "Gold",    firstName: "Sigfried", class: "Remedial Programming",           grade: "C", num: 2},
     {lastName: "Gold",    firstName: "Sigfried", class: "Literary Posturing",             grade: "B", num: 3},
     {lastName: "Gold",    firstName: "Sigfried", class: "Documenting with Pretty Colors", grade: "B", num: 3},
-    {lastName: "Sassoon", firstName: "Sigfried", class: "Remedial Programming",           grade: "A", num: 3},
+    {lastName: "Sassoon", firstName: "Sigfried", class: "Remedial Programming",           grade: "A", num: 4},
     {lastName: "Androy",  firstName: "Sigfried", class: "Remedial Programming",           grade: "B", num: 3}
 ];
+var classes = [
+  { dept: "English",    class: "Literary Posturing",              instructor: "Vladimir Nabokov",                     credits: 2,},
+  { dept: "CS",         class: "Remedial Programming",            instructor: ["Brian Kernighan", "Dennis Ritchie"],  credits: 4 },
+  { dept: ["CS","Art"], class: "Documenting with Pretty Colors",  instructor: ["Edward Tufte", "Brian Kernighan"],     credits: 1,},
+];
+
 var gradesByLastName = _.supergroup(gradeBook, 'lastName');
 
-var gradesByName = _.supergroup(gradeBook,  function(d) { 
-    return d.firstName + ' ' + d.lastName; },  {dimName: 'fullName'});
-
 var gradesByGradeLastName = _.supergroup(gradeBook, ['grade','lastName']);
-
-var goodStudentsByGrade = _.supergroup(gradeBook, 
-            [function(d) { return d.grade.match(/[AB]/) ? d.grade : null },'lastName'],
-            { truncateBranchOnEmptyVal: true });
 
 suite.addBatch({
   "supergroup state": {
@@ -69,7 +68,10 @@ suite.addBatch({
       assert.deepEqual(get_strings([true, false]), ['true', 'false']);
     },
     "dimensions can be functions": function() {
-        assert.deepEqual(gradesByName.rawValues(), ["Sigfried Gold","Sigfried Sassoon","Sigfried Androy"]);
+        assert.deepEqual(
+          _.supergroup(gradeBook, d=> `${d.firstName} ${d.lastName}`, {dimName: 'fullName'}).rawValues(),
+          ["Sigfried Gold","Sigfried Sassoon","Sigfried Androy"]
+        );
     },
     "multi-level supergroups have top-level rawValues": function() {
         assert.deepEqual(gradesByGradeLastName.rawValues().sort(), ["A","B","C"]);
@@ -123,12 +125,26 @@ suite.addBatch({
         assert.equal(topic.root.dim, 'root');
     },
     'should contain all the records': function(topic) {
-        assert.equal(topic.root.aggregate(_.sum, 'num'), 14);
+        assert.equal(topic.root.aggregate(_.sum, 'num'), 15);
     },
     'should namePath to root': function(topic) {
         assert.deepEqual(topic.gradesByGradeLastName.leafNodes().namePaths(),
           [ 'Root/C/Gold','Root/B/Gold','Root/B/Androy','Root/A/Sassoon' ]);
     }
+  },
+  "aggregates": {
+    topic: function(){  
+        // make new version of gradesByGradeLastName so asRootVal doesn't mess up other one
+        var gradesByGradeLastName = _.supergroup(gradeBook, ['grade','lastName']);
+        var root = gradesByGradeLastName.asRootVal();
+        return {gradesByGradeLastName:gradesByGradeLastName, root:root};
+    }, 
+    'should work at root level': function(topic) {
+        assert.equal(topic.root.aggregate(_.sum, 'num'), 15);
+    },
+    'make more tests': function(topic) {
+        assert.isTrue(false);
+    },
   },
   "hierarchicalTableToTree": function() {
     topic: [{"p":"animal","c":"mammal"},{"p":"animal","c":"reptile"},{"p":"animal","c":"fish"},{"p":"animal","c":"bird"},{"p":"bird","c":"kiwi"},{"p":"kiwi","c":"orange tailed kiwi"},{"p":"plant","c":"tree"},{"p":"plant","c":"bush"},{"p":"plant","c":"grass"},{"p":"plant","c":"fruit"},{"p":"fruit","c":"kiwi"},{"p":"kiwi","c":"purple kiwi"},{"p":"tree","c":"oak"},{"p":"tree","c":"maple"},{"p":"oak","c":"pin oak"},{"p":"mammal","c":"primate"},{"p":"mammal","c":"bovine"},{"p":"bovine","c":"cow"},{"p":"bovine","c":"ox"},{"p":"primate","c":"monkey"},{"p":"primate","c":"ape"},{"p":"ape","c":"chimpanzee"},{"p":"ape","c":"gorilla"},{"p":"ape","c":"me"}],
@@ -142,7 +158,11 @@ suite.addBatch({
 });
 suite.addBatch({
   "truncateBranchOnEmpty": {
-    "should exclude empty branch": function(topic) {
+    "should exclude empty branch": function() {
+      var goodStudentsByGrade = _.supergroup(gradeBook, 
+                  [function(d) { return d.grade.match(/[AB]/) ? d.grade : null },'lastName'],
+                  { truncateBranchOnEmptyVal: true });
+
       assert.deepEqual(goodStudentsByGrade.rawValues().sort(),
                    ['A', 'B']);
     },
@@ -158,19 +178,55 @@ suite.addBatch({
 });
 suite.addBatch({
   "multiValuedGroup": {
-    topic: [{A:[1,2]}, {A:[2,3]}],
+    topic: [{ A: [ 1, 2 ],  x: 4 },
+            { A: [ 2, 3 ],  x: 5 },
+            { A: 3,         x: 3 } ],
     "normal grouping of array values": function(topic) {
       assert.deepEqual(
         _.supergroup(topic, 'A').d3NestMap(),
-        { "1,2": [{"A":[1,2]}], "2,3": [{"A":[2,3]}] })
+        { "3":   [ { A: 3,        x: 3 } ],
+          "1,2": [ { A: [ 1, 2 ], x: 4 } ],
+          "2,3": [ { A: [ 2, 3 ], x: 5 } ] });
     },
-    "with multiValuedGroup": function(topic) {
+    "with multiValuedGroup and mixed array/scalar vals": function(topic) {
       assert.deepEqual(
         _.supergroup(topic, 'A', {multiValuedGroup:true}).d3NestMap(),
-        { "1":[{"A":[1,2]}], "2":[{"A":[1,2]},{"A":[2,3]}], "3":[{"A":[2,3]}] }
-      );
+        { 1: [ { A: [ 1, 2 ], x: 4 } ],
+
+          2: [ { A: [ 1, 2 ], x: 4 }, 
+               { A: [ 2, 3 ], x: 5 } ],
+
+          3: [ { A: [ 2, 3 ], x: 5 },
+               { A: 3, x: 3}] });
     },
-  }
+  },
+  "multValuedGroup with addLevel": {
+    "one level, aggregates": function() {
+      var byDept = _.supergroup(classes, 'dept', {multiValuedGroup:true});
+      assert.deepEqual(
+        byDept.aggregates(_.sum, 'credits', 'dict'),
+        { Art: 1, CS: 5, English: 2 }
+      );
+      byDept.addLevel('instructor', {multiValuedGroup:true});
+      assert.deepEqual(
+        byDept.leafNodes().map(d => [d.namePath(), d.aggregate(_.sum, 'credits')]).sort(),
+        [ ['Art/Brian Kernighan', 1],
+          ['Art/Edward Tufte', 1],
+          ['CS/Brian Kernighan', 5],
+          ['CS/Dennis Ritchie', 4],
+          ['CS/Edward Tufte', 1],
+          ['English/Vladimir Nabokov', 2],
+        ].sort()
+      );
+    }
+  },
+/*
+var classes = [
+  { dept: "English",    class: "Literary Posturing",              instructor: "Vladimir Nabokov",                     credits: 2,},
+  { dept: "CS",         class: "Remedial Programming",            instructor: ["Brian Kernighan", "Dennis Ritchie"],  credits: 4 },
+  { dept: ["CS","Art"], class: "Documenting with Pretty Colors",  instructor: ["Edward Tufte", "Brian Kernighan"],     credits: 1,},
+];
+*/
 });
 suite.addBatch({
   "nodesAtLevel": {
@@ -208,6 +264,46 @@ suite.addBatch({
     },
   }
 });
+suite.addBatch({
+  "addLevel": {
+    "should work": function() {
+      assert.deepEqual(
+        _.supergroup(gradeBook, 'lastName').addLevel('grade').flattenTree().namePaths().sort(),
+        _.supergroup(gradeBook, ['lastName','grade']).flattenTree().namePaths().sort()
+      );
+    },
+    "should allow dimName on multiple function dims": function() {
+      var byFullNameGradeThing = _.supergroup(gradeBook, 
+                                    d => `${d.firstName} ${d.lastName}`, 
+                                    {dimName: 'fullName'})
+                                  .addLevel( d => `${d.grade}: ${d.num}`,
+                                    {dimName: 'gradeThing'});
 
-
-suite.export(module);
+      assert.deepEqual(byFullNameGradeThing.leafNodes().namePaths().sort(),
+                [ 
+                  "Sigfried Androy/B: 3",
+                  "Sigfried Gold/B: 3",
+                  "Sigfried Gold/C: 2",
+                  "Sigfried Sassoon/A: 4",
+                ]);
+      assert.deepEqual(byFullNameGradeThing.leafNodes()[0].dimPath(),
+                "fullName/gradeThing");
+    },
+    /*
+var gradeBook = [
+    {lastName: "Gold",    firstName: "Sigfried", class: "Remedial Programming",           grade: "C", num: 2},
+    {lastName: "Gold",    firstName: "Sigfried", class: "Literary Posturing",             grade: "B", num: 3},
+    {lastName: "Gold",    firstName: "Sigfried", class: "Documenting with Pretty Colors", grade: "B", num: 3},
+    {lastName: "Sassoon", firstName: "Sigfried", class: "Remedial Programming",           grade: "A", num: 3},
+    {lastName: "Androy",  firstName: "Sigfried", class: "Remedial Programming",           grade: "B", num: 3}
+];
+*/
+  }
+});
+suite.addBatch({
+  "need to write more tests": {
+    "diff lists": function() { assert.isTrue(false); },
+    "addLevel": function() { assert.isTrue(false); },
+  }
+});
+suite.exportTo(module);
