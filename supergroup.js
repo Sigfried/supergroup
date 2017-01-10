@@ -10,6 +10,15 @@
 
 'use strict';
 
+/* gotta fix all this, but:
+ *
+ *  sg.parentVal = this List constitutes the children (val.getChildren()) 
+ *                  of sg.parentVal
+ *
+ *  val.parentList = the supergroup List containing this val
+ *
+ *  val.parent = val.parentList.parentVal
+ */
 
 if (typeof require !== "undefined") {
     var _ = require('lodash');
@@ -98,7 +107,7 @@ var supergroup = (function() {
             sg.addSupergroupMethods(val.records);
 
             val.dim = (opts.dimName) ? opts.dimName : dim;
-            val.records.parentVal = val; // NOT TESTED, NOT USED, PROBABLY WRONG
+            val.records.parentVal = val;
             if (opts.parent)
                 val.parent = opts.parent;
             if (val.parent) {
@@ -125,6 +134,7 @@ var supergroup = (function() {
         });
         // pointless without recursion
         //if (opts.postListListHook) groups = opts.postListListHook(groups);
+        groups._optsAtThisLevel = opts;
         return groups;
     };
     // nested groups, each dim is a level in hierarchy
@@ -181,16 +191,24 @@ var supergroup = (function() {
         val.dim = dimName || 'root';
         val.depth = 0;
         val.records = this.records;
-        val[childProp]= this;
-        _.each(val[childProp], function(d) { d.parent = val; });
+        val.setChildren(this);
+        _.each(val.getChildren(), function(d) { d.parent = val; });
         _.each(val.descendants(), function(d) { d.depth = d.depth + 1; });
         return val;
     };
     List.prototype.leafNodes = function(level) { // level isn't passed along. probably broken
         return _.chain(this).invokeMap('leafNodes').flatten()
-            .addSupergroupMethods()
-            .value();
+                  .addSupergroupMethods()
+                  .value();
     };
+    /* not working yet...
+    List.prototype.clone = function() {
+      var parentVal = this.parentVal,
+      return _.chain(this).invokeMap('clone')
+                    .tap(sg.addListMethods)
+                    .value();
+    };
+    */
     List.prototype.rawValues = function() {
         return _.chain(this).map(function(d) { return d.valueOf(); }).value();
     };
@@ -204,7 +222,7 @@ var supergroup = (function() {
             var ret;
             while(values.length) {
                 ret = list.singleLookup(values.shift());
-                list = ret[childProp];
+                list = ret.getChildren();
             }
             return ret;
         } else {
@@ -279,7 +297,7 @@ var supergroup = (function() {
     List.prototype.d3NestEntries = function() {
         return _.map(this, function(val) {
             if (childProp in val)
-                return {key: val.toString(), values: val[childProp].d3NestEntries()};
+                return {key: val.toString(), values: val.getChildren().d3NestEntries()};
             return {key: val.toString(), values: val.records};
         });
     };
@@ -359,19 +377,31 @@ var supergroup = (function() {
         _.each(this.leafNodes() || [this], function(d) {
             opts.parent = d;
             if (!('in' in d)) { // d.in means it's part of a diffList
-                d[childProp] = sg.supergroup(d.records, dim, opts);
+                d.setChildren(sg.supergroup(d.records, dim, opts));
             } else { // allows adding levels to diffLists. haven't used for a long time
                 if (d['in'] === "both") {
-                    d[childProp] = sg.diffList(d.from, d.to, dim, opts);
+                    d.setChildren(sg.diffList(d.from, d.to, dim, opts));
                 } else {
-                    d[childProp] = sg.supergroup(d.records, dim, opts);
-                    _.each(d[childProp], function(c) {
+                    d.setChildren(sg.supergroup(d.records, dim, opts));
+                    _.each(d.getChildren(), function(c) {
                         c['in'] = d['in'];
                         c[d['in']] = d[d['in']];
                     });
                 }
             }
-            d[childProp].parentVal = d; // NOT TESTED, NOT USED, PROBABLY WRONG!!!
+            d.getChildren().parentVal = d;
+        });
+    };
+    Value.prototype.concatLevel = function(dim, opts) {
+        opts = opts || {};
+        _.each(this.leafNodes() || [this], function(d) {
+            opts.parent = d;
+            if ('in' in d) {
+              throw new Error("not handling diffLists in concatLevel");
+            }
+                d.setChildren(sg.supergroup(d.records, dim, opts));
+
+            d.getChildren().parentVal = d;
         });
     };
     Value.prototype.leafNodes = function(level) {
@@ -379,7 +409,7 @@ var supergroup = (function() {
         // supported level param, to only go down so many levels
         // not supporting that any more. wasn't using it
 
-        //if (!(childProp in this && this[childProp].length)) return [this];
+        //if (!(childProp in this && this.getChildren().length)) return [this];
         if (!this.hasChildren()) return [this];
 
         return _.chain(this.descendants()).filter(
@@ -391,8 +421,8 @@ var supergroup = (function() {
         if (typeof level === "undefined") {
             level = Infinity;
         }
-        if (level !== 0 && this[childProp] && this[childProp].length && (!level || this.depth < level)) {
-            ret = _.flatten(_.map(this[childProp], function(c) {
+        if (level !== 0 && this.getChildren() && this.getChildren().length && (!level || this.depth < level)) {
+            ret = _.flatten(_.map(this.getChildren(), function(c) {
                 return c.leafNodes(level);
             }), true);
         }
@@ -403,6 +433,14 @@ var supergroup = (function() {
       if (emptyListOk)
         return childProp in this && this[childProp];
       return childProp in this && this[childProp].length && this[childProp];
+    };
+    Value.prototype.setChildren = function(sg, clobber=false, returnThis=false) {
+      if (this.hasChildren() && !clobber) // clobbers empty children lists regardless of clobber setting
+        throw new Error("can't setChildren on value that already has children");
+      this[childProp] = sg; // assume sg is appropriate child list
+      if (returnThis)
+        return this;
+      return this[childProp];
     };
     Value.prototype.hasChildren = function(emptyListOk = false) {
       return !!this.getChildren(emptyListOk);
@@ -441,8 +479,8 @@ var supergroup = (function() {
     /*  didn't make this yet, just copied from above
     Value.prototype.descendants = function(level) {
         var ret = [this];
-        if (level !== 0 && this[childProp] && (!level || this.depth < level))
-            ret = _.flatten(_.map(this[childProp], function(c) {
+        if (level !== 0 && this.getChildren() && (!level || this.depth < level))
+            ret = _.flatten(_.map(this.getChildren(), function(c) {
                 return c.leafNodes(level);
             }), true);
         return makeList(ret);
@@ -493,10 +531,10 @@ var supergroup = (function() {
     };
     Value.prototype.descendants = function(opts) {
         // these two lines fix a treelike bug, hope they don't do harm
-        this[childProp] = this[childProp] || [];
-        _.addSupergroupMethods(this[childProp]);
+        if (!this.hasChildren())
+          this.setChildren(_.addSupergroupMethods([]));
 
-        return this[childProp] ? this[childProp].flattenTree() : undefined;
+        return this.getChildren() ? this.getChildren().flattenTree() : undefined;
     };
     Value.prototype.lookup = function(query) {
         if (_.isArray(query)) {
@@ -512,9 +550,9 @@ var supergroup = (function() {
         } else {
             throw new Error("invalid param: " + query);
         }
-        if (!this[childProp])
+        if (!this.hasChildren())
             throw new Error("can only call lookup on Values with kids");
-        return this[childProp].lookup(query);
+        return this.getChildren().lookup(query);
     };
     Value.prototype.pct = function() {
         return this.records.length / this.parentList.records.length;
@@ -536,6 +574,13 @@ var supergroup = (function() {
     Value.prototype.rootList = function() {
         return this.parentList.rootList();
     };
+    /* not working yet
+    Value.clone() {
+      var holdChildren = this.getChildren(),
+          parent = this.parent,
+          parentList = this.parentList,
+    }
+    */
 
     /** Summarize records by a dimension
      *
@@ -627,8 +672,8 @@ var supergroup = (function() {
 
         }).value();
         _.chain(list).map(function(d) {
-            d.parentList = list; // NOT TESTED, NOT USED, PROBABLY WRONG
-            d.records.parentVal = d; // NOT TESTED, NOT USED, PROBABLY WRONG
+            d.parentList = list;
+            d.records.parentVal = d;
         }).value();
 
         return list;
@@ -652,7 +697,7 @@ var supergroup = (function() {
         val.depth = 0;
         val['in'] = "both";
         val.records = [].concat(from.records,to.records);
-        val.records.parentVal = val; // NOT TESTED, NOT USED, PROBABLY WRONG
+        val.records.parentVal = val;
         val.dim = from.dim;
         return val;
     };

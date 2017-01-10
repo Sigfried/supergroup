@@ -27,28 +27,6 @@ var gradesByLastName = _.supergroup(gradeBook, 'lastName');
 var gradesByGradeLastName = _.supergroup(gradeBook, ['grade','lastName']);
 
 suite.addBatch({
-  "supergroup state": {
-    topic: gradesByGradeLastName.state(),
-    "should be a Supergroup State": function(selector) {
-        var a = {};
-        var b = a;
-        assert.equal(a, b);
-        assert.instanceOf(selector, _.stateClass);
-    },
-    "should allow selection by value": function(selector) {
-        selector.selectByVal(gradesByGradeLastName.lookup("A"));
-        assert.deepEqual(selector.selectedRecs(), [gradeBook[3]]);
-    },
-    /*
-    "should allow selection by filter": function(selector) {
-        selector.selectByVal(gradesByGradeLastName.lookup("A"));
-        assert.deepEqual(selector.selectedRecs(), [gradeBook[3]]);
-    },
-    */
-  }
-});
-
-suite.addBatch({
   "supergroup general": {
     "rawValues and map(String)": function() {
       assert.deepEqual(gradesByLastName.rawValues(), ["Gold","Sassoon","Androy"]);
@@ -92,6 +70,14 @@ suite.addBatch({
     "leafnodes": function() {
         assert.deepEqual(gradesByGradeLastName.leafNodes().namePaths(), 
                 ["C/Gold","B/Gold","B/Androy","A/Sassoon"]);
+    },
+    "parents": function() {
+        gradesByGradeLastName.leafNodes().forEach(
+          leaf => {
+            var grade = leaf.namePath().substr(0,1); // A, B, or C
+            var parent = gradesByGradeLastName.lookup(grade);
+            assert.equal(parent, leaf.parentList.parentVal);
+          });
     },
     "sort": function() {
         assert.deepEqual(gradesByGradeLastName.leafNodes().sort(function(a,b){
@@ -264,6 +250,22 @@ suite.addBatch({
     },
   }
 });
+/*
+suite.addBatch({
+  "clone": {
+    "clone Value": function() {
+      var sassoon = gradesByLastName.lookup("Sassoon");
+
+      // this is already tested in "lookup finds the right thing":
+      assert.equal(sassoon.records[0], gradeBook[3])
+
+      var clone = sassoon.clone();
+
+      assert.notEqual(clone.records[0], gradeBook[3])
+    },
+  }
+});
+*/
 suite.addBatch({
   "addLevel": {
     "should work": function() {
@@ -306,4 +308,26 @@ suite.addBatch({
     "addLevel": function() { assert.isTrue(false); },
   }
 });
+suite.addBatch({
+  "supergroup state": {
+    topic: gradesByGradeLastName.state(),
+    "should be a Supergroup State": function(selector) {
+        var a = {};
+        var b = a;
+        assert.equal(a, b);
+        assert.instanceOf(selector, _.stateClass);
+    },
+    "should allow selection by value": function(selector) {
+        selector.selectByVal(gradesByGradeLastName.lookup("A"));
+        assert.deepEqual(selector.selectedRecs(), [gradeBook[3]]);
+    },
+    /*
+    "should allow selection by filter": function(selector) {
+        selector.selectByVal(gradesByGradeLastName.lookup("A"));
+        assert.deepEqual(selector.selectedRecs(), [gradeBook[3]]);
+    },
+    */
+  }
+});
+
 suite.exportTo(module);
