@@ -540,9 +540,10 @@ var supergroup = (function() {
         if (_.isArray(query)) {
             if (this.valueOf() == query[0]) { // allow string/num comparison to succeed?
                 query = query.slice(1);
-                if (query.length === 0)
-                    return this;
             }
+
+            if (query.length === 0)
+                return this;
         } else if (_.isString(query)) {
             if (this.valueOf() == query) {
                 return this;
