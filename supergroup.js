@@ -1,3 +1,4 @@
+/* eslint-disable */
 /*
  * # supergroup.js
  * Author: [Sigfried Gold](http://sigfried.org)  
@@ -19,6 +20,8 @@
  *
  *  val.parent = val.parentList.parentVal
  */
+
+var preventScalarInMultiValuedGroup=false; // brought from vocab-pop version, untested, un-thought-about, just trying to sync up
 
 if (typeof require !== "undefined") {
     var _ = require('lodash');
@@ -43,14 +46,27 @@ var supergroup = (function() {
         * If `dim` is a function, the dimName will be ugly.
      * @param {function} [opts.truncateBranchOnEmptyVal] 
      * @param {boolean} [opts.multiValuedGroup=false]
-     * @param {boolean} [opts.preventScalarInMultiValuedGroup=false]
+     * @param {boolean} [opts.preventScalarInMultiValuedGroup=false] // setting globally
      * @return {Array of Values} enhanced with all the List methods
      *
      * Avaailable as _.supergroup, Underscore mixin
      */
     sg.supergroup = function(recs, dim, opts) {
         // if dim is an array, use multiDimList to create hierarchical grouping
-        opts = opts || {};
+
+
+	// commented out stuff here from vocab-pop version, never did whatever I was trying
+        // wanted to keep opts clean, but it breaks the parent ref
+        //opts = _.cloneDeep(opts || {})
+        opts = opts || {}
+
+        //if (opts.allowCloning) {
+          recs = recs.map((rec,i)=> {
+            let clone = _.clone(rec)
+            clone._recIdx = i
+            return clone
+          })
+        //}
         if (_(dim).isArray()) return sg.multiDimList(recs, dim, opts);
         recs = opts.preListRecsHook ? opts.preListRecsHook(recs) : recs;
         childProp = opts.childProp || childProp;
@@ -107,7 +123,7 @@ var supergroup = (function() {
             sg.addSupergroupMethods(val.records);
 
             val.dim = (opts.dimName) ? opts.dimName : dim;
-            val.records.parentVal = val;
+            val.records.parentVal = val; // NOT TESTED, NOT USED, PROBABLY WRONG
             if (opts.parent)
                 val.parent = opts.parent;
             if (val.parent) {
@@ -134,7 +150,10 @@ var supergroup = (function() {
         });
         // pointless without recursion
         //if (opts.postListListHook) groups = opts.postListListHook(groups);
+
+	// next line deleted from vocab-pop version, not sure why
         groups._optsAtThisLevel = opts;
+
         return groups;
     };
     // nested groups, each dim is a level in hierarchy
@@ -278,6 +297,42 @@ var supergroup = (function() {
         });
         return this;
     };
+
+    // VERY QUESTIONABLE STUFF FROM vocab-pop, NEED TO REVIEW IF NEEDED OR BROKEN
+    //if (opts.allowCloning) {
+      List.prototype.addLevelPure = function(dim, opts) {
+          // breaks prototype two levels up!!!!!!!!!!!!! no time to fix
+          let clone = this.clone()
+          //if (clone[0] && clone[0].children) debugger
+          _.each(clone, function(val) {
+              //val.addLevelPure(dim, opts);
+              val.addLevel(dim, opts);
+          });
+          return clone;
+      };
+      List.prototype.clone = function() {
+        let clone = Object.assign([], this)
+        clone.records = _.cloneDeep(this.records)
+        _.addSupergroupMethods(clone)
+        let list = this
+        clone.splice(0, clone.length, ...clone.map(
+          val => {
+            let newVal = makeValue(val)
+            _.extend(newVal, _.cloneDeep(val))
+            newVal.records = val.records.map(rec=>clone.records[rec._recIdx])
+            newVal.parentList = clone
+            //if (val.children) debugger
+            // WRONG RECORDS!!!!
+            if (val.hasChildren()) {
+              newVal[childProp] = val.getChildren().clone()
+            }
+            return newVal
+          }
+        ))
+        return clone
+      }
+      
+    //}
     List.prototype.namePaths = function(opts) {
         return _.map(this, function(d) {
             return d.namePath(opts);
@@ -321,6 +376,102 @@ var supergroup = (function() {
           return this.parentVal.rootList();
         return this;
     };
+
+    // MORE STUFF ADDED FROM vocab-pop, NEEDS REVIEW
+    List.prototype.collapseOnlyChildren = function() {
+      this.forEach(val => {
+        if (val.hasChildren() && val.getChildren().length === 1) {
+          var child = val.getChildren()[0];
+          if (child.hasChildren()) {
+            val[childProp] = child[childProp];
+            // reduce depths?
+          }
+          val[child.dim] = child;
+          delete val[childProp];
+        }
+        if (val.hasChildren()) {
+          val.getChildren().collapseOnlyChildren()
+        }
+      })
+    }
+    /*
+     * something broke when I added func option...will fix later
+    List.prototype.summary = function(opts={}) {
+      let {depth=0, funcs={}} = opts
+      let out = []
+      //let indent = '    '.repeat(depth)
+      let indent = ''
+      let dim = `${this.dim}`
+      let vals = `${this.length} vals`
+      let recs = `${this.records.length} recs`
+      out.push(`${indent}${dim}, ${recs} (${depth}) ${vals}:`)
+      out.push(this.map(val=>val.summary({...opts,depth:depth+1})).join('\n'))
+      return out.join('\n')
+    }
+    Value.prototype.hasSiblings = function() {
+      return this.parentList.length > 1
+    }
+    Value.prototype.summary = function(opts={}) {
+      let {depth=0, funcs={}} = opts
+      let out = []
+      let indent = '    '.repeat(depth)
+      let recs = `${this.records.length} recs`
+      if (depth === 0) {
+        let dimPath = this.dimPath()
+        let namePath = this.namePath()
+        let valDepth = `lvl ${this.depth}`
+        let sibs = this.hasSiblings() ? `, ${this.parentList.length - 1} siblings` : ''
+        out.push(`${indent}${valDepth} ${namePath}(${dimPath}), ${recs}${sibs}`)
+      } else {
+        out.push(`${indent}${this}, ${recs}`)
+      }
+      if (funcs) {
+        _.each(funcs, (f,k) => {
+          out.push(`${indent}  ${k}: ${f(this)}`)
+        })
+        out.push('')
+      }
+      let summary = out.join('\n')
+      if (this.hasChildren()) {
+        //summary += (' has: ' + this.getChildren().summary(opts))
+        out.push(`${indent}has:\n` + this.getChildren().summary(opts))
+      }
+      return summary
+    }
+    */
+    List.prototype.summary = function(depth=0) {
+      let out = []
+      //let indent = '    '.repeat(depth)
+      let indent = ''
+      let dim = `${this.dim}`
+      let vals = `${this.length} vals`
+      let recs = `${this.records.length} recs`
+      out.push(`${indent}${dim}, ${recs} (${depth}) ${vals}:`)
+      out.push(this.map(val=>val.summary(depth+1)).join('\n'))
+      return out.join('\n')
+    }
+    Value.prototype.hasSiblings = function() {
+      return this.parentList && this.parentList.length > 1
+    }
+    Value.prototype.summary = function(depth=0) {
+      let out = []
+      let indent = '    '.repeat(depth)
+      let recs = `${this.records.length} recs`
+      if (depth === 0) {
+        let dimPath = this.dimPath()
+        let namePath = this.namePath()
+        let valDepth = `lvl ${this.depth}`
+        let sibs = this.hasSiblings() ? `, ${this.parentList.length - 1} siblings` : ''
+        out.push(`${indent}${valDepth} ${namePath}(${dimPath}), ${recs}${sibs}`)
+      } else {
+        out.push(`${indent}${this}, ${recs}`)
+      }
+      let summary = out.join('\n')
+      if (this.hasChildren()) {
+        summary += (' has: ' + this.getChildren().summary(depth))
+      }
+      return summary
+    }
 
     function makeValue(v_arg) {
         if (isNaN(v_arg)) {
@@ -395,6 +546,7 @@ var supergroup = (function() {
     /* goal here is to make version of addLevel that doesn't
      * modify existing list/vals at all. but it's hard to
      * make a decent clone... gotta do this. */
+    // DOESN'T EXIST IN vocab-pop, LEAVING HERE BUT NEEDS REVIEW
     Value.prototype.concatLevel = function(dim, opts) {
         opts = opts || {};
         _.each(this.leafNodes() || [this], function(d) {
@@ -435,7 +587,8 @@ var supergroup = (function() {
     };
     Value.prototype.getChildren = function(emptyListOk = false) {
       if (emptyListOk)
-        return childProp in this && this[childProp];
+        // ADDED '|| []' FROM vocab-pop 
+        return childProp in this && this[childProp] || [];
       return childProp in this && this[childProp].length && this[childProp];
     };
     Value.prototype.setChildren = function(sg, clobber=false, returnThis=false) {
@@ -517,6 +670,18 @@ var supergroup = (function() {
         */
     };
     Value.prototype.path =  // better than 'pedigree', right?
+
+    // FROM vocab-pop
+    Value.prototype.clone = function() {
+      // just throwing together quick...need to look at later
+      let newVal = makeValue(this)
+      _.extend(newVal, _.cloneDeep(this))
+      if (this.hasChildren()) {
+        newVal[childProp] = this.getChildren().clone()
+      }
+      return newVal
+    }
+
     Value.prototype.pedigree = function(opts) {
         opts = opts || {};
         var path = [];
@@ -527,11 +692,18 @@ var supergroup = (function() {
         }
         if (opts.noRoot) path.shift();
         if (opts.backwards || this.backwards) path.reverse(); //kludgy?
+        
+        // FROM vocab-pop
+        //path = path.map(val=>val.clone())
+        //path = path.map(val=>makeValue(val))
+        _.addSupergroupMethods(path)
         return path;
+        /*   commented out in vocab-pop, doing same here
         // CHANGING -- HOPE THIS DOESN'T BREAK STUFF (pedigree isn't
         // documented yet)
         if (!opts.asValues) return _.chain(path).invokeMap('valueOf').value();
         return path;
+        */
     };
     Value.prototype.descendants = function(opts) {
         // these two lines fix a treelike bug, hope they don't do harm
@@ -789,11 +961,18 @@ if (createAggregator) {
           throw new Error("not array")
         }
         _.each(keys, function(key) {
+
+          // FROM vocab-pop (line replaces commented section)
+          result[key] = _.uniq([...(result[key]||[]), value])
+          /*
             if (hasOwnProperty.call(result, key)) {
                 result[key].push(value);
             } else {
                 result[key] = [value];
             }
+            */
+
+
         });
     }, null, preventScalarInMultiValuedGroup = false);
 } else {
@@ -823,7 +1002,7 @@ _.mixin({
         };
         return result;
         };
-        each(obj, function(value, index, list) {
+        _.each(obj, function(value, index, list) {
         var computed = iterator ? iterator.call(context, value, index, list) : value;
         result += computed;
         });
@@ -848,7 +1027,7 @@ _.mixin({
         tmpObj = _.clone(obj);
         tmpObj.sort(function(f,s){return f-s;});
         }else{
-        _.isArray(obj) && each(obj, function(value, index, list) {
+        _.isArray(obj) && _.each(obj, function(value, index, list) {
             tmpObj.push(iterator ? iterator.call(context, value, index, list) : value);
             tmpObj.sort();
         });
