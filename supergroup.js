@@ -392,6 +392,9 @@ var supergroup = (function() {
             d.getChildren().parentVal = d;
         });
     };
+    /* goal here is to make version of addLevel that doesn't
+     * modify existing list/vals at all. but it's hard to
+     * make a decent clone... gotta do this. */
     Value.prototype.concatLevel = function(dim, opts) {
         opts = opts || {};
         _.each(this.leafNodes() || [this], function(d) {
@@ -404,6 +407,7 @@ var supergroup = (function() {
             d.getChildren().parentVal = d;
         });
     };
+    */
     Value.prototype.leafNodes = function(level) {
         // until commit 31278a35b91a8f4bd4ddc4376c840fb14d2723f9
         // supported level param, to only go down so many levels
