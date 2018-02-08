@@ -547,6 +547,7 @@ var supergroup = (function() {
      * modify existing list/vals at all. but it's hard to
      * make a decent clone... gotta do this. */
     // DOESN'T EXIST IN vocab-pop, LEAVING HERE BUT NEEDS REVIEW
+    /*
     Value.prototype.concatLevel = function(dim, opts) {
         opts = opts || {};
         _.each(this.leafNodes() || [this], function(d) {
