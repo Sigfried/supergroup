@@ -2,7 +2,7 @@
 var vows = require("vows");
 var assert = require("assert");
 //XMLHttpRequest = require('xhr2');
-var d3 = require("d3");
+//var d3 = require("d3");
 var _ = require("lodash");
 require("../supergroup.js");
 var fs = require('fs');
