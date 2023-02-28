@@ -1037,5 +1037,6 @@ _.mixin({
     },
 });
 
-if (typeof module !== "undefined")
-    module.exports = _;
+// if (typeof module !== "undefined")
+//   module.exports = _;
+export default _;
