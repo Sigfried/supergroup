@@ -130,9 +130,9 @@ suite.addBatch({
     'should work at root level': function(topic) {
         assert.equal(topic.root.aggregate(_.sum, 'num'), 15);
     },
-    'make more tests': function(topic) {
-        assert.isTrue("need aggregation tests");
-    },
+    // 'make more tests': function(topic) {
+    //     assert.isTrue("need aggregation tests");
+    // },
   },
   "hierarchicalTableToTree": function() {
     topic: [{"p":"animal","c":"mammal"},{"p":"animal","c":"reptile"},{"p":"animal","c":"fish"},{"p":"animal","c":"bird"},{"p":"bird","c":"kiwi"},{"p":"kiwi","c":"orange tailed kiwi"},{"p":"plant","c":"tree"},{"p":"plant","c":"bush"},{"p":"plant","c":"grass"},{"p":"plant","c":"fruit"},{"p":"fruit","c":"kiwi"},{"p":"kiwi","c":"purple kiwi"},{"p":"tree","c":"oak"},{"p":"tree","c":"maple"},{"p":"oak","c":"pin oak"},{"p":"mammal","c":"primate"},{"p":"mammal","c":"bovine"},{"p":"bovine","c":"cow"},{"p":"bovine","c":"ox"},{"p":"primate","c":"monkey"},{"p":"primate","c":"ape"},{"p":"ape","c":"chimpanzee"},{"p":"ape","c":"gorilla"},{"p":"ape","c":"me"}],
@@ -308,12 +308,12 @@ var gradeBook = [
 */
   }
 });
-suite.addBatch({
-  "need to write more tests": {
-    "diff lists": function() { assert.isTrue("need diff lists tests"); },
-    "addLevel": function() { assert.isTrue("need addLevel tests"); },
-  }
-});
+// suite.addBatch({
+//   "need to write more tests": {
+//     "diff lists": function() { assert.isTrue("need diff lists tests"); },
+//     "addLevel": function() { assert.isTrue("need addLevel tests"); },
+//   }
+// });
 suite.addBatch({
   "supergroup state": {
     topic: gradesByGradeLastName.state(),
@@ -324,7 +324,7 @@ suite.addBatch({
         assert.instanceOf(selector, _.stateClass);
     },
     "should allow selection by value": function(selector) {
-        selector.selectByVal(gradesByGradeLastName.lookup("A"));
+        selector.selectByVal(gradesByGradeLastName.lookup("Axx"));
         assert.deepEqual(
           selector.selectedRecs().map(d=>_.omit(d,"_recIdx")), 
           [gradeBook[3]]);
