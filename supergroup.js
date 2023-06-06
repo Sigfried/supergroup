@@ -924,22 +924,59 @@ var supergroup = (function() {
     }
 
     sg.hierarchicalTableToTree = function(data, parentProp, childProp) {
-        // does not do the right thing if a value has two parents
-        // also, does not yet fix depth numbers
+        /* does not do the right thing if a value has two parents
+           fixing that, so, for items like
+              [a,b], [a,c], [b,c], [c/d] we want a structure like
+
+              a:[b:[c:[d],c;[d]] that is
+              single top level, depth=0: [a]
+              two at depth=1: [a/b, a/c]
+              two at depth=2: [a/b/c, a/c/d]
+              one at depth=3: [a/b/c/d]
+
+              Initial data: [a,b], [a,c], [b,c], [c,d]
+              after supergroup: {a:{b:{}, c:{}}, b:{c:{}}, c:{d}}
+
+              Desired outcome: {
+                a: {
+                  b: {
+                    c: {
+                      d: {}
+                    }
+                  },
+                  c: {
+                    d: {}
+                  }
+                }
+              }
+
+
+           also, does not yet fix depth numbers
+         */
         var parents = sg.supergroup(data,[parentProp, childProp]); // 2-level grouping with all parent/child pairs
-        var children = parents.leafNodes();
-        var topParents = _.filter(parents, function(parent) { 
-            var adoptiveParent = children.lookup(parent); // is this parent also a child?
-            if (adoptiveParent) { // if so, make it the parent
-                adoptiveParent.children = sg.addSupergroupMethods([]);
-                _.each(parent.children, function(c) { 
-                    c.parent = adoptiveParent; 
-                    adoptiveParent.children.push(c)
-                });  
-            } else { // if not, this is a top parent
-                return parent;
+        // gives 2-level supergroup: [a:[b,c], b:[c], c:[d]]
+        let children = parents.leafNodes();
+        var topParents = _.filter(parents, function(parent) {
+            // a and b are parents
+            let childFormOfParent = children.filter(c => c+'' == parent+'');
+            // a does not show up in children, b does
+            // we want to take b (as parent)'s children and
+            // make them the children of b (as child)
+            if (childFormOfParent.length) {
+              for (let cp of childFormOfParent) {
+                // [b/c] is the parent, the b in [a/b] is cp
+                // were going to replace cp in a's children list with parent (b/c)
+                for (let i = 0; i < cp.children.length; i++) {
+                  if (cp+'' == parent.children[i]+'') {
+                    parent.children[i] = cp;
+                    pc.depth = parent.depth + 1;
+                  }
+                }
+              }
+              return false; // this no longer needs to be a top parent because it now appears as a child
+            } else {
+              return parent;
             }
-            // if so, make use that child node, move this parent node's children over to it
         });
         return sg.addSupergroupMethods(topParents);
     };
