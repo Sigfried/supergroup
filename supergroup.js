@@ -751,6 +751,13 @@ var supergroup = (function() {
     Value.prototype.rootList = function() {
         return this.parentList.rootList();
     };
+    Value.prototype.fixDepth = function(newDepth) {
+        const incr = newDepth - this.depth;
+        this.depth = newDepth;
+        for (let d of this.descendants()) {
+          d.depth += incr;
+        }
+    }
     /* not working yet
     Value.clone() {
       var holdChildren = this.getChildren(),
@@ -956,27 +963,37 @@ var supergroup = (function() {
         var parents = sg.supergroup(data,[parentProp, childProp]); // 2-level grouping with all parent/child pairs
         // gives 2-level supergroup: [a:[b,c], b:[c], c:[d]]
         let children = parents.leafNodes();
-        var topParents = _.filter(parents, function(parent) {
+        var topParents = _.filter(parents, function(parent, pi) {
+            /*
+            if (pi == 301 || parents[302].children[1] != 40941091 ||parents[304].children.length > 1) {
+              debugger;
+            }
+             */
             // a and b are parents
-            let childFormOfParent = children.filter(c => c+'' == parent+'');
+            let parentIsAlsoChild = false;
+            children.forEach((cp, ci) => {
+                if (cp+'' != parent+'') {
+                    return;
+                }
+                parentIsAlsoChild = true;
+                // replace child form with parent (so, in place of child is the same item but with its own children)
+                // first in the overall child list (from running parents.leafNodes() above)
+                children[ci] = parent;
+                // then in the parent list of cp
+                cp.parentList.forEach((pc, pci) => {
+                    if (pc+'' == cp+'') {
+                        cp.parentList[pci] = parent;
+                        // now fix the parent to act like the child it now is
+                        parent.parentList = cp.parentList;
+                        parent.parent = cp.parent;
+                        parent.fixDepth(cp.depth);
+                    }
+                })
+            });
             // a does not show up in children, b does
             // we want to take b (as parent)'s children and
             // make them the children of b (as child)
-            if (childFormOfParent.length) {
-              for (let cp of childFormOfParent) {
-                // [b/c] is the parent, the b in [a/b] is cp
-                // were going to replace cp in a's children list with parent (b/c)
-                for (let i = 0; i < cp.children.length; i++) {
-                  if (cp+'' == parent.children[i]+'') {
-                    parent.children[i] = cp;
-                    pc.depth = parent.depth + 1;
-                  }
-                }
-              }
-              return false; // this no longer needs to be a top parent because it now appears as a child
-            } else {
-              return parent;
-            }
+            return !parentIsAlsoChild;  // if true, exclude from top parent list
         });
         return sg.addSupergroupMethods(topParents);
     };
