@@ -675,6 +675,7 @@ var supergroup = (function() {
     // FROM vocab-pop
     Value.prototype.clone = function() {
       // just throwing together quick...need to look at later
+      debugger;
       let newVal = makeValue(this)
       _.extend(newVal, _.cloneDeep(this))
       if (this.hasChildren()) {
@@ -982,7 +983,10 @@ var supergroup = (function() {
                 // then in the parent list of cp
                 cp.parentList.forEach((pc, pci) => {
                     if (pc+'' == cp+'') {
-                        cp.parentList[pci] = parent;
+                        // put parent in place of child -- but a clone of parent, not a reference to original parent
+                        // which could appear in multiple places
+                        cp.parentList[pci] = parent.clone();  // takes forever. need another approach
+                        console.log("maybe hierarchicalTableToTree can never work because it takes too much memory and time");
                         // now fix the parent to act like the child it now is
                         parent.parentList = cp.parentList;
                         parent.parent = cp.parent;
