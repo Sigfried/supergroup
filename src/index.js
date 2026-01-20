@@ -23,7 +23,7 @@ import {
   createAggregator,
   calculatePct,
   multiValuedGroupBy,
-  flatToTree
+  findRootNodes
 } from './utils/groupHelpers.js';
 
 export {
