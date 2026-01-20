@@ -3,25 +3,40 @@
   "version": "2.0.0",
   "description": "Nested groups on arrays of objects where groups are Strings that know what you want them to know about themselves and their relatives. Now with Vue.js composables!",
   "main": "supergroup.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
   "type": "module",
   "exports": {
     ".": {
-      "import": "./src/index.js",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
       "require": "./supergroup.cjs"
     },
     "./composables": {
-      "import": "./src/index.js"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     },
     "./legacy": {
       "require": "./supergroup.cjs"
     }
   },
   "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
     "test": "vows test/*.cjs --spec",
     "test:composables": "node test/composables.test.js",
     "test:all": "npm run test && npm run test:composables",
-    "debug": "node --inspect --debug-brk test/supergroup_vows.cjs"
+    "debug": "node --inspect --debug-brk test/supergroup_vows.cjs",
+    "prepublishOnly": "npm run build"
   },
+  "files": [
+    "dist",
+    "src",
+    "supergroup.cjs",
+    "README.md",
+    "COMPOSABLES.md",
+    "LICENSE"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/Sigfried/supergroup.git"
@@ -59,7 +74,10 @@
     }
   },
   "devDependencies": {
+    "@types/lodash": "^4.17.23",
+    "@types/node": "^25.0.9",
     "jasmine": "^2.2.1",
+    "typescript": "^5.9.3",
     "vows": "^0.8.1",
     "vue": "^3.5.27",
     "xhr2": "^0.1.3"

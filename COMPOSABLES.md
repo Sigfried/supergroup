@@ -1,6 +1,60 @@
 # Supergroup Vue Composables
 
-A modular, reactive grouping utility for Vue.js applications. Provides powerful data grouping and hierarchical organization with Vue 3's Composition API.
+A modular, reactive grouping utility for Vue.js applications with **full TypeScript support**. Provides powerful data grouping and hierarchical organization with Vue 3's Composition API and strong typing.
+
+## TypeScript Support
+
+Supergroup is written in TypeScript and provides complete type definitions out of the box. All composables are **fully typed with generics** that infer types from your data:
+
+```typescript
+import { ref } from 'vue';
+import { useGrouping } from 'supergroup/composables';
+
+// Define your record type
+interface Employee {
+  name: string;
+  department: string;
+  salary: number;
+  role: string;
+}
+
+const employees = ref<Employee[]>([
+  { name: 'Alice', department: 'Engineering', salary: 120000, role: 'Developer' },
+  { name: 'Bob', department: 'Engineering', salary: 150000, role: 'Lead' },
+  { name: 'Carol', department: 'Sales', salary: 90000, role: 'Rep' }
+]);
+
+// Full type inference - grouping knows about Employee type!
+const grouping = useGrouping(employees, 'department');
+
+// TypeScript knows the structure
+const engineering = grouping.lookup('Engineering');
+// engineering is typed as GroupValue<Employee> | undefined
+
+// Field access is type-checked
+const avgSalary = engineering?.aggregate(
+  (values) => values.reduce((a, b) => a + b, 0) / values.length,
+  'salary' // TypeScript ensures 'salary' is a valid field
+);
+```
+
+### Type-Safe Dimensions
+
+Dimensions are type-checked to ensure they match your record type:
+
+```typescript
+// ✅ Valid - 'department' is a key of Employee
+useGrouping(employees, 'department');
+
+// ✅ Valid - function returning string/number
+useGrouping(employees, (emp) => emp.role);
+
+// ✅ Valid - array of dimensions
+useGrouping(employees, ['department', 'role']);
+
+// ❌ TypeScript Error - 'invalid' is not a key of Employee
+useGrouping(employees, 'invalid');
+```
 
 ## Installation
 

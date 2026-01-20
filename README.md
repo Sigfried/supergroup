@@ -1,7 +1,7 @@
 Supergroup
 ==========
 
-> **🎉 New in v2.0:** Vue 3 Composables! See [COMPOSABLES.md](COMPOSABLES.md) for the new reactive, modular API.
+> **🎉 New in v2.0:** Vue 3 Composables with Full TypeScript Support! See [COMPOSABLES.md](COMPOSABLES.md) for the new reactive, modular API.
 
 Supergroup performs single- or multi-level grouping on collections of records. It provides a host of utility and convenience methods on the returned array of group values as well as on each of these specific group values. If a multi-level grouping is performed, each value's `children` array also acts as a Supergroup list.
 
@@ -13,24 +13,31 @@ npm install supergroup
 
 ## Two Ways to Use Supergroup
 
-### 1. Vue 3 Composables (New! ✨)
+### 1. Vue 3 Composables (New! ✨ TypeScript ✨)
 
-Modern, reactive, modular API for Vue.js applications:
+Modern, reactive, **strongly-typed** API for Vue.js applications:
 
-```javascript
+```typescript
 import { ref } from 'vue';
 import { useGrouping, useGroupList } from 'supergroup/composables';
 
-const data = ref([
-  { name: 'Alice', dept: 'Engineering' },
-  { name: 'Bob', dept: 'Sales' }
+interface MyRecord {
+  name: string;
+  dept: string;
+  value: number;
+}
+
+const data = ref<MyRecord[]>([
+  { name: 'Alice', dept: 'Engineering', value: 100 },
+  { name: 'Bob', dept: 'Sales', value: 200 }
 ]);
 
+// Type inference - grouping is typed to MyRecord
 const grouping = useGrouping(data, 'dept');
 const list = useGroupList(grouping.grouped);
 
-// Reactive!
-data.value.push({ name: 'Carol', dept: 'Engineering' });
+// Reactive and type-safe!
+data.value.push({ name: 'Carol', dept: 'Engineering', value: 150 });
 ```
 
 **[📖 Full Composables Documentation](COMPOSABLES.md)**
