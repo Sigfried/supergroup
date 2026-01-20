@@ -1,10 +1,24 @@
 {
   "name": "supergroup",
-  "version": "1.1.9",
-  "description": "Nested groups on arrays of objects where groups are Strings that know what you want them to know about themselves and their relatives.",
+  "version": "2.0.0",
+  "description": "Nested groups on arrays of objects where groups are Strings that know what you want them to know about themselves and their relatives. Now with Vue.js composables!",
   "main": "supergroup.js",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./src/index.js",
+      "require": "./supergroup.js"
+    },
+    "./composables": {
+      "import": "./src/index.js"
+    },
+    "./legacy": {
+      "require": "./supergroup.js"
+    }
+  },
   "scripts": {
     "test": "vows test/*.js --spec",
+    "test:composables": "node test/composables.test.js",
     "debug": "node --inspect --debug-brk test/supergroup_vows.js"
   },
   "repository": {
@@ -20,7 +34,11 @@
     "convenience",
     "readability",
     "data",
-    "hierarchy"
+    "hierarchy",
+    "vue",
+    "vue3",
+    "composables",
+    "reactive"
   ],
   "author": "Sigfried Gold",
   "license": "MIT",
@@ -31,9 +49,18 @@
   "dependencies": {
     "lodash": "^4.17.4"
   },
+  "peerDependencies": {
+    "vue": "^3.0.0"
+  },
+  "peerDependenciesMeta": {
+    "vue": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "jasmine": "^2.2.1",
     "vows": "^0.8.1",
+    "vue": "^3.5.27",
     "xhr2": "^0.1.3"
   }
 }
