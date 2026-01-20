@@ -3,7 +3,7 @@
  * Provides reactive grouping functionality
  */
 
-import { ref, computed, unref, toValue } from 'vue';
+import { ref, computed, unref, toValue, isRef } from 'vue';
 import _ from 'lodash';
 import { 
   isNumericGroup, 
@@ -19,10 +19,10 @@ import {
  * @returns {Object} Reactive grouping result with helper methods
  */
 export function useGrouping(records, dimensions, options = {}) {
-  // Convert to refs for reactivity
-  const recordsRef = ref(unref(records));
-  const dimensionsRef = ref(unref(dimensions));
-  const optionsRef = ref(unref(options));
+  // Keep reactivity by checking if already a ref
+  const recordsRef = isRef(records) ? records : ref(records);
+  const dimensionsRef = isRef(dimensions) ? dimensions : ref(dimensions);
+  const optionsRef = isRef(options) ? options : ref(options);
 
   /**
    * Core grouping logic for single dimension

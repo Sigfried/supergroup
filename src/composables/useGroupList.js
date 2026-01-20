@@ -3,26 +3,33 @@
  * Provides lookup, sorting, aggregation, and navigation
  */
 
-import { computed, ref, unref } from 'vue';
+import { computed, ref, unref, isRef } from 'vue';
 import _ from 'lodash';
 
 /**
  * Group list composable
- * @param {Object} groupResult - Result from useGrouping
+ * @param {Object} groupResult - Result from useGrouping (can be a computed ref)
  * @returns {Object} List operations and utilities
  */
 export function useGroupList(groupResult) {
-  const group = unref(groupResult);
+  // Keep reactivity - if it's a ref, use it directly
+  const groupRef = isRef(groupResult) ? groupResult : ref(groupResult);
 
   /**
    * Get values array
    */
-  const values = computed(() => group.values || []);
+  const values = computed(() => {
+    const group = groupRef.value;
+    return group.values || [];
+  });
 
   /**
    * Get child property name
    */
-  const childProp = group.childProp || 'children';
+  const childProp = computed(() => {
+    const group = groupRef.value;
+    return group.childProp || 'children';
+  });
 
   /**
    * Lookup single value
@@ -40,7 +47,7 @@ export function useGroupList(groupResult) {
       let result = singleLookup(query[0]);
       
       for (let i = 1; i < query.length && result; i++) {
-        const children = result[childProp];
+        const children = result[childProp.value];
         if (!children) break;
         result = children.find(v => v.value == query[i]);
       }
@@ -73,12 +80,13 @@ export function useGroupList(groupResult) {
    */
   const flattenTree = computed(() => {
     const result = [];
+    const prop = childProp.value;
     
     const flatten = (vals) => {
       vals.forEach(val => {
         result.push(val);
-        if (val[childProp] && val[childProp].length > 0) {
-          flatten(val[childProp]);
+        if (val[prop] && val[prop].length > 0) {
+          flatten(val[prop]);
         }
       });
     };
@@ -91,8 +99,9 @@ export function useGroupList(groupResult) {
    * Get all leaf nodes
    */
   const leafNodes = computed(() => {
+    const prop = childProp.value;
     return flattenTree.value.filter(v => 
-      !v[childProp] || v[childProp].length === 0
+      !v[prop] || v[prop].length === 0
     );
   });
 
@@ -103,6 +112,7 @@ export function useGroupList(groupResult) {
     if (level === 0) return values.value;
     
     const result = [];
+    const prop = childProp.value;
     
     const traverse = (vals, currentLevel) => {
       if (currentLevel === level) {
@@ -111,8 +121,8 @@ export function useGroupList(groupResult) {
       }
       
       vals.forEach(v => {
-        if (v[childProp] && v[childProp].length > 0) {
-          traverse(v[childProp], currentLevel + 1);
+        if (v[prop] && v[prop].length > 0) {
+          traverse(v[prop], currentLevel + 1);
         }
       });
     };
@@ -180,12 +190,14 @@ export function useGroupList(groupResult) {
    * Convert to D3 nest entries format
    */
   const toD3Entries = () => {
+    const prop = childProp.value;
+    
     const convert = (vals) => {
       return vals.map(val => {
-        if (val[childProp] && val[childProp].length > 0) {
+        if (val[prop] && val[prop].length > 0) {
           return {
             key: String(val.value),
-            values: convert(val[childProp])
+            values: convert(val[prop])
           };
         }
         return {
@@ -202,13 +214,15 @@ export function useGroupList(groupResult) {
    * Convert to D3 nest map format
    */
   const toD3Map = () => {
+    const prop = childProp.value;
+    
     const convert = (vals) => {
       const result = {};
       
       vals.forEach(val => {
         const key = String(val.value);
-        if (val[childProp] && val[childProp].length > 0) {
-          result[key] = convert(val[childProp]);
+        if (val[prop] && val[prop].length > 0) {
+          result[key] = convert(val[prop]);
         } else {
           result[key] = [...val.records];
         }
@@ -224,13 +238,16 @@ export function useGroupList(groupResult) {
    * Create root value wrapper
    */
   const asRootVal = (name = 'Root', dimName = 'root') => {
+    const prop = childProp.value;
+    const group = groupRef.value;
+    
     const rootVal = {
       value: name,
       dim: dimName,
       depth: 0,
       records: group.records,
       parent: null,
-      [childProp]: values.value
+      [prop]: values.value
     };
 
     // Update children to reference new root
@@ -239,8 +256,8 @@ export function useGroupList(groupResult) {
       // Update all descendant depths
       const updateDepth = (val, increment) => {
         val.depth += increment;
-        if (val[childProp]) {
-          val[childProp].forEach(child => updateDepth(child, increment));
+        if (val[prop]) {
+          val[prop].forEach(child => updateDepth(child, increment));
         }
       };
       updateDepth(v, 1);
@@ -253,6 +270,8 @@ export function useGroupList(groupResult) {
    * Get summary string for debugging
    */
   const summary = (depth = 0) => {
+    const group = groupRef.value;
+    const prop = childProp.value;
     const indent = '    '.repeat(depth);
     const dim = group.dim || 'unknown';
     const vals = values.value.length;
@@ -265,9 +284,9 @@ export function useGroupList(groupResult) {
       const valIndent = '    '.repeat(depth + 1);
       lines.push(`${valIndent}${val.value}, ${valRecs} recs`);
       
-      if (val[childProp] && val[childProp].length > 0) {
+      if (val[prop] && val[prop].length > 0) {
         // Recursively summarize children
-        lines.push(`${valIndent}has ${val[childProp].length} children`);
+        lines.push(`${valIndent}has ${val[prop].length} children`);
       }
     });
 

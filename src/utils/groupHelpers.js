@@ -53,10 +53,8 @@ export function createDimPath(val, opts = {}) {
  * Create aggregation function
  */
 export function createAggregator(records, func, field) {
-  if (_.isFunction(field)) {
-    return func(_.map(records, field));
-  }
-  return func(_.map(records, field));
+  const values = _.isFunction(field) ? _.map(records, field) : _.map(records, field);
+  return func(values);
 }
 
 /**
@@ -93,17 +91,14 @@ export function multiValuedGroupBy(recs, dimFunc) {
 }
 
 /**
- * Convert flat hierarchical data to tree structure
+ * Find root nodes from hierarchical data (nodes that are parents but not children)
  */
-export function flatToTree(data, parentProp, childProp) {
-  // Creates a tree from parent-child relationships
+export function findRootNodes(data, parentProp, childProp) {
   const byParent = _.groupBy(data, parentProp);
   const byChild = _.groupBy(data, childProp);
   
   // Find root nodes (appear as parent but not as child)
-  const roots = Object.keys(byParent).filter(
+  return Object.keys(byParent).filter(
     parent => !byChild[parent]
   );
-  
-  return roots;
 }

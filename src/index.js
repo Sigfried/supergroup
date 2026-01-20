@@ -37,7 +37,7 @@ export {
   createAggregator,
   calculatePct,
   multiValuedGroupBy,
-  flatToTree
+  findRootNodes
 };
 
 /**
