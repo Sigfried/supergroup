@@ -2,24 +2,25 @@
   "name": "supergroup",
   "version": "2.0.0",
   "description": "Nested groups on arrays of objects where groups are Strings that know what you want them to know about themselves and their relatives. Now with Vue.js composables!",
-  "main": "supergroup.js",
+  "main": "supergroup.cjs",
   "type": "module",
   "exports": {
     ".": {
       "import": "./src/index.js",
-      "require": "./supergroup.js"
+      "require": "./supergroup.cjs"
     },
     "./composables": {
       "import": "./src/index.js"
     },
     "./legacy": {
-      "require": "./supergroup.js"
+      "require": "./supergroup.cjs"
     }
   },
   "scripts": {
-    "test": "vows test/*.js --spec",
+    "test": "vows test/*.cjs --spec",
     "test:composables": "node test/composables.test.js",
-    "debug": "node --inspect --debug-brk test/supergroup_vows.js"
+    "test:all": "npm run test && npm run test:composables",
+    "debug": "node --inspect --debug-brk test/supergroup_vows.cjs"
   },
   "repository": {
     "type": "git",
