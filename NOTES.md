@@ -156,3 +156,64 @@ Chronological lineage (all public repos under `Sigfried`):
   (the copilot branch's Vue composables) separate, if at all.
 - Open questions: DAG support in core vs follow-on; exact d3 interop; whether
   lifeflow/sequence-viz revival drives requirements (its ISSUES.md as input).
+- d3 interop resolved: explicit `.toD3()` conversion, not duck-typed
+  compatibility — d3 layouts mutate their nodes, and DAG→d3.hierarchy
+  necessarily picks an unfolding, which needs an explicit call site.
+
+## What consumers actually need (code dives, 2026-07-09)
+
+### lifeflow / sequence-viz
+
+- Never uses fixed-dimension-list grouping. The sequence tree is iterated
+  single-dim grouping where each level first maps records to their successor
+  (`next()`/`prev()`) and then groups by event name — implemented by abusing
+  `preGroupRecsHook` as a graph walk (lifeflowData.js:17-23) because the
+  library has no native successor grouping.
+- enlightened-data's own `recurse` option is commented out ("moving recursion
+  out to the caller"); lifeflow hand-rolls recursion (`addChildren`) plus a
+  fabricated synthetic root.
+- Heavily used: `.records`/counts on every node; `namePath`/`pedigree`/
+  `flattenTree` (D3 join keys, tooltips); `lookup`. Never used: `aggregate`,
+  `compare`/`diffGroup`. No moment.js anywhere (plain Date arithmetic).
+- Required of a modern supergroup: working recursive tree grouping with
+  optional synthetic root; first-class successor/sequence grouping including
+  backward direction (align-by-end/middle builds both directions from an
+  anchor; `backwards` honored by path methods); records+counts per node;
+  path APIs + flatten; lookup that doesn't fight `Object.freeze`; sorts that
+  return group-typed collections. Nice-to-have: per-node agg (count/mean over
+  an accessor), ordered-children option, per-record values alongside
+  aggregates.
+
+### DAG consumers (dag-browser-widget, vs-hub, icd11-playground)
+
+- **None of the three uses supergroup.** All hand-roll the same stack:
+  edge-list→adjacency graph (or graphology); DAG→tree unfolding (one row per
+  root-to-node path, multi-parent nodes repeat); per-OCCURRENCE expansion
+  state + visible-row sweep; union-deduped descendant closure and counts;
+  depth/height assignment; induced-subgraph extraction.
+- dag-browser-widget already IS the extractable display-structure library
+  (unfolding, occurrence bookkeeping, visibility); vs-hub and
+  icd11-playground each duplicate much of it.
+- Where records meet the DAG — supergroup's actual opening: vs-hub's `drc`
+  rollup = union descendant set, then sum patient counts
+  (GraphState.jsx:494-550) — union-then-sum, never sum-over-paths; plus
+  value-set comparison over the hierarchy (the `compare`/`diffGroup`
+  lineage's natural modern home).
+- Shared scaling risk: eager full unfolding (vs-hub gates expandAll at 2000
+  rows; icd11 materializes ~200K rows from 69K nodes and precomputes metrics
+  offline in Python). The core must not eagerly materialize path-rows.
+
+### Emerging factoring (proposal, not settled)
+
+- supergroup v2 = the **records layer**: a small node model (label,
+  `.records`, parents **plural**, children) + constructors —
+  `groupBy(records, dims)`, `groupBySequence(records, {step, backwards})`,
+  `fromParentIds(nodes)` / `fromParentChild(table)` — plus navigation,
+  union-safe aggregation (count / agg-over-accessor / weighted
+  union-then-sum), and `compare()`. Explicit adapters out: `.toD3()`,
+  `.toDagBrowserNodes()`, maybe `.toGraphology()`.
+- No display state in core (drop the old `State` class); expansion/
+  visibility/occurrences stay in dag-browser-widget.
+- Parents-plural is the one DAG-enabling decision in the core; graph-structure
+  operations beyond that stay in dag-browser-widget/graphology rather than
+  being duplicated here.
