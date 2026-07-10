@@ -203,6 +203,26 @@ Chronological lineage (all public repos under `Sigfried`):
   rows; icd11 materializes ~200K rows from 69K nodes and precomputes metrics
   offline in Python). The core must not eagerly materialize path-rows.
 
+### dynamic-model-var-docs (BDCHM/LinkML schema browser; Focus view)
+
+- **Already a dag-browser-widget consumer**: the Focus view's containment
+  digraph is DBW (`dag-browser-widget@^0.2.0`), fed by a hand-written
+  `{id, name, parentIds}` adapter (`DataService.getContainmentNodes`). A
+  shipped `.toDagBrowserNodes()` adapter replaces code it maintains today.
+- The containment graph is poly-parent **and cyclic** (real self-loops, e.g.
+  `ResearchStudy part_of ResearchStudy`) — so the edge-table constructor must
+  accept general digraphs and mark back-edges (as DBW does), not assume
+  acyclicity.
+- Genuine unbuilt-feature fit: group-by-dims for the category selector and
+  the deferred per-entity nesting panel ("group flat elements by facet,
+  render expandable tree with `.records`").
+- No consumer for: rollup aggregation, compare, d3 adapter, sequence
+  grouping. Class inheritance there is single-parent and shallow (solved
+  trivially). The fragile part — the FK-inversion heuristic deriving
+  containment from the schema — is domain logic supergroup can't own.
+- Verdict: don't block dmvd work on supergroup; adopt the adapter + nesting
+  once v2 exists.
+
 ### Emerging factoring (proposal, not settled)
 
 - supergroup v2 = the **records layer**: a small node model (label,
