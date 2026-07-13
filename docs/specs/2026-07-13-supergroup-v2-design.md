@@ -136,7 +136,8 @@ fromParentChild(rows,           // successor to hierarchicalTableToTree;
 ```
 
 Cycle discipline (dag-browser-widget's, adopted wholesale): roots =
-in-degree-0 nodes, plus one synthetic root promoted per rootless cycle region
+in-degree-0 nodes, plus, per rootless cycle region,
+its first member (input order) promoted to a root
 so nothing vanishes; edges that would close a cycle are recorded in
 `sg.backedges` (`{parent, child}[]`, self-loops included) and excluded from
 `children`/`parents` traversal, so all traversals terminate.
@@ -145,9 +146,9 @@ Records attach via constructor option `{records, recordKey}` or post-hoc
 `attachRecords(sg, records, byKey)` — nodes without records get `records: []`.
 
 DAG extras: per-node `maxDepth` (longest path from a root) and `height`
-(longest path to a leaf), computed eagerly; `sg.subgraph(ids)` — induced
-sub-DAG over a node set (the vs-hub value-set case), returning a new
-collection.
+(longest path to a leaf), computed eagerly; `subgraph(sg, ids)` (supergroup/dag) — induced sub-DAG over a node set
+(the vs-hub value-set case), returning a new collection. A function, not
+a method, so the core module stays dag-free.
 
 Scaling rule: the core never materializes path-rows (one row per
 root-to-node path). That eager unfolding is the shared scaling risk found in
