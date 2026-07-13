@@ -87,10 +87,16 @@ export class SGNode<R> {
     return out
   }
 
-  path(): unknown[] { return this.pedigree().filter(n => !n.synthetic).map(n => n.key) }
+  path(): unknown[] {
+    const keys = this.pedigree().filter(n => !n.synthetic).map(n => n.key)
+    if (this.direction === 'backward') keys.reverse()
+    return keys
+  }
 
   namePath(sep = '/'): string {
-    return this.pedigree().filter(n => !n.synthetic).map(n => n.label).join(sep)
+    const labels = this.pedigree().filter(n => !n.synthetic).map(n => n.label)
+    if (this.direction === 'backward') labels.reverse()
+    return labels.join(sep)
   }
 
   agg(accessor: (r: R) => number): Agg { return aggregate(this.records, accessor) }

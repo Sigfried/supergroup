@@ -29,3 +29,24 @@ describe('groupBySequence forward', () => {
       .toThrow(/requires a next accessor/)
   })
 })
+
+describe('groupBySequence backward', () => {
+  const all = makeTimelines(TL)
+  const ends = all.filter(e => !e.next)
+  const sg = groupBySequence(ends, {
+    key: (e: Evt) => e.evt, prev: e => e.prev, direction: 'backward',
+  })
+
+  it('groups predecessors level by level', () => {
+    expect(sg.roots.map(n => [n.label, n.records.length])).toEqual([['C', 3]])
+    const c = sg.roots[0]!
+    expect(c.children.map(n => [n.label, n.records.length])).toEqual([['B', 2], ['A', 1]])
+    expect(c.direction).toBe('backward')
+  })
+  it('path/namePath are temporal (reversed); pedigree stays structural', () => {
+    const cba = sg.node(['C', 'B', 'A'])!
+    expect(cba.pedigree().map(n => n.label)).toEqual(['C', 'B', 'A'])
+    expect(cba.namePath()).toBe('A/B/C')
+    expect(cba.path()).toEqual(['A', 'B', 'C'])
+  })
+})
