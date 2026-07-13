@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { compare } from '../src/compare/index'
 import { supergroup } from '../src/group'
+import { fromParentIds } from '../src/dag/constructors'
 import { RXS, type Rx } from './fixtures'
 
 // b: drop SNOMED, add LOINC, add one RxNorm Drug record
@@ -33,5 +34,25 @@ describe('compare (by path)', () => {
     expect(sg.node('RxNorm/Drug')!.depth).toBe(1)
     expect(sg.node('RxNorm/Drug')!.namePath()).toBe('RxNorm/Drug')
     expect(sg.nodes.length).toBeGreaterThan(5)
+  })
+})
+
+describe('compare (by id, dag)', () => {
+  const DIAMOND = [
+    { id: 'A' }, { id: 'B', parentIds: ['A'] },
+    { id: 'C', parentIds: ['A'] }, { id: 'D', parentIds: ['B', 'C'] },
+  ]
+  const NO_C = [
+    { id: 'A' }, { id: 'B', parentIds: ['A'] }, { id: 'D', parentIds: ['B'] },
+  ]
+
+  it('multi-parent nodes merge once, membership per node', () => {
+    const sg = compare(fromParentIds(DIAMOND), fromParentIds(NO_C), { by: 'id' })
+    const byId = new Map(sg.nodes.map(n => [n.id, n]))
+    expect(sg.nodes).toHaveLength(4)                      // A, B, C, D — D once
+    expect(byId.get('A/B/D'), 'id-mode uses source ids, not paths').toBeUndefined()
+    expect(byId.get('D')!.cmp!.in).toBe('both')
+    expect(byId.get('C')!.cmp!.in).toBe('a')
+    expect(byId.get('D')!.parents.map(p => p.id).sort()).toEqual(['B', 'C'])
   })
 })
