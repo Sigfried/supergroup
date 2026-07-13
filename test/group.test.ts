@@ -42,3 +42,11 @@ describe('supergroup() single dim', () => {
     expect(sg.roots.map(n => n.label)).toEqual(['Drug', 'Procedure', 'Condition'])
   })
 })
+
+describe('supergroup() multi-dim', () => {
+  it('multi-dim grouping', () => {
+    const sg = supergroup(RXS, ['vocab', 'domain'])
+    expect(sg.node('b')).toBeUndefined()
+    expect(sg.node('RxNorm/Drug')!.records).toHaveLength(2)
+  })
+})

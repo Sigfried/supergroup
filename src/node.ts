@@ -1,4 +1,6 @@
 import { recordsUnder } from './selection'
+import { regroupNode, type GroupOpts } from './group'
+import type { DimInput } from './dims'
 
 export interface SGContext { totalRecords: number }
 
@@ -96,6 +98,10 @@ export class SGNode<R> {
   rollup(accessor?: (r: R) => number): { count: number } & Partial<Agg> {
     const recs = recordsUnder([this])
     return accessor ? aggregate(recs, accessor) : { count: recs.length }
+  }
+
+  groupChildren(dim: DimInput<R>, opts?: GroupOpts<R>): SGNode<R>[] {
+    return regroupNode(this, dim, opts)
   }
 }
 

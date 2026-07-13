@@ -49,6 +49,13 @@ export function groupLevel<R>(
   return level
 }
 
+export function regroupNode<R>(node: SGNode<R>, dim: DimInput<R>, opts: GroupOpts<R> = {}): SGNode<R>[] {
+  const [nd] = normalizeDims([dim])
+  node.children = []
+  const prefix = node.synthetic ? '' : `${node.id}/`
+  return groupLevel(node.records, nd!, node, node.ctx, node.depth + 1, prefix, opts)
+}
+
 export function supergroup<R>(
   records: R[],
   dims: DimInput<R> | DimInput<R>[],

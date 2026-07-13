@@ -34,4 +34,25 @@ export class Supergroup<R> {
   }
 
   flatten(): SGNode<R>[] { return this.nodes }
+
+  node(path: string | unknown[]): SGNode<R> | undefined {
+    const segs = typeof path === 'string' ? path.split('/') : path
+    let level = this.roots
+    let found: SGNode<R> | undefined
+    for (const seg of segs) {
+      found = level.find(n => n.key === seg || String(n.key) === String(seg))
+      if (!found) return undefined
+      level = found.children
+    }
+    return found
+  }
+
+  select(arg: ((n: SGNode<R>) => boolean) | unknown[]): SGNode<R>[] {
+    if (typeof arg === 'function') return this.nodes.filter(n => arg(n))
+    const wanted = new Set(arg.map(String))
+    return this.nodes.filter(n => wanted.has(n.id) || wanted.has(String(n.key)))
+  }
+
+  /** refresh the DFS node index after post-construction structural edits */
+  reindex(): void { this.nodes = this.computeNodes() }
 }
