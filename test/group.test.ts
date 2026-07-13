@@ -21,6 +21,12 @@ describe('supergroup() single dim', () => {
     expect(sg.roots[0]!.key).toBeInstanceOf(Date)
     expect(sg.roots[0]!.records).toHaveLength(2)
   })
+  it('invalid Dates do not crash grouping and bucket together', () => {
+    const recs = [{ d: new Date('nope') }, { d: new Date(NaN) }]
+    const sg = supergroup(recs, [(r: { d: Date }) => r.d])
+    expect(sg.roots).toHaveLength(1)
+    expect(sg.roots[0]!.records).toHaveLength(2)
+  })
   it('excludeValues skips keys', () => {
     const sg = supergroup(RXS, ['vocab'], { excludeValues: ['SNOMED'] })
     expect(sg.roots.map(n => n.label)).toEqual(['RxNorm'])
