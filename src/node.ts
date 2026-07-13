@@ -14,6 +14,7 @@ export interface SGNodeInit<R> {
   records?: R[]
   depth?: number
   synthetic?: boolean
+  direction?: 'forward' | 'backward'
   ctx: SGContext
 }
 
@@ -27,6 +28,7 @@ export class SGNode<R> {
   children: SGNode<R>[] = []
   depth: number
   synthetic?: boolean
+  direction?: 'forward' | 'backward'
   maxDepth?: number   // dag module fills these
   height?: number
   ctx: SGContext
@@ -39,6 +41,7 @@ export class SGNode<R> {
     this.records = init.records ?? []
     this.depth = init.depth ?? 0
     this.synthetic = init.synthetic
+    this.direction = init.direction
     this.ctx = init.ctx
   }
 
