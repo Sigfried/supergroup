@@ -6,6 +6,13 @@ export interface SGContext { totalRecords: number }
 
 export interface Agg { count: number; sum: number; mean: number; min: number; max: number }
 
+export interface CmpInfo<R> {
+  in: 'a' | 'b' | 'both'
+  a?: SGNode<R>
+  b?: SGNode<R>
+  countDelta: number
+}
+
 export interface SGNodeInit<R> {
   id: string
   key: unknown
@@ -31,6 +38,7 @@ export class SGNode<R> {
   direction?: 'forward' | 'backward'
   maxDepth?: number   // dag module fills these
   height?: number
+  cmp?: CmpInfo<R>
   ctx: SGContext
 
   constructor(init: SGNodeInit<R>) {
