@@ -1,4 +1,8 @@
+import { recordsUnder } from './selection'
+
 export interface SGContext { totalRecords: number }
+
+export interface Agg { count: number; sum: number; mean: number; min: number; max: number }
 
 export interface SGNodeInit<R> {
   id: string
@@ -83,4 +87,26 @@ export class SGNode<R> {
   namePath(sep = '/'): string {
     return this.pedigree().filter(n => !n.synthetic).map(n => n.label).join(sep)
   }
+
+  agg(accessor: (r: R) => number): Agg { return aggregate(this.records, accessor) }
+
+  pct(): number { return this.records.length / this.ctx.totalRecords }
+
+  /** union-then-aggregate over this node and all descendants; never sum-over-paths */
+  rollup(accessor?: (r: R) => number): { count: number } & Partial<Agg> {
+    const recs = recordsUnder([this])
+    return accessor ? aggregate(recs, accessor) : { count: recs.length }
+  }
+}
+
+function aggregate<R>(records: R[], accessor: (r: R) => number): Agg {
+  let sum = 0, min = Infinity, max = -Infinity
+  for (const r of records) {
+    const v = accessor(r)
+    sum += v
+    if (v < min) min = v
+    if (v > max) max = v
+  }
+  const count = records.length
+  return { count, sum, mean: count ? sum / count : NaN, min: count ? min : NaN, max: count ? max : NaN }
 }
