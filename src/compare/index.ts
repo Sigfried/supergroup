@@ -1,14 +1,17 @@
 import { SGNode, type SGContext } from '../node'
 import { Supergroup } from '../collection'
+import { mapKey } from '../group'
 
 export interface CompareOpts { by?: 'path' | 'id' }
 
 export function compare<R>(a: Supergroup<R>, b: Supergroup<R>, opts: CompareOpts = {}): Supergroup<R> {
   const matchKey = opts.by === 'id'
     ? (n: SGNode<R>) => n.id
-    : (n: SGNode<R>) => String(n.key)
+    : (n: SGNode<R>) => String(mapKey(n.key))
   const ctx: SGContext = { totalRecords: a.ctx.totalRecords + b.ctx.totalRecords }
   const memo = opts.by === 'id' ? new Map<string, SGNode<R>>() : null
+  const aById = opts.by === 'id' ? new Map(a.nodes.map(n => [n.id, n])) : null
+  const bById = opts.by === 'id' ? new Map(b.nodes.map(n => [n.id, n])) : null
 
   const mergeLevel = (
     aNodes: SGNode<R>[], bNodes: SGNode<R>[],
@@ -19,12 +22,16 @@ export function compare<R>(a: Supergroup<R>, b: Supergroup<R>, opts: CompareOpts
     for (const n of aNodes) {
       const k = matchKey(n)
       if (!pairs.has(k)) { pairs.set(k, {}); order.push(k) }
-      pairs.get(k)!.a = n
+      const p = pairs.get(k)!
+      if (p.a) throw new Error(`compare: duplicate match key '${k}' within one collection's level — keys must be unique per level (disambiguate or use by: 'id')`)
+      p.a = n
     }
     for (const n of bNodes) {
       const k = matchKey(n)
       if (!pairs.has(k)) { pairs.set(k, {}); order.push(k) }
-      pairs.get(k)!.b = n
+      const p = pairs.get(k)!
+      if (p.b) throw new Error(`compare: duplicate match key '${k}' within one collection's level — keys must be unique per level (disambiguate or use by: 'id')`)
+      p.b = n
     }
     return order.map(k => {
       const done = memo?.get(k)
@@ -32,13 +39,15 @@ export function compare<R>(a: Supergroup<R>, b: Supergroup<R>, opts: CompareOpts
         if (parent && !done.parents.includes(parent)) done.parents.push(parent)
         return done
       }
-      const { a: an, b: bn } = pairs.get(k)!
+      const pair = pairs.get(k)!
+      const an = aById ? aById.get(k) : pair.a
+      const bn = bById ? bById.get(k) : pair.b
       const src = (an ?? bn)!
       const node = new SGNode<R>({
         // id mode: the match key IS the source id — keep it, no path prefix
         id: memo ? k : prefix + String(src.key),
-        key: src.key, label: src.label, dim: src.dim,
-        records: [...(an?.records ?? []), ...(bn?.records ?? [])], depth, ctx,
+        key: src.key, label: src.label, dim: src.dim, direction: src.direction,
+        records: [...new Set([...(an?.records ?? []), ...(bn?.records ?? [])])], depth, ctx,
       })
       node.cmp = {
         in: an && bn ? 'both' : an ? 'a' : 'b',

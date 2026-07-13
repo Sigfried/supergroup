@@ -8,7 +8,7 @@ export interface GroupOpts<R> {
 }
 
 /** Map-identity form of a key: Dates compare by value (es6-branch fix) */
-function mapKey(key: unknown): unknown {
+export function mapKey(key: unknown): unknown {
   return key instanceof Date ? ` date:${key.getTime()}` : key
 }
 

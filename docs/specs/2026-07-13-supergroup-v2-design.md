@@ -185,10 +185,13 @@ no children); backward nodes' `path()`/`namePath()` return temporal order
 `compare(a, b, opts?)` → a merged collection whose nodes carry
 `{in: 'a' | 'b' | 'both', a?: SGNode, b?: SGNode, countDelta: number}`.
 The `diffGroup` lineage; target use case is comparing two value sets over the
-same concept hierarchy. Nodes are matched by `String(key)` per level (`by: 'path'`, default) or by
-source id with a memo so multi-parent dag nodes merge once (`by: 'id'`);
-`countDelta` = b-count − a-count; merged nodes carry the `cmp` payload and
-union the two sides' records.
+same concept hierarchy. Nodes are matched per level by Date-aware
+stringified key (`by: 'path'`, default) or by source id with global
+pairing and a memo so multi-parent dag nodes merge once even when the
+two sides reach them via different parents (`by: 'id'`); duplicate
+match keys within one side's level throw; `countDelta` = b-count −
+a-count; merged nodes carry the `cmp` payload and `direction`, and
+their records are the identity-deduped union of both sides.
 
 ## adapters
 
