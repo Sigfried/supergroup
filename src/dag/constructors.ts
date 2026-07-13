@@ -1,16 +1,24 @@
 import { buildDag, type DagItem } from './build'
 import { computeMetrics } from './metrics'
+import { attachRecords } from './records'
 import type { Supergroup } from '../collection'
 
-export function fromParentIds<R>(items: DagItem[]): Supergroup<R> {
+export interface DagRecordOpts<R> {
+  records?: R[]
+  recordKey?: (r: R) => string | string[] | null | undefined
+}
+
+export function fromParentIds<R>(items: DagItem[], opts: DagRecordOpts<R> = {}): Supergroup<R> {
   const sg = buildDag<R>(items)
   computeMetrics(sg)
+  if (opts.records && opts.recordKey) attachRecords(sg, opts.records, opts.recordKey)
   return sg
 }
 
 export function fromEdges<R>(
   edges: [string, string][],
   nodes?: { id: string; name?: string }[],
+  opts: DagRecordOpts<R> = {},
 ): Supergroup<R> {
   const items = new Map<string, DagItem>()
   for (const n of nodes ?? []) items.set(n.id, { id: n.id, name: n.name, parentIds: [] })
@@ -23,7 +31,7 @@ export function fromEdges<R>(
     ensure(pid)
     ensure(cid).parentIds!.push(pid)
   }
-  return fromParentIds<R>([...items.values()])
+  return fromParentIds<R>([...items.values()], opts)
 }
 
 export function fromParentChild<R, Row>(
@@ -33,6 +41,7 @@ export function fromParentChild<R, Row>(
     child: string | ((row: Row) => unknown)
     label?: string | ((row: Row) => string)
   },
+  recordOpts: DagRecordOpts<R> = {},
 ): Supergroup<R> {
   const col = <T>(spec: string | ((row: Row) => T)) =>
     typeof spec === 'string' ? (row: Row) => (row as Record<string, unknown>)[spec] as T : spec
@@ -55,5 +64,5 @@ export function fromParentChild<R, Row>(
     ensure(pid)
     it.parentIds!.push(pid)
   }
-  return fromParentIds<R>([...items.values()])
+  return fromParentIds<R>([...items.values()], recordOpts)
 }

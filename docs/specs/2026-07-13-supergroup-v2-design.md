@@ -146,9 +146,10 @@ Records attach via constructor option `{records, recordKey}` or post-hoc
 `attachRecords(sg, records, byKey)` — nodes without records get `records: []`.
 
 DAG extras: per-node `maxDepth` (longest path from a root) and `height`
-(longest path to a leaf), computed eagerly; `subgraph(sg, ids)` (supergroup/dag) — induced sub-DAG over a node set
-(the vs-hub value-set case), returning a new collection. A function, not
-a method, so the core module stays dag-free.
+(longest path to a leaf), computed eagerly; `subgraph(sg, ids)`
+(supergroup/dag) — induced sub-DAG over a node set (the vs-hub value-set
+case), returning a new collection. A function, not a method, so the core
+module stays dag-free.
 
 Scaling rule: the core never materializes path-rows (one row per
 root-to-node path). That eager unfolding is the shared scaling risk found in

@@ -33,4 +33,9 @@ describe('attachRecords + union rollup', () => {
     expect(sg.select(['A'])[0]!.rollup().count).toBe(1)
     expect(sg.select(['A'])[0]!.rollup(r => r.n).sum).toBe(7)
   })
+  it('constructor option {records, recordKey} equals post-hoc attachRecords', () => {
+    const sg = fromParentIds<Pt>(DIAMOND, { records: [{ concept: 'D', n: 10 }], recordKey: r => r.concept })
+    expect(sg.select(['D'])[0]!.records).toHaveLength(1)
+    expect(sg.select(['A'])[0]!.rollup(r => r.n).sum).toBe(10)
+  })
 })

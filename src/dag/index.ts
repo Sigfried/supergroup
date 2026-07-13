@@ -1,6 +1,7 @@
 export { buildDag } from './build'
 export type { DagItem } from './build'
 export { fromParentIds, fromEdges, fromParentChild } from './constructors'
+export type { DagRecordOpts } from './constructors'
 export { computeMetrics } from './metrics'
 export { attachRecords } from './records'
 export { subgraph } from './subgraph'

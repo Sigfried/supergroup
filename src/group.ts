@@ -51,6 +51,7 @@ export function groupLevel<R>(
 
 export function regroupNode<R>(node: SGNode<R>, dim: DimInput<R>, opts: GroupOpts<R> = {}): SGNode<R>[] {
   const [nd] = normalizeDims([dim])
+  for (const c of node.children) c.parents = c.parents.filter(p => p !== node)
   node.children = []
   const prefix = node.synthetic ? '' : `${node.id}/`
   return groupLevel(node.records, nd!, node, node.ctx, node.depth + 1, prefix, opts)

@@ -26,4 +26,11 @@ describe('collection lookup and select', () => {
     sg2.reindex()
     expect(sg2.nodes).toHaveLength(before + 2)
   })
+  it('groupChildren unlinks discarded children (no stale parent pointers)', () => {
+    const sg2 = supergroup(RXS, ['vocab', 'domain'])
+    const rx = sg2.roots[0]!
+    const oldChild = rx.children[0]!
+    rx.groupChildren('name')
+    expect(oldChild.parents).not.toContain(rx)
+  })
 })
