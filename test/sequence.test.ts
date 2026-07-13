@@ -50,3 +50,30 @@ describe('groupBySequence backward', () => {
     expect(cba.path()).toEqual(['A', 'B', 'C'])
   })
 })
+
+describe('groupBySequence both + maxDepth', () => {
+  const all = makeTimelines(TL)
+
+  it("'both' hangs a forward and a backward tree under one synthetic root", () => {
+    const anchors = all.filter(e => e.evt === 'B')
+    const sg = groupBySequence(anchors, {
+      key: (e: Evt) => e.evt, next: e => e.next, prev: e => e.prev, direction: 'both',
+    })
+    expect(sg.root!.synthetic).toBe(true)
+    expect(sg.root!.children.map(c => [c.id, c.direction])).toEqual([
+      ['+B', 'forward'], ['-B', 'backward'],
+    ])
+    expect(sg.select(['+B/C'])[0]!.records).toHaveLength(2)
+    expect(sg.select(['-B/A'])[0]!.records).toHaveLength(1)
+    expect(sg.select(['-B/A'])[0]!.namePath()).toBe('A/B')
+  })
+  it('maxDepth stops growth at the given relative depth', () => {
+    const starts = all.filter(e => !e.prev)
+    const sg = groupBySequence(starts, {
+      key: (e: Evt) => e.evt, next: e => e.next, direction: 'forward', maxDepth: 1,
+    })
+    expect(sg.node('A/B')).toBeDefined()
+    expect(sg.node('A/B')!.children).toEqual([])
+    expect(sg.node('A/B/C')).toBeUndefined()
+  })
+})
