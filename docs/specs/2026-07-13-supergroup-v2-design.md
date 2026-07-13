@@ -211,11 +211,12 @@ same concept hierarchy.
 | | Contents | Acceptance |
 |---|---|---|
 | **M1** | core + dag + `toDagBrowserNodes` + selection helpers | dmvd could replace `getContainmentNodes` with the adapter; union rollup correct on a multi-parent fixture |
-| **M2** | sequence + `toD3` | rewritten lifeflow demo runs on v2 (no `preGroupRecsHook` hack, no manual recursion, no synthetic-root fabrication) |
-| **M3** | compare | value-set diff rendered over a shared hierarchy |
+| **M2** | sequence + `toD3` | sequence tests on a lifeflow-shaped event fixture (forward, backward, anchored-both); the lifeflow demo rewrite moves to the docs milestone |
+| **M3** | compare | tree and dag compare tests (a/b/both membership, countDelta) |
+| **Docs** | combined demo/documentation page (harvesting the gh-pages doc, the Toptal article, and the README), new README, planning-doc cleanup, `legacy/` move, packaging | 2.0.0 published as `latest` |
 
-After M1 is pushed, add a one-line pointer in dmvd's CLAUDE.md to this spec's
-GitHub URL so dmvd work sessions know the available capabilities.
+After 2.0.0 publishes, add a one-line pointer in dmvd's CLAUDE.md to this
+spec's GitHub URL so dmvd work sessions know the available capabilities.
 
 ## v1 → v2 migration sketch
 
