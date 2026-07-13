@@ -1828,3 +1828,22 @@ git commit -m "v2: public export surfaces; spec amendments (subgraph fn, root pr
 Packaging (`exports` map, dist build, `legacy/` move, 2.0.0 publish) and the
 dmvd CLAUDE.md pointer happen after M1 review. M2 (sequence + toD3) and M3
 (compare) get their own plans.
+
+### Deferred minors from M1 reviews (gate the 2.0.0 publish, not the merge)
+
+- id collision: numeric `1` vs string `'1'` under one dim → two nodes with
+  identical `id`; duplicates in `toDagBrowserNodes` output, `attachRecords`
+  `byId` keeps the last. Disambiguate or document.
+- Record dedup is reference-identity (`Set<R>`) — document the assumption.
+- Extract a shared BFS/queue helper: `queue.shift()` is O(n²)-worst in
+  build.ts, metrics.ts, subgraph.ts, and the min-depth BFS is duplicated in
+  build.ts/subgraph.ts.
+- Document `pct()` semantics on dag collections (NaN before attachRecords;
+  unmatched records inflate the denominator).
+- `subgraph` clones drop the `synthetic` flag and collection `root`.
+- Re-export `SGNodeLike` from the core index (referenced by exported
+  `DimSpec`).
+- `fromParentChild` label conflicts are last-write-wins — document.
+- Add empty-input tests (`supergroup([], dims)`, `fromParentIds([])`),
+  type-level inference tests, and an end-to-end
+  `toDagBrowserNodes(subgraph(...))` test (the likeliest real dmvd usage).
