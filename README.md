@@ -1,6 +1,50 @@
 Supergroup
 ==========
-Supergroup performs single- or multi-level grouping on collections of records. It provides a host of utitily and conveniece methods on the returned array of group values as well as on each of these specific group values. If a multi-level grouping is performed, each value's `children` array also acts as a Supergroup list.
+
+> **🎉 New in v2.0:** Vue 3 Composables with Full TypeScript Support! See [COMPOSABLES.md](COMPOSABLES.md) for the new reactive, modular API.
+
+Supergroup performs single- or multi-level grouping on collections of records. It provides a host of utility and convenience methods on the returned array of group values as well as on each of these specific group values. If a multi-level grouping is performed, each value's `children` array also acts as a Supergroup list.
+
+## Installation
+
+```bash
+npm install supergroup
+```
+
+## Two Ways to Use Supergroup
+
+### 1. Vue 3 Composables (New! ✨ TypeScript ✨)
+
+Modern, reactive, **strongly-typed** API for Vue.js applications:
+
+```typescript
+import { ref } from 'vue';
+import { useGrouping, useGroupList } from 'supergroup/composables';
+
+interface MyRecord {
+  name: string;
+  dept: string;
+  value: number;
+}
+
+const data = ref<MyRecord[]>([
+  { name: 'Alice', dept: 'Engineering', value: 100 },
+  { name: 'Bob', dept: 'Sales', value: 200 }
+]);
+
+// Type inference - grouping is typed to MyRecord
+const grouping = useGrouping(data, 'dept');
+const list = useGroupList(grouping.grouped);
+
+// Reactive and type-safe!
+data.value.push({ name: 'Carol', dept: 'Engineering', value: 150 });
+```
+
+**[📖 Full Composables Documentation](COMPOSABLES.md)**
+
+### 2. Legacy API (Lodash Mixin)
+
+Original API, still fully supported:
 
 Supergroup is implemented as an Underscore or LoDash mixin, so just include one of those first:
 
@@ -115,3 +159,24 @@ just leaf nodes:
             "2":[{"A":[1,2]},{"A":[2,3]}],
             "3":[{"A":[2,3]}]
            }
+
+---
+
+## Modern Vue.js Usage
+
+Looking to use Supergroup in a Vue.js application? Check out the new **[Vue 3 Composables API](COMPOSABLES.md)** which provides:
+
+- ✨ **Reactive grouping** - Automatically updates when data changes
+- 🧩 **Modular design** - Use only what you need
+- 🎯 **Type-safe** - Built with TypeScript support in mind
+- 🔄 **Composable patterns** - Follows Vue 3 best practices
+
+```javascript
+import { useGrouping, useGroupSelection } from 'supergroup/composables';
+
+// Reactive, modular, powerful!
+const grouping = useGrouping(data, ['category', 'subcategory']);
+const selection = useGroupSelection(grouping.grouped);
+```
+
+**[Get started with Vue Composables →](COMPOSABLES.md)**
