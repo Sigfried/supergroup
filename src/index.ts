@@ -1,6 +1,6 @@
 export const VERSION = '2.0.0-dev'
 export { SGNode } from './node'
-export type { SGContext, SGNodeInit, Agg } from './node'
+export type { SGContext, SGNodeInit, Agg, CmpInfo } from './node'
 export { Supergroup } from './collection'
 export type { BackEdge } from './collection'
 export { supergroup, groupLevel, regroupNode } from './group'

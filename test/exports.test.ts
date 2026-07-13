@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest'
 import * as core from '../src/index'
 import * as dag from '../src/dag/index'
 import * as adapters from '../src/adapters/index'
+import * as sequence from '../src/sequence/index'
+import * as cmp from '../src/compare/index'
 
 describe('public export surfaces', () => {
   it('core', () => {
@@ -14,5 +16,14 @@ describe('public export surfaces', () => {
   })
   it('adapters', () => {
     expect(adapters).toHaveProperty('toDagBrowserNodes')
+  })
+  it('sequence', () => {
+    expect(sequence).toHaveProperty('groupBySequence')
+  })
+  it('compare', () => {
+    expect(cmp).toHaveProperty('compare')
+  })
+  it('adapters include toD3', () => {
+    expect(adapters).toHaveProperty('toD3')
   })
 })

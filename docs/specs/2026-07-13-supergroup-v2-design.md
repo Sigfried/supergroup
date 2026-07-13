@@ -174,13 +174,21 @@ anchor records under one synthetic root; nodes carry `direction`, and
 enlightened-data's `//kludgy?` reverse). Records with no successor simply
 fall out of the next level (they remain in the current node's `records`).
 
+Fixed semantics: under `direction: 'both'` the forward tree's ids are
+prefixed `+` and the backward tree's `-` (`+B/C`, `-B/A`); `maxDepth`
+counts levels beyond the start level (a node at that relative depth gets
+no children); backward nodes' `path()`/`namePath()` return temporal order
+(reversed), `pedigree()` stays structural.
+
 ## compare module (M3)
 
 `compare(a, b, opts?)` → a merged collection whose nodes carry
 `{in: 'a' | 'b' | 'both', a?: SGNode, b?: SGNode, countDelta: number}`.
-Nodes matched by path (tree collections) or id (dag collections). The
-`diffGroup` lineage; target use case is comparing two value sets over the
-same concept hierarchy.
+The `diffGroup` lineage; target use case is comparing two value sets over the
+same concept hierarchy. Nodes are matched by `String(key)` per level (`by: 'path'`, default) or by
+source id with a memo so multi-parent dag nodes merge once (`by: 'id'`);
+`countDelta` = b-count − a-count; merged nodes carry the `cmp` payload and
+union the two sides' records.
 
 ## adapters
 
