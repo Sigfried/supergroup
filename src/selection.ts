@@ -1,4 +1,4 @@
-import type { SGNode } from './node'
+import type { SGNode } from './node.js'
 
 /**
  * Records are deduped by reference identity (Set<R>): the same logical

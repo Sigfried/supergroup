@@ -1,4 +1,4 @@
-import type { SGContext, SGNode } from './node'
+import type { SGContext, SGNode } from './node.js'
 
 export type BackEdge<R> = { parent: SGNode<R>; child: SGNode<R> }
 

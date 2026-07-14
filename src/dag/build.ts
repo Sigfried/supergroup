@@ -1,6 +1,6 @@
-import { SGNode, type SGContext } from '../node'
-import { Supergroup, type BackEdge } from '../collection'
-import { assignMinDepths } from './traverse'
+import { SGNode, type SGContext } from '../node.js'
+import { Supergroup, type BackEdge } from '../collection.js'
+import { assignMinDepths } from './traverse.js'
 
 export interface DagItem { id: string; name?: string; parentIds?: string[] }
 

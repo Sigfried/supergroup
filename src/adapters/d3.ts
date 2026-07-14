@@ -1,5 +1,5 @@
-import type { SGNode } from '../node'
-import { Supergroup } from '../collection'
+import type { SGNode } from '../node.js'
+import { Supergroup } from '../collection.js'
 
 export interface D3Node<R> {
   id: string

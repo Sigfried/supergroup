@@ -1,5 +1,5 @@
-import type { SGNode } from '../node'
-import type { Supergroup } from '../collection'
+import type { SGNode } from '../node.js'
+import type { Supergroup } from '../collection.js'
 
 export function attachRecords<R>(
   sg: Supergroup<R>,

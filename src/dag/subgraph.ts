@@ -1,8 +1,8 @@
-import { SGNode, type SGContext } from '../node'
-import { Supergroup } from '../collection'
-import { recordsFor } from '../selection'
-import { computeMetrics } from './metrics'
-import { assignMinDepths } from './traverse'
+import { SGNode, type SGContext } from '../node.js'
+import { Supergroup } from '../collection.js'
+import { recordsFor } from '../selection.js'
+import { computeMetrics } from './metrics.js'
+import { assignMinDepths } from './traverse.js'
 
 export function subgraph<R>(sg: Supergroup<R>, ids: Iterable<string>): Supergroup<R> {
   const keep = new Set(ids)

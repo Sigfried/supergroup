@@ -1,6 +1,6 @@
-import { recordsUnder } from './selection'
-import { regroupNode, type GroupOpts } from './group'
-import type { DimInput } from './dims'
+import { recordsUnder } from './selection.js'
+import { regroupNode, type GroupOpts } from './group.js'
+import type { DimInput } from './dims.js'
 
 export interface SGContext { totalRecords: number }
 

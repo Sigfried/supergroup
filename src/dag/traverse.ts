@@ -1,4 +1,4 @@
-import type { SGNode } from '../node'
+import type { SGNode } from '../node.js'
 
 /** FIFO queue with amortized O(1) shift (array + head index) */
 export class Fifo<T> {

@@ -1,6 +1,6 @@
-import { SGNode, type SGContext } from '../node'
-import { Supergroup } from '../collection'
-import { mapKey } from '../group'
+import { SGNode, type SGContext } from '../node.js'
+import { Supergroup } from '../collection.js'
+import { mapKey } from '../group.js'
 
 export interface CompareOpts { by?: 'path' | 'id' }
 

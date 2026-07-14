@@ -1,6 +1,6 @@
-import type { SGNode } from '../node'
-import type { Supergroup } from '../collection'
-import { Fifo } from './traverse'
+import type { SGNode } from '../node.js'
+import type { Supergroup } from '../collection.js'
+import { Fifo } from './traverse.js'
 
 export function computeMetrics<R>(sg: Supergroup<R>): void {
   const indeg = new Map<SGNode<R>, number>(sg.nodes.map(n => [n, 0]))

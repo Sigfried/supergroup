@@ -1,7 +1,7 @@
-import { buildDag, type DagItem } from './build'
-import { computeMetrics } from './metrics'
-import { attachRecords } from './records'
-import type { Supergroup } from '../collection'
+import { buildDag, type DagItem } from './build.js'
+import { computeMetrics } from './metrics.js'
+import { attachRecords } from './records.js'
+import type { Supergroup } from '../collection.js'
 
 export interface DagRecordOpts<R> {
   records?: R[]

@@ -1,7 +1,7 @@
-import { SGNode, type SGContext } from '../node'
-import { Supergroup } from '../collection'
-import { groupLevel } from '../group'
-import { normalizeDims } from '../dims'
+import { SGNode, type SGContext } from '../node.js'
+import { Supergroup } from '../collection.js'
+import { groupLevel } from '../group.js'
+import { normalizeDims } from '../dims.js'
 
 export interface SequenceOpts<R> {
   key: string | ((r: R) => unknown)

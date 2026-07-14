@@ -1,6 +1,6 @@
-import { SGNode, type SGContext } from './node'
-import { Supergroup } from './collection'
-import { normalizeDims, type DimInput, type NormalDim } from './dims'
+import { SGNode, type SGContext } from './node.js'
+import { Supergroup } from './collection.js'
+import { normalizeDims, type DimInput, type NormalDim } from './dims.js'
 
 export interface GroupOpts<R> {
   root?: 'none' | 'synthetic'
