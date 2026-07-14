@@ -17,6 +17,10 @@ const data = {
   hurricanes: await csv('hurricane.csv'),
   fips: await csv('fips.csv'),
   containment: await json('containment.json'),
+  conditions: await csv('synthea-conditions.csv'),
+  drugs: await csv('synthea-drugs.csv'),
+  persons: await csv('synthea-persons.csv'),
+  drugClasses: await json('drug-classes.json'),
 }
 
 const scope = { ...core, ...dagMod, ...seqMod, ...cmpMod, ...adapters, d3, ...data }
