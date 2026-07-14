@@ -1,0 +1,20 @@
+:root { --ink: #1a1a1a; --soft: #f5f5f2; --line: #d8d8d2; --accent: #2456a4; }
+* { box-sizing: border-box; }
+body { margin: 0; color: var(--ink); font: 17px/1.6 Georgia, 'Times New Roman', serif; }
+main { max-width: 46rem; margin: 0 auto; padding: 2rem 1rem 6rem; }
+h1, h2, h3 { font-family: Helvetica, Arial, sans-serif; line-height: 1.2; }
+h1 { font-size: 2.2rem; margin-top: 0; }
+h2 { margin-top: 3rem; border-bottom: 1px solid var(--line); padding-bottom: .3rem; }
+code, pre, .cell-editor { font: 14px/1.45 ui-monospace, Menlo, Consolas, monospace; }
+a { color: var(--accent); }
+table { border-collapse: collapse; }
+th, td { border: 1px solid var(--line); padding: .3rem .6rem; text-align: left; }
+.cell-wrap { margin: 1.2rem 0; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.cell-editor .cm-editor { background: var(--soft); }
+.cell-bar { padding: .3rem .6rem; border-top: 1px solid var(--line); background: #fff; }
+.cell-bar button { font: inherit; padding: .1rem .8rem; cursor: pointer; }
+.cell-out { padding: .5rem .8rem; border-top: 1px solid var(--line); max-height: 24rem; overflow: auto; }
+.cell-out pre { margin: 0; white-space: pre-wrap; }
+.cell-out details { padding-left: 1rem; }
+.sg-leaf { padding-left: 1rem; }
+.cell-error { color: #a02020; }

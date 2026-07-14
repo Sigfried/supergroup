@@ -1,0 +1,10 @@
+export declare const VERSION = "2.0.0";
+export { SGNode } from './node.js';
+export type { SGContext, SGNodeInit, Agg, CmpInfo } from './node.js';
+export { Supergroup } from './collection.js';
+export type { BackEdge } from './collection.js';
+export { supergroup, groupLevel, regroupNode } from './group.js';
+export type { GroupOpts } from './group.js';
+export { normalizeDims } from './dims.js';
+export type { DimAccessor, DimSpec, DimInput, NormalDim, SGNodeLike } from './dims.js';
+export { recordsFor, recordsUnder } from './selection.js';

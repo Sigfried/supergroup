@@ -1,0 +1,40 @@
+import { SGNode } from '../node.js';
+import { Supergroup } from '../collection.js';
+import { recordsFor } from '../selection.js';
+import { computeMetrics } from './metrics.js';
+import { assignMinDepths } from './traverse.js';
+export function subgraph(sg, ids) {
+    const keep = new Set(ids);
+    const ctx = { totalRecords: 0 };
+    const clone = new Map();
+    for (const n of sg.nodes) {
+        if (!keep.has(n.id))
+            continue;
+        clone.set(n.id, new SGNode({
+            id: n.id, key: n.key, label: n.label, dim: n.dim,
+            records: [...n.records], synthetic: n.synthetic, direction: n.direction, ctx,
+        }));
+    }
+    for (const n of sg.nodes) {
+        const c1 = clone.get(n.id);
+        if (!c1)
+            continue;
+        for (const ch of n.children) {
+            const c2 = clone.get(ch.id);
+            if (c2) {
+                c1.children.push(c2);
+                c2.parents.push(c1);
+            }
+        }
+    }
+    const backedges = sg.backedges
+        .filter(e => keep.has(e.parent.id) && keep.has(e.child.id))
+        .map(e => ({ parent: clone.get(e.parent.id), child: clone.get(e.child.id) }));
+    const root = sg.root ? clone.get(sg.root.id) : undefined;
+    const roots = [...clone.values()].filter(n => !n.parents.length && n !== root);
+    assignMinDepths(root ? [root, ...roots] : roots);
+    ctx.totalRecords = recordsFor([...clone.values()]).length;
+    const sub = new Supergroup(roots, { root, backedges, ctx });
+    computeMetrics(sub);
+    return sub;
+}

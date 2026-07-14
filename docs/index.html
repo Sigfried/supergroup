@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>supergroup — grouping that returns navigable structure</title>
+<link rel="stylesheet" href="site.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/dag-browser-widget@0.2.0/dist/dag-browser-widget.css">
+<script type="importmap">
+{
+  "imports": {
+    "supergroup": "./vendor/supergroup/index.js",
+    "supergroup/dag": "./vendor/supergroup/dag/index.js",
+    "supergroup/sequence": "./vendor/supergroup/sequence/index.js",
+    "supergroup/compare": "./vendor/supergroup/compare/index.js",
+    "supergroup/adapters": "./vendor/supergroup/adapters/index.js",
+    "d3": "https://esm.sh/d3@7",
+    "codemirror": "https://esm.sh/codemirror@6.0.1",
+    "@codemirror/lang-javascript": "https://esm.sh/@codemirror/lang-javascript@6",
+    "react": "https://esm.sh/react@18.3.1",
+    "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
+    "dag-browser-widget": "https://esm.sh/dag-browser-widget@0.2.0?deps=react@18.3.1,react-dom@18.3.1"
+  }
+}
+</script>
+</head>
+<body>
+<main>
+<h1>supergroup</h1>
+<p>Grouping for flat records that returns navigable structure. Live docs —
+every code cell below is editable; press Run. Everything in cell scope is
+also on <code>window</code> for devtools experimentation.</p>
+<p><button id="run-all">Run all cells</button></p>
+
+<pre class="cell autorun">
+return supergroup(athletes, ['Country', 'Sport', 'Year'])
+</pre>
+
+</main>
+<script type="module" src="livecells.js"></script>
+</body>
+</html>
