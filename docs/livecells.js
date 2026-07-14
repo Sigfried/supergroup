@@ -53,6 +53,36 @@ function renderNode(n, depth = 0) {
   return det
 }
 
+const isPlainRecord = (v) => !!v && typeof v === 'object' && !Array.isArray(v) && !(v instanceof Date) && !isSGNode(v)
+
+function renderTable(records, out) {
+  const cols = Object.keys(records[0])
+  const table = document.createElement('table')
+  const thead = document.createElement('thead')
+  const headRow = document.createElement('tr')
+  for (const c of cols) { const th = document.createElement('th'); th.textContent = c; headRow.append(th) }
+  thead.append(headRow)
+  table.append(thead)
+  const tbody = document.createElement('tbody')
+  for (const r of records.slice(0, 50)) {
+    const tr = document.createElement('tr')
+    for (const c of cols) {
+      const td = document.createElement('td')
+      const v = r[c]
+      td.textContent = v instanceof Date ? v.toISOString().slice(0, 10) : String(v)
+      tr.append(td)
+    }
+    tbody.append(tr)
+  }
+  table.append(tbody)
+  const caption = document.createElement('p')
+  caption.className = 'table-caption'
+  caption.textContent = records.length > 50
+    ? `showing 50 of ${records.length} rows`
+    : `${records.length} row${records.length === 1 ? '' : 's'}`
+  out.append(caption, table)
+}
+
 function render(result, out) {
   out.replaceChildren()
   if (result instanceof Node) { out.append(result); return }
@@ -60,6 +90,10 @@ function render(result, out) {
   if (isSGNode(result)) result = [result]
   if (Array.isArray(result) && result.length && result.every(isSGNode)) {
     for (const n of result) out.append(renderNode(n))
+    return
+  }
+  if (Array.isArray(result) && result.length && result.every(isPlainRecord)) {
+    renderTable(result, out)
     return
   }
   const pre = document.createElement('pre')

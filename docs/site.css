@@ -18,3 +18,5 @@ th, td { border: 1px solid var(--line); padding: .3rem .6rem; text-align: left; 
 .cell-out details { padding-left: 1rem; }
 .sg-leaf { padding-left: 1rem; }
 .cell-error { color: #a02020; }
+.table-caption { margin: 0 0 .4rem; font-size: .85em; color: #666; }
+.cell-out table { font-size: .9em; }
