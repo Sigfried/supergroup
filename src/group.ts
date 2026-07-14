@@ -26,6 +26,7 @@ export function groupLevel<R>(
   opts: GroupOpts<R>,
 ): SGNode<R>[] {
   const byKey = new Map<unknown, SGNode<R>>()
+  const usedIds = new Set<string>()
   for (const r of records) {
     const raw = dim.accessor(r)
     const keys = dim.multi && Array.isArray(raw) ? raw : [raw]
@@ -34,8 +35,12 @@ export function groupLevel<R>(
       const mk = mapKey(key)
       let node = byKey.get(mk)
       if (!node) {
+        // distinct keys can stringify alike (1 vs '1'); ids must stay unique
+        let id = idPrefix + String(key)
+        for (let i = 2; usedIds.has(id); i++) id = `${idPrefix + String(key)}~${i}`
+        usedIds.add(id)
         node = new SGNode<R>({
-          id: idPrefix + String(key), key, label: String(key), dim: dim.name, depth, ctx,
+          id, key, label: String(key), dim: dim.name, depth, ctx,
         })
         if (parent) node.parents.push(parent)
         byKey.set(mk, node)

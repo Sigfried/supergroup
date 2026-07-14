@@ -50,3 +50,18 @@ describe('supergroup() multi-dim', () => {
     expect(sg.node('RxNorm/Drug')!.records).toHaveLength(2)
   })
 })
+
+describe('id disambiguation', () => {
+  it('keys that stringify alike get distinct ids', () => {
+    const sg = supergroup([{ x: 1 }, { x: '1' }], 'x')
+    expect(sg.roots).toHaveLength(2)
+    expect(new Set(sg.roots.map(n => n.id)).size).toBe(2)
+  })
+
+  it('id disambiguation is deterministic and prefix-scoped', () => {
+    const sg = supergroup([{ x: 1 }, { x: '1' }, { x: 1 }], 'x')
+    const ids = sg.roots.map(n => n.id)
+    expect(ids[0]).toBe('1')      // first occurrence keeps the plain id
+    expect(ids[1]).toBe('1~2')    // second gets the suffix
+  })
+})
