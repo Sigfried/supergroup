@@ -94,10 +94,17 @@ everything.
 |---|---|---|
 | `OlympicAthletes.csv` | moves from `examples/` | core walkthrough |
 | `fake-patient_data.csv` | gh-pages branch `examples/` | grouping/aggregate examples (the doc.md walkthrough) |
-| `diffExample.csv` | gh-pages branch `examples/` | compare demo |
-| FIPS state/county data | harvested from the Toptal article (fetch during implementation) | DAG / rollup examples |
-| hurricane events | lifeflow `sampleData/` | sequence demo |
-| small containment digraph | hand-written (dmvd-shaped, cyclic) | DAG constructors + DBW embed |
+| `diffExample.csv` | gh-pages branch `examples/` | compare intro |
+| FIPS state/county data | Census fallback (Toptal article's dataset is a dead gist) | scale example (optional) |
+| hurricane events | lifeflow `sampleData/` | sequence intro |
+| small containment digraph | hand-written (dmvd-shaped, cyclic) | DAG constructors intro |
+| `synthea-conditions.csv`, `synthea-drugs.csv`, `synthea-persons.csv` | synthea1k (public S3 `s3://synthea-omop/synthea1k/`, ~1,130 patients), names joined from SG's local OMOP vocab (postgres `n3c.n3c`) | clinical sequence demo; cohort compare; grouping |
+| `drug-classes.json` | ATC+RxNorm ancestry (direct edges) over the cohort's 104 drugs, from `n3c.concept_ancestor` — ~1,284 nodes, ~3,081 edges, 80 multi-parent | DAG centerpiece: attachRecords, drc-style rollups, DBW embed, compare by id |
+
+The synthea/vocab extracts are rebuilt by a committed curation script
+(`docs/data/curation/`) so they can scale up later for the lifeflow/
+timelines demo. SG OK'd publishing SNOMED/ATC/RxNorm names in these
+extracts (2026-07-14).
 
 ## README rewrite
 
