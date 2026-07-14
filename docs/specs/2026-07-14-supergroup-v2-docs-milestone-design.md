@@ -12,6 +12,9 @@ master). This milestone ends with 2.0.0 published as `latest`.
 3. v1 artifacts moved to `legacy/`.
 4. Packaging: `exports` map, dist build, 2.0.0 metadata.
 5. M1 deferred-minors checklist cleared (gates publish).
+5b. Library additions driven by the site's no-magic display rule:
+   `supergroup/formatting` module + `SGNode.dimPath` (see "Library
+   additions" below).
 6. `npm publish` of 2.0.0 as `latest`.
 7. Post-publish pointers: dmvd CLAUDE.md one-liner; note in
    `~/github-repos/personal/hub/projects/lifeflow/README.md`.
@@ -48,14 +51,83 @@ ESM from esm.sh; if it can't, its demo degrades to pretty-printed
 
 ### Live cells
 
-Each example is an editable cell (CodeMirror 6 from CDN) with a Run button;
-the result renders below the cell. Cell code is evaluated as an async
-function body receiving the library modules (`supergroup`, `dag`,
-`sequence`, `compare`, `adapters`), `d3`, and the datasets in scope.
-Results render through an SGNode-aware pretty-printer (label/path/counts);
-returned DOM/SVG nodes pass through untouched (for the d3 examples).
-Everything in cell scope is also exposed on `window` so devtools serve as
-the escape hatch beyond the cells.
+Each example is an editable cell (CodeMirror 6 from CDN) with Run and
+Clear buttons. Mechanics revised 2026-07-14 after SG review of the first
+draft (ee419e2):
+
+**Run.** No cell runs on page load. Output boxes start with a muted
+placeholder ("Run to evaluate"). Run gives visible feedback: a running
+state on the button, `✓ 8ms` status on success, `✗` plus the error text
+in the output on failure. Shift-Enter runs the focused cell. A "Run all"
+control stays at the top of the page, and `?runall` still runs every
+cell (used by the headless check).
+
+**Cell semantics.** Cell code has no `return` and no top-level `const`:
+the value of the last statement is the cell's output (Observable-style).
+Execution wraps the code in a sloppy-mode direct `eval` inside an async
+function (`return eval(code)`), which gives exact completion-value
+semantics for multi-line final expressions. Bare assignments (`sg = …`)
+therefore land on `window` — cells publish their variables for console
+inspection; last run wins when two cells assign the same name. The cell
+bar shows what a run published (`→ window: sg, n`). Clear empties the
+output and deletes exactly the window vars that cell published. `let`/
+`const` typed while editing stay private to the cell. `await` is
+unavailable inside `eval` code (no cell uses it); if a cell's output is
+a thenable, the runtime awaits it before rendering.
+
+**Display: no magic.** The renderer type-sniffs nothing from the
+library: a DOM node appends as-is (d3 SVGs, the DBW embed), a string
+renders in a `<pre>`, anything else pretty-prints as circular-safe JSON.
+Anything shaped that the site displays is produced by an explicit
+formatting function the reader could call in their own console (see
+"Library additions"). Cells that show structure end with e.g.
+`prettyPrint(sg, {maxDepth: 2})` — the docs demo the formatting API by
+using it.
+
+**Dataset preview cards.** Where each dataset is introduced, an empty
+marker element (`<div class="dataset" data-name="…">`) is populated by
+livecells.js with the name, `N rows × M cols`, a download link, and an
+expandable preview of the first rows (HTML table — site furniture, like
+the download link, not cell output).
+
+Cell scope: every export of `supergroup`, `supergroup/dag`,
+`/sequence`, `/compare`, `/adapters`, `/formatting`, plus `d3` and the
+datasets. Everything in scope is also pre-assigned to `window`.
+
+### Library additions (driven by the no-magic display rule)
+
+New subpath module `supergroup/formatting`: explicit formatting
+functions. Every function returns a **string**, so what the site
+displays is exactly what a reader gets in their own console (no DOM in
+the library).
+
+- `prettyPrint(x, opts)` — `x`: collection | node | node array.
+  Indented tree, one line per node (default: label + record count +
+  `cmp` annotation when present). No summary header. `opts = {maxDepth,
+  maxChildren, fmt, rails}`: `fmt(n) => string` replaces the per-node
+  line; `rails: true` uses `├─`-style box-drawing instead of plain
+  indentation.
+- `summary(x)` — the shape line, kept separate from `prettyPrint`:
+  `110 roots · 2,816 nodes · 8,618 records`.
+- `toTable(records, {maxRows, columns})` — aligned monospace text table
+  for arrays of plain records.
+- **Truncation only on request**: `maxDepth`/`maxChildren`/`maxRows`
+  have no defaults — output is complete unless an option is passed, and
+  applied truncation is always explicit in the output (`… 105 more`),
+  never silent.
+
+Core addition: `SGNode.dimPath(sep = '/')` — pedigree mapped over
+`.dim`, joined (v1 parity). The rest of v1's viewing conveniences were
+inventoried against v2 and resolved without new API: `lookup` →
+`node()`, `lookupMany` → `select()`, `flattenTree` → `flatten()` (DFS
+pre-order, each node once), `leafNodes` → `leaves()`, `namePaths`/
+`aggregates` → plain array ops over `nodes` (the migration page
+documents these mappings); `addRecordsAsChildrenToLeafNodes` is
+deliberately deferred to the examples round.
+
+These are src changes: implement + test, then rebuild the dist and
+re-run `build:site` so the vendored copy carries them before the site
+cells use them.
 
 ### Content outline
 
