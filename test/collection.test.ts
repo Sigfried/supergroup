@@ -5,6 +5,11 @@ import { RXS } from './fixtures'
 describe('collection lookup and select', () => {
   const sg = supergroup(RXS, ['vocab', 'domain'])
 
+  it('supergroup of an empty record array', () => {
+    const sg = supergroup([], ['x'])
+    expect(sg.roots).toEqual([])
+    expect(sg.nodes).toEqual([])
+  })
   it('node() walks a path string or key array', () => {
     expect(sg.node('RxNorm/Drug')!.records).toHaveLength(2)
     expect(sg.node(['RxNorm', 'Drug'])).toBe(sg.node('RxNorm/Drug'))

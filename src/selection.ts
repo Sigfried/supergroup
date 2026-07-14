@@ -1,5 +1,10 @@
 import type { SGNode } from './node'
 
+/**
+ * Records are deduped by reference identity (Set<R>): the same logical
+ * record loaded as two distinct objects counts twice. Keep one object per
+ * record if you rely on union semantics.
+ */
 export function recordsFor<R>(nodes: SGNode<R>[]): R[] {
   const seen = new Set<R>()
   const out: R[] = []

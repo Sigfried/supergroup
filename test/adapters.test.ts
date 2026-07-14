@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { fromParentIds } from '../src/dag/constructors'
+import { subgraph } from '../src/dag/subgraph'
 import { supergroup } from '../src/group'
 import { toDagBrowserNodes } from '../src/adapters/dagBrowser'
 import { DAG_ITEMS, RXS } from './fixtures'
@@ -20,5 +21,19 @@ describe('toDagBrowserNodes', () => {
     expect(out.find(n => n.id === '(root)')).toBeUndefined()
     expect(out.find(n => n.id === 'RxNorm')!.parentIds).toEqual([])
     expect(out.find(n => n.id === 'RxNorm/Drug')!.parentIds).toEqual(['RxNorm'])
+  })
+  it('end-to-end: toDagBrowserNodes(subgraph(fromParentIds(...)))', () => {
+    const items = [
+      { id: 'Study', parentIds: [] },
+      { id: 'Participant', parentIds: ['Study'] },
+      { id: 'Visit', parentIds: ['Study', 'Participant'] },
+      { id: 'Specimen', parentIds: ['Visit', 'Participant'] },
+      { id: 'Doc', parentIds: ['Doc', 'Study'] },       // self-loop → backedge
+    ]
+    const sub = subgraph(fromParentIds(items), ['Study', 'Participant', 'Specimen', 'Doc'])
+    const nodes = toDagBrowserNodes(sub)
+    expect(nodes.map(n => n.id).sort()).toEqual(['Doc', 'Participant', 'Specimen', 'Study'])
+    expect(nodes.find(n => n.id === 'Specimen')!.parentIds).toEqual(['Participant'])
+    expect(nodes.find(n => n.id === 'Doc')!.parentIds.sort()).toEqual(['Doc', 'Study'])
   })
 })

@@ -47,6 +47,8 @@ export function fromParentChild<R, Row>(
     typeof spec === 'string' ? (row: Row) => (row as Record<string, unknown>)[spec] as T : spec
   const parentOf = col(opts.parent)
   const childOf = col(opts.child)
+  // label conflicts are last-write-wins: when multiple rows name the same
+  // child with different labels, the last row's label sticks
   const labelOf = opts.label ? col(opts.label) : undefined
   const items = new Map<string, DagItem>()
   const ensure = (id: string): DagItem => {

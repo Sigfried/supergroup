@@ -109,6 +109,11 @@ export class SGNode<R> {
 
   agg(accessor: (r: R) => number): Agg { return aggregate(this.records, accessor) }
 
+  /**
+   * Fraction of the collection's total records under this node. On dag
+   * collections totalRecords is 0 until attachRecords runs (pct() = NaN),
+   * and unmatched records still count in the denominator.
+   */
   pct(): number { return this.records.length / this.ctx.totalRecords }
 
   /** union-then-aggregate over this node and all descendants; never sum-over-paths */

@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest'
-import { fromEdges, fromParentChild } from '../src/dag/constructors'
+import { fromEdges, fromParentChild, fromParentIds } from '../src/dag/constructors'
+
+describe('fromParentIds', () => {
+  it('fromParentIds of an empty item array', () => {
+    const sg = fromParentIds([])
+    expect(sg.roots).toEqual([])
+    expect(sg.nodes).toEqual([])
+  })
+})
 
 describe('fromEdges', () => {
   it('builds from [parent, child] pairs, auto-creating nodes', () => {
