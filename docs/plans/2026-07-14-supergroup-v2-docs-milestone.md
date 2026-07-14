@@ -1347,8 +1347,12 @@ const evalCell = new AsyncFunction('__code', 'return eval(__code)')
 
 const published = new Map() // name -> value at last publish, across all cells
 
+const showPub = (cell) => {
+  cell.pub.textContent = cell.published.size ? `→ window: ${[...cell.published].join(', ')}` : ''
+}
+
 async function runCell(cell) {
-  const { view, out, status, btn, pub } = cell
+  const { view, out, status, btn } = cell
   btn.disabled = true
   status.textContent = ' …'
   const before = new Set(Object.keys(window))
@@ -1359,8 +1363,14 @@ async function runCell(cell) {
     render(result, out)
     const names = Object.keys(window).filter((k) => !before.has(k))
     for (const [k, v] of prior) if (window[k] !== v) names.push(k)
-    for (const k of names) { published.set(k, window[k]); cell.published.add(k) }
-    pub.textContent = cell.published.size ? `→ window: ${[...cell.published].join(', ')}` : ''
+    for (const k of names) {
+      // republished name: ownership moves to this cell (last write wins),
+      // so each name has exactly one owning cell and one Clear that removes it
+      for (const other of cells) if (other !== cell && other.published.delete(k)) showPub(other)
+      published.set(k, window[k])
+      cell.published.add(k)
+    }
+    showPub(cell)
     status.textContent = ` ✓ ${Math.round(performance.now() - t0)}ms`
     return true
   } catch (e) {
@@ -1379,7 +1389,7 @@ async function runCell(cell) {
 function clearCell(cell) {
   for (const name of cell.published) { delete window[name]; published.delete(name) }
   cell.published.clear()
-  cell.pub.textContent = ''
+  showPub(cell)
   cell.status.textContent = ''
   cell.out.replaceChildren(placeholder())
 }
