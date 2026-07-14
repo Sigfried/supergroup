@@ -995,6 +995,566 @@ return interesting.map(n => `${n.label}: ${n.cmp.in} Δ${n.cmp.countDelta}`).joi
 (Implementer: tune thresholds/maxDepth to what the real data shows; every
 cell must render non-trivially in the headless check.)
 
+### Task 9 mechanics round (amendment, 2026-07-14): Tasks 9a + 9b
+
+SG rejected the first draft's cell mechanics (ee419e2). Spec authority:
+"Live cells" + "Library additions" sections of the design doc (as amended
+2026-07-14). Run Task 9a, then 9b, before any further Task 9 content work.
+Binding rules from the spec:
+
+- The site renderer type-sniffs nothing from the library: DOM node →
+  append; string → `<pre>`; anything else → circular-safe JSON. Anything
+  shaped that the site displays comes from an explicit formatting function
+  the reader could call in their own console.
+- Formatting functions return **strings**; no DOM in the library.
+- **Truncation only on request**: no default `maxDepth`/`maxChildren`/
+  `maxRows`; applied truncation is always explicit in the output, never
+  silent.
+- No cell runs on page load; `?runall` and the Run-all button remain.
+- Cells: no `return`, no top-level `const`; the last statement's value is
+  the output; bare assignments publish to `window`; Clear removes exactly
+  the names that cell published.
+- `prettyPrint` emits no summary header — `summary()` is separate.
+
+## Task 9a: `supergroup/formatting` module + `SGNode.dimPath`
+
+**Files:**
+- Create: `src/formatting/index.ts`, `test/formatting.test.ts`
+- Modify: `src/node.ts` (add `dimPath` after `namePath`), `package.json`
+  (exports map), `test/exports.test.ts`, `test/node-nav.test.ts` (dimPath
+  tests live with the other nav tests)
+
+**Interfaces:**
+- Consumes: `SGNode` (`label`, `records`, `children`, `cmp`, `pedigree()`,
+  `descendants()`, `synthetic`, `direction`, `dim`), `Supergroup`
+  (`roots`, `nodes`, `root`), `recordsUnder(nodes)` from
+  `src/selection.ts`.
+- Produces (Task 9b and site cells rely on these exact signatures):
+  - `prettyPrint(x, opts?)` — `x: Supergroup<R> | SGNode<R> | SGNode<R>[]`,
+    `opts: { maxDepth?: number; maxChildren?: number; fmt?: (n) => string;
+    rails?: boolean }` → `string`
+  - `summary(x)` — same `x` → `string` like
+    `110 roots · 2,816 nodes · 8,618 records`
+  - `toTable(records, opts?)` — `records: readonly object[]`,
+    `opts: { maxRows?: number; columns?: string[] }` → `string`
+  - `SGNode.dimPath(sep = '/')` → `string`
+
+- [ ] **Step 1: failing tests** — `test/formatting.test.ts`:
+
+```ts
+import { describe, it, expect } from 'vitest'
+import { supergroup } from '../src/index'
+import { prettyPrint, summary, toTable } from '../src/formatting/index'
+
+const recs = [
+  { c: 'US', s: 'Swim', n: 2 },
+  { c: 'US', s: 'Swim', n: 1 },
+  { c: 'US', s: 'Dive', n: 3 },
+  { c: 'RU', s: 'Gym', n: 5 },
+]
+const sg = () => supergroup(recs, ['c', 's'])
+
+describe('prettyPrint', () => {
+  it('prints every node by default (no truncation, no header)', () => {
+    const out = prettyPrint(sg())
+    expect(out).toBe([
+      'US (3 recs)',
+      '  Swim (2 recs)',
+      '  Dive (1 recs)',
+      'RU (1 recs)',
+      '  Gym (1 recs)',
+    ].join('\n'))
+  })
+  it('maxDepth cuts with an explicit marker', () => {
+    const out = prettyPrint(sg(), { maxDepth: 1 })
+    expect(out).toBe([
+      'US (3 recs)',
+      '  … 2 children',
+      'RU (1 recs)',
+      '  … 1 child',
+    ].join('\n'))
+  })
+  it('maxChildren cuts with an explicit count', () => {
+    const out = prettyPrint(sg(), { maxChildren: 1 })
+    expect(out.split('\n')).toContain('  … 1 more')
+  })
+  it('fmt overrides the node line', () => {
+    const out = prettyPrint(sg(), { fmt: n => String(n.label).toLowerCase() })
+    expect(out.split('\n')[0]).toBe('us')
+  })
+  it('rails style', () => {
+    const out = prettyPrint(sg(), { rails: true })
+    expect(out.split('\n')[1]).toBe('├─ Swim (2 recs)')
+    expect(out.split('\n')[2]).toBe('└─ Dive (1 recs)')
+  })
+  it('accepts a single node and a node array', () => {
+    const c = sg()
+    expect(prettyPrint(c.roots[0]!)).toMatch(/^US/)
+    expect(prettyPrint(c.roots)).toMatch(/\nRU/)
+  })
+})
+
+describe('summary', () => {
+  it('collection shape line', () => {
+    expect(summary(sg())).toBe('2 roots · 5 nodes · 4 records')
+  })
+  it('node shape line', () => {
+    expect(summary(sg().roots[0]!)).toBe('1 root · 3 nodes · 3 records')
+  })
+})
+
+describe('toTable', () => {
+  it('aligned text table, complete by default', () => {
+    const out = toTable(recs)
+    const lines = out.split('\n')
+    expect(lines[0]).toBe('c   s     n')
+    expect(lines[1]).toBe('──  ────  ─')
+    expect(lines).toHaveLength(2 + recs.length) // header + rule + rows
+    expect(lines[2]).toBe('US  Swim  2')
+  })
+  it('maxRows truncates explicitly', () => {
+    const out = toTable(recs, { maxRows: 2 })
+    expect(out).toContain('… 2 more rows (4 total)')
+  })
+  it('columns selects and orders', () => {
+    expect(toTable(recs, { columns: ['n', 'c'] }).split('\n')[0]).toBe('n  c')
+  })
+})
+```
+
+Add to `test/node-nav.test.ts` (same describe style as namePath tests):
+
+```ts
+it('dimPath joins pedigree dims', () => {
+  const c = supergroup(recs, ['c', 's'])
+  expect(c.node(['US', 'Swim'])!.dimPath()).toBe('c/s')
+  expect(c.node(['US', 'Swim'])!.dimPath(' > ')).toBe('c > s')
+})
+```
+
+(Reuse that file's existing fixture records; adjust expected dims to the
+fixture's dim names — the assertion shape is what's binding.)
+
+Add `'prettyPrint'`/`'summary'`/`'toTable'` to a new `formatting` case in
+`test/exports.test.ts`, importing `* as formatting from
+'../src/formatting/index'`.
+
+- [ ] **Step 2: run to verify failure** —
+`npx vitest run test/formatting.test.ts` → FAIL (module not found).
+
+- [ ] **Step 3: implement `src/formatting/index.ts`**
+
+```ts
+import type { SGNode } from '../node.js'
+import { Supergroup } from '../collection.js'
+import { recordsUnder } from '../selection.js'
+
+export interface PrettyPrintOpts<R> {
+  /** levels shown; omitted = all */
+  maxDepth?: number
+  /** children listed per node; omitted = all */
+  maxChildren?: number
+  /** per-node line; default: label + record count + cmp when present */
+  fmt?: (n: SGNode<R>) => string
+  /** box-drawing rails instead of plain two-space indentation */
+  rails?: boolean
+}
+
+const num = (n: number) => n.toLocaleString('en-US')
+
+const defaultFmt = <R>(n: SGNode<R>): string => {
+  let s = `${n.label} (${num(n.records.length)} recs)`
+  if (n.cmp) s += ` [${n.cmp.in}${n.cmp.countDelta ? ` Δ${num(n.cmp.countDelta)}` : ''}]`
+  return s
+}
+
+type Printable<R> = Supergroup<R> | SGNode<R> | SGNode<R>[]
+
+const rootsOf = <R>(x: Printable<R>): SGNode<R>[] =>
+  x instanceof Supergroup ? (x.root ? [x.root] : x.roots)
+  : Array.isArray(x) ? x : [x]
+
+export function prettyPrint<R>(x: Printable<R>, opts: PrettyPrintOpts<R> = {}): string {
+  const { maxDepth, maxChildren, fmt = defaultFmt, rails = false } = opts
+  const lines: string[] = []
+  const walk = (n: SGNode<R>, depth: number, prefix: string, childIndent: string, onPath: Set<SGNode<R>>) => {
+    if (onPath.has(n)) { lines.push(`${prefix}↻ ${n.label} (cycle)`); return }
+    lines.push(prefix + fmt(n))
+    if (maxDepth !== undefined && depth + 1 >= maxDepth) {
+      const k = n.children.length
+      if (k) lines.push(`${childIndent}${rails ? '└─ ' : ''}… ${num(k)} ${k === 1 ? 'child' : 'children'}`)
+      return
+    }
+    const shown = maxChildren !== undefined ? n.children.slice(0, maxChildren) : n.children
+    const hidden = n.children.length - shown.length
+    onPath.add(n)
+    shown.forEach((c, i) => {
+      const last = i === shown.length - 1 && hidden === 0
+      const cPrefix = rails ? childIndent + (last ? '└─ ' : '├─ ') : childIndent
+      const cIndent = rails ? childIndent + (last ? '   ' : '│  ') : childIndent + '  '
+      walk(c, depth + 1, cPrefix, cIndent, onPath)
+    })
+    onPath.delete(n)
+    if (hidden > 0) lines.push(`${childIndent}${rails ? '└─ ' : ''}… ${num(hidden)} more`)
+  }
+  for (const r of rootsOf(x)) walk(r, 0, '', rails ? '' : '  ', new Set())
+  return lines.join('\n')
+}
+
+export function summary<R>(x: Printable<R>): string {
+  const roots = rootsOf(x)
+  let nodeCount: number
+  if (x instanceof Supergroup) nodeCount = x.nodes.length
+  else {
+    const seen = new Set<SGNode<R>>(roots)
+    for (const r of roots) for (const d of r.descendants()) seen.add(d)
+    nodeCount = seen.size
+  }
+  const records = recordsUnder(roots).length
+  return `${num(roots.length)} root${roots.length === 1 ? '' : 's'} · ${num(nodeCount)} nodes · ${num(records)} records`
+}
+
+export interface ToTableOpts {
+  /** rows shown; omitted = all */
+  maxRows?: number
+  /** column selection + order; default: keys of the first record */
+  columns?: string[]
+}
+
+export function toTable(records: readonly object[], opts: ToTableOpts = {}): string {
+  if (!records.length) return '(no records)'
+  const cols = opts.columns ?? Object.keys(records[0]!)
+  const rows = opts.maxRows !== undefined ? records.slice(0, opts.maxRows) : records
+  const cell = (v: unknown): string =>
+    v == null ? '' : v instanceof Date ? v.toISOString().slice(0, 10) : String(v)
+  const grid = rows.map(r => cols.map(c => cell((r as Record<string, unknown>)[c])))
+  const widths = cols.map((c, i) => Math.max(c.length, ...grid.map(g => g[i]!.length)))
+  const line = (cells: string[]) => cells.map((s, i) => s.padEnd(widths[i]!)).join('  ').trimEnd()
+  const out = [line(cols), line(widths.map(w => '─'.repeat(w))), ...grid.map(line)]
+  if (rows.length < records.length)
+    out.push(`… ${num(records.length - rows.length)} more rows (${num(records.length)} total)`)
+  return out.join('\n')
+}
+```
+
+`src/node.ts`, directly after `namePath`:
+
+```ts
+dimPath(sep = '/'): string {
+  const dims = this.pedigree().filter(n => !n.synthetic).map(n => String(n.dim))
+  if (this.direction === 'backward') dims.reverse()
+  return dims.join(sep)
+}
+```
+
+`package.json` exports map gains (before `"./adapters"`):
+
+```json
+"./formatting": { "types": "./dist/formatting/index.d.ts", "import": "./dist/formatting/index.js" },
+```
+
+- [ ] **Step 4: run tests** — `npx vitest run test/formatting.test.ts
+test/node-nav.test.ts test/exports.test.ts` → PASS; then full gate
+`npm run typecheck && npm test` → 0 errors, all green.
+
+- [ ] **Step 5: rebuild the vendored dist** — `npm run build:site`;
+verify `/bin/ls docs/vendor/supergroup/formatting` shows `index.js` +
+`index.d.ts`.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add src test package.json docs/vendor
+git commit -m "feat: supergroup/formatting (prettyPrint, summary, toTable) + SGNode.dimPath"
+```
+
+## Task 9b: cell runtime mechanics rework + cell conversion
+
+**Files:**
+- Modify: `docs/livecells.js` (rewrite), `docs/index.html` (import map
+  entry, Run-all button, every cell, dataset markers), `docs/site.css`
+
+**Interfaces:**
+- Consumes: `supergroup/formatting` from the vendored dist (Task 9a).
+- Produces: the revised cell conventions all later Task 9 content work
+  authors against (listed in the binding rules above).
+
+- [ ] **Step 1: rewrite `docs/livecells.js`** — full replacement:
+
+```js
+import * as core from 'supergroup'
+import * as dagMod from 'supergroup/dag'
+import * as seqMod from 'supergroup/sequence'
+import * as cmpMod from 'supergroup/compare'
+import * as adapters from 'supergroup/adapters'
+import * as fmtMod from 'supergroup/formatting'
+import * as d3 from 'd3'
+import { basicSetup, EditorView } from 'codemirror'
+import { javascript } from '@codemirror/lang-javascript'
+
+const csv = async (name) => d3.csvParse(await (await fetch(`data/${name}`)).text(), d3.autoType)
+const json = async (name) => (await fetch(`data/${name}`)).json()
+
+const files = {
+  athletes: 'OlympicAthletes.csv', patients: 'fake-patient_data.csv',
+  budgets: 'diffExample.csv', hurricanes: 'hurricane.csv', fips: 'fips.csv',
+  containment: 'containment.json', conditions: 'synthea-conditions.csv',
+  drugs: 'synthea-drugs.csv', persons: 'synthea-persons.csv',
+  drugClasses: 'drug-classes.json',
+}
+const data = Object.fromEntries(await Promise.all(Object.entries(files).map(
+  async ([k, f]) => [k, await (f.endsWith('.json') ? json(f) : csv(f))])))
+
+const scope = { ...core, ...dagMod, ...seqMod, ...cmpMod, ...adapters, ...fmtMod, d3, ...data }
+Object.assign(window, scope) // cells and the devtools console share one namespace
+
+// --- result rendering: DOM passes through, strings are pre-formatted, ---
+// --- everything else is JSON. No library-aware display logic here.    ---
+function safeJson(v) {
+  const seen = new WeakSet()
+  const out = JSON.stringify(v, (k, val) => {
+    if (typeof val === 'object' && val !== null) {
+      if (seen.has(val)) return '[Circular]'
+      seen.add(val)
+    }
+    return val
+  }, 2)
+  return out === undefined ? String(v) : out
+}
+
+function render(result, out) {
+  out.replaceChildren()
+  if (result instanceof Node) { out.append(result); return }
+  const pre = document.createElement('pre')
+  pre.textContent = typeof result === 'string' ? result : safeJson(result)
+  out.append(pre)
+}
+
+const placeholder = () => {
+  const span = document.createElement('span')
+  span.className = 'cell-placeholder'
+  span.textContent = '▶ Run to evaluate'
+  return span
+}
+
+// --- cells -----------------------------------------------------------------
+// Sloppy-mode direct eval: the last statement's value is the output, and
+// bare assignments (`sg = …`) create window globals cells publish for
+// console use. `await` is unavailable inside eval'd code; a thenable
+// result is awaited before rendering.
+const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor
+const evalCell = new AsyncFunction('__code', 'return eval(__code)')
+
+const published = new Map() // name -> value at last publish, across all cells
+
+async function runCell(cell) {
+  const { view, out, status, btn, pub } = cell
+  btn.disabled = true
+  status.textContent = ' …'
+  const before = new Set(Object.keys(window))
+  const prior = new Map([...published.keys()].map((k) => [k, window[k]]))
+  const t0 = performance.now()
+  try {
+    const result = await evalCell(view.state.doc.toString())
+    render(result, out)
+    const names = Object.keys(window).filter((k) => !before.has(k))
+    for (const [k, v] of prior) if (window[k] !== v) names.push(k)
+    for (const k of names) { published.set(k, window[k]); cell.published.add(k) }
+    pub.textContent = cell.published.size ? `→ window: ${[...cell.published].join(', ')}` : ''
+    status.textContent = ` ✓ ${Math.round(performance.now() - t0)}ms`
+    return true
+  } catch (e) {
+    out.replaceChildren()
+    const pre = document.createElement('pre')
+    pre.className = 'cell-error'
+    pre.textContent = String(e.stack ?? e)
+    out.append(pre)
+    status.textContent = ' ✗'
+    return false
+  } finally {
+    btn.disabled = false
+  }
+}
+
+function clearCell(cell) {
+  for (const name of cell.published) { delete window[name]; published.delete(name) }
+  cell.published.clear()
+  cell.pub.textContent = ''
+  cell.status.textContent = ''
+  cell.out.replaceChildren(placeholder())
+}
+
+const cells = []
+for (const pre of document.querySelectorAll('pre.cell')) {
+  const code = pre.textContent.trim()
+  const wrap = document.createElement('div')
+  wrap.className = 'cell-wrap'
+  pre.replaceWith(wrap)
+  const editorHost = document.createElement('div')
+  editorHost.className = 'cell-editor'
+  const bar = document.createElement('div')
+  bar.className = 'cell-bar'
+  const btn = document.createElement('button')
+  btn.textContent = 'Run'
+  const clearBtn = document.createElement('button')
+  clearBtn.textContent = 'Clear'
+  const status = document.createElement('span')
+  const pub = document.createElement('span')
+  pub.className = 'cell-published'
+  bar.append(btn, clearBtn, status, pub)
+  const out = document.createElement('div')
+  out.className = 'cell-out'
+  out.append(placeholder())
+  wrap.append(editorHost, bar, out)
+  const view = new EditorView({ doc: code, parent: editorHost, extensions: [basicSetup, javascript()] })
+  const cell = { view, out, status, btn, pub, published: new Set() }
+  cell.run = () => runCell(cell)
+  btn.addEventListener('click', cell.run)
+  clearBtn.addEventListener('click', () => clearCell(cell))
+  editorHost.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && e.shiftKey) { e.preventDefault(); e.stopPropagation(); cell.run() }
+  }, true)
+  cells.push(cell)
+}
+
+// --- dataset preview cards (site furniture, not cell output) ---------------
+function htmlTable(records, cols) {
+  const table = document.createElement('table')
+  const thead = document.createElement('thead')
+  const headRow = document.createElement('tr')
+  for (const c of cols) { const th = document.createElement('th'); th.textContent = c; headRow.append(th) }
+  thead.append(headRow)
+  table.append(thead)
+  const tbody = document.createElement('tbody')
+  for (const r of records) {
+    const tr = document.createElement('tr')
+    for (const c of cols) {
+      const td = document.createElement('td')
+      const v = r[c]
+      td.textContent = v instanceof Date ? v.toISOString().slice(0, 10) : String(v ?? '')
+      tr.append(td)
+    }
+    tbody.append(tr)
+  }
+  table.append(tbody)
+  return table
+}
+
+for (const el of document.querySelectorAll('div.dataset')) {
+  const name = el.dataset.name
+  const records = data[name]
+  if (!records?.length) continue
+  const cols = Object.keys(records[0])
+  const head = document.createElement('div')
+  head.className = 'dataset-head'
+  const link = document.createElement('a')
+  link.href = `data/${files[name]}`
+  link.download = ''
+  link.textContent = files[name]
+  head.append(`${name} — ${records.length.toLocaleString('en-US')} rows × ${cols.length} cols · `, link)
+  const det = document.createElement('details')
+  const sum = document.createElement('summary')
+  sum.textContent = 'preview'
+  det.append(sum, htmlTable(records.slice(0, 8), cols))
+  el.append(head, det)
+  el.classList.add('dataset-card')
+}
+
+// --- run controls: nothing runs on load ------------------------------------
+const runAll = async () => { for (const c of cells) await c.run() }
+document.querySelector('#run-all')?.addEventListener('click', runAll)
+if (new URLSearchParams(location.search).has('runall')) await runAll()
+```
+
+- [ ] **Step 2: `docs/index.html` mechanics edits**
+
+  - Import map gains
+    `"supergroup/formatting": "./vendor/supergroup/formatting/index.js"`.
+  - Ensure a Run-all control near the top:
+    `<button id="run-all">Run all cells</button>` (add if the draft lacks
+    one; keep whatever placement exists otherwise).
+  - Remove the `autorun` class from every cell.
+  - Add one dataset marker `<div class="dataset" data-name="NAME"></div>`
+    immediately after the paragraph that first introduces each dataset
+    (`athletes`, `patients`, `budgets`, `hurricanes`, `containment`,
+    `conditions`, `drugs`, `persons`, `drugClasses`; `fips` only if the
+    draft mentions it).
+
+- [ ] **Step 3: convert every cell to the new conventions.** Rules:
+
+  1. Drop `return`; the last statement must be the expression to display.
+  2. Top-level `const`/`let` → bare assignment (`sg = …`) so the cell
+     publishes its names; keep `const`/`let` only for throwaway locals not
+     worth inspecting.
+  3. A cell whose display value is an object literal either assigns it
+     (`out = { … }` — assignment is an expression, so it displays AND
+     publishes) or wraps it in parens (`({ … })`); a bare `{` would parse
+     as a block.
+  4. Structure display is explicit: end with `prettyPrint(x, { … })`,
+     `summary(x)`, or `toTable(records, { … })`. Choose options per cell
+     so output stays readable (e.g. the athletes quick-start:
+     `prettyPrint(sg, { maxDepth: 2, maxChildren: 8 })`); never lean on
+     renderer magic — there is none.
+  5. Cells showing raw records end with `toTable(recs, { maxRows: N })`.
+  6. d3/DBW cells still end with the DOM node (`svg.node()`, container
+     div) — unchanged.
+
+  Worked example (quick-start cell):
+
+  ```
+  before:
+    // group by country, sport, year — every level keeps its records
+    const sg = supergroup(athletes, ['Country', 'Sport', 'Year'])
+    return sg
+
+  after:
+    // group by country, sport, year — every level keeps its records
+    sg = supergroup(athletes, ['Country', 'Sport', 'Year'])
+    summary(sg)
+  ```
+
+  followed (same cell or the next) by
+  `prettyPrint(sg, { maxDepth: 2, maxChildren: 8 })`.
+
+- [ ] **Step 4: `docs/site.css`** — remove the now-dead `.cell-out
+details` and `.sg-leaf` rules; add:
+
+```css
+.cell-placeholder { color: #999; font-style: italic; }
+.cell-bar { display: flex; gap: .6rem; align-items: baseline; }
+.cell-published { color: #667; font-size: 13px; font-family: ui-monospace, Menlo, Consolas, monospace; margin-left: auto; }
+.dataset-card { margin: 1rem 0; padding: .5rem .8rem; background: var(--soft); border: 1px solid var(--line); border-radius: 6px; font-size: 15px; }
+.dataset-card table { font-size: 13px; margin-top: .4rem; }
+```
+
+- [ ] **Step 5: headless verify** — `npm run site:serve`, then:
+
+```bash
+/bin/rm -f /tmp/sg-runall.html
+'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' \
+  --headless=new --dump-dom --virtual-time-budget=30000 \
+  'http://localhost:8123/?runall' > /tmp/sg-runall.html
+grep -c 'cell-error' /tmp/sg-runall.html        # expect 0 (grep exits 1)
+grep -c 'cell-placeholder' /tmp/sg-runall.html  # expect 0 (all cells ran)
+grep -c 'window:' /tmp/sg-runall.html           # expect > 0
+```
+
+Also dump *without* `?runall` and confirm every `.cell-out` shows the
+placeholder (nothing runs on load). Stop the server.
+
+- [ ] **Step 6: interactive spot-check** — with the server up, in a real
+browser: Run the quick-start cell, confirm `✓ Nms` status, `→ window: sg`
+badge, and that typing `sg` in the devtools console returns the
+collection; Clear removes output and `window.sg`; Shift-Enter runs;
+dataset cards show counts and preview tables.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add docs/index.html docs/livecells.js docs/site.css
+git commit -m "docs site: cell mechanics rework — no autorun, eval cells, window publishing, no-magic renderer, dataset cards"
+```
+
 ---
 
 ## Task 8: live-cell runtime + page skeleton
