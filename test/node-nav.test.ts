@@ -22,4 +22,8 @@ describe('node navigation', () => {
     expect(drug.namePath()).toBe('RxNorm/Drug')
     expect(drug.namePath(' > ')).toBe('RxNorm > Drug')
   })
+  it('dimPath joins pedigree dims', () => {
+    expect(drug.dimPath()).toBe('vocab/domain')
+    expect(drug.dimPath(' > ')).toBe('vocab > domain')
+  })
 })

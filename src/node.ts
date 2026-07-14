@@ -107,6 +107,12 @@ export class SGNode<R> {
     return labels.join(sep)
   }
 
+  dimPath(sep = '/'): string {
+    const dims = this.pedigree().filter(n => !n.synthetic).map(n => String(n.dim))
+    if (this.direction === 'backward') dims.reverse()
+    return dims.join(sep)
+  }
+
   agg(accessor: (r: R) => number): Agg { return aggregate(this.records, accessor) }
 
   /**

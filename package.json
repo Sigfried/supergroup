@@ -8,6 +8,7 @@
     "./dag": { "types": "./dist/dag/index.d.ts", "import": "./dist/dag/index.js" },
     "./sequence": { "types": "./dist/sequence/index.d.ts", "import": "./dist/sequence/index.js" },
     "./compare": { "types": "./dist/compare/index.d.ts", "import": "./dist/compare/index.js" },
+    "./formatting": { "types": "./dist/formatting/index.d.ts", "import": "./dist/formatting/index.js" },
     "./adapters": { "types": "./dist/adapters/index.d.ts", "import": "./dist/adapters/index.js" }
   },
   "files": ["dist"],

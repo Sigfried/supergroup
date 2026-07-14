@@ -81,6 +81,12 @@ export class SGNode {
             labels.reverse();
         return labels.join(sep);
     }
+    dimPath(sep = '/') {
+        const dims = this.pedigree().filter(n => !n.synthetic).map(n => String(n.dim));
+        if (this.direction === 'backward')
+            dims.reverse();
+        return dims.join(sep);
+    }
     agg(accessor) { return aggregate(this.records, accessor); }
     /**
      * Fraction of the collection's total records under this node. On dag

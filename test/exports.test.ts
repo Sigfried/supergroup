@@ -4,6 +4,7 @@ import * as dag from '../src/dag/index'
 import * as adapters from '../src/adapters/index'
 import * as sequence from '../src/sequence/index'
 import * as cmp from '../src/compare/index'
+import * as formatting from '../src/formatting/index'
 
 describe('public export surfaces', () => {
   it('core', () => {
@@ -25,5 +26,9 @@ describe('public export surfaces', () => {
   })
   it('adapters include toD3', () => {
     expect(adapters).toHaveProperty('toD3')
+  })
+  it('formatting', () => {
+    for (const name of ['prettyPrint', 'summary', 'toTable'])
+      expect(formatting, name).toHaveProperty(name)
   })
 })

@@ -50,6 +50,7 @@ export declare class SGNode<R> {
     pedigree(): SGNode<R>[];
     path(): unknown[];
     namePath(sep?: string): string;
+    dimPath(sep?: string): string;
     agg(accessor: (r: R) => number): Agg;
     /**
      * Fraction of the collection's total records under this node. On dag
