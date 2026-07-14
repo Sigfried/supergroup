@@ -2,6 +2,7 @@ import { SGNode, type SGContext } from '../node'
 import { Supergroup } from '../collection'
 import { recordsFor } from '../selection'
 import { computeMetrics } from './metrics'
+import { assignMinDepths } from './traverse'
 
 export function subgraph<R>(sg: Supergroup<R>, ids: Iterable<string>): Supergroup<R> {
   const keep = new Set(ids)
@@ -26,18 +27,7 @@ export function subgraph<R>(sg: Supergroup<R>, ids: Iterable<string>): Supergrou
     .map(e => ({ parent: clone.get(e.parent.id)!, child: clone.get(e.child.id)! }))
   const roots = [...clone.values()].filter(n => !n.parents.length)
   // min-depth BFS over kept edges
-  const seen = new Set(roots.map(r => r.id))
-  const queue = [...roots]
-  for (const r of roots) r.depth = 0
-  while (queue.length) {
-    const n = queue.shift()!
-    for (const c of n.children) {
-      if (seen.has(c.id)) continue
-      seen.add(c.id)
-      c.depth = n.depth + 1
-      queue.push(c)
-    }
-  }
+  assignMinDepths(roots)
   ctx.totalRecords = recordsFor([...clone.values()]).length
   const sub = new Supergroup<R>(roots, { backedges, ctx })
   computeMetrics(sub)

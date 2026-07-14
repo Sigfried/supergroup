@@ -1,13 +1,15 @@
 import type { SGNode } from '../node'
 import type { Supergroup } from '../collection'
+import { Fifo } from './traverse'
 
 export function computeMetrics<R>(sg: Supergroup<R>): void {
   const indeg = new Map<SGNode<R>, number>(sg.nodes.map(n => [n, 0]))
   for (const n of sg.nodes) for (const c of n.children) indeg.set(c, (indeg.get(c) ?? 0) + 1)
-  const queue = sg.nodes.filter(n => (indeg.get(n) ?? 0) === 0)
+  const queue = new Fifo<SGNode<R>>()
+  for (const n of sg.nodes) if ((indeg.get(n) ?? 0) === 0) queue.push(n)
   const topo: SGNode<R>[] = []
-  while (queue.length) {
-    const n = queue.shift()!
+  let n: SGNode<R> | undefined
+  while ((n = queue.shift())) {
     topo.push(n)
     for (const c of n.children) {
       const d = (indeg.get(c) ?? 0) - 1

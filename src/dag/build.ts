@@ -1,5 +1,6 @@
 import { SGNode, type SGContext } from '../node'
 import { Supergroup, type BackEdge } from '../collection'
+import { assignMinDepths } from './traverse'
 
 export interface DagItem { id: string; name?: string; parentIds?: string[] }
 
@@ -65,18 +66,7 @@ export function buildDag<R>(items: DagItem[]): Supergroup<R> {
   }
 
   // min-depth by BFS over kept edges
-  const seen = new Set(roots.map(r => r.id))
-  const queue = [...roots]
-  for (const r of roots) r.depth = 0
-  while (queue.length) {
-    const n = queue.shift()!
-    for (const c of n.children) {
-      if (seen.has(c.id)) continue
-      seen.add(c.id)
-      c.depth = n.depth + 1
-      queue.push(c)
-    }
-  }
+  assignMinDepths(roots)
 
   return new Supergroup<R>(roots, { backedges, ctx })
 }
