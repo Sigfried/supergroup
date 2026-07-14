@@ -1,0 +1,13 @@
+[
+  { "id": "ResearchStudy", "parentIds": ["ResearchStudy"] },
+  { "id": "Participant", "parentIds": ["ResearchStudy"] },
+  { "id": "Consent", "parentIds": ["Participant"] },
+  { "id": "Visit", "parentIds": ["Participant"] },
+  { "id": "Specimen", "parentIds": ["Visit", "Participant"] },
+  { "id": "Aliquot", "parentIds": ["Specimen"] },
+  { "id": "Assay", "parentIds": ["Aliquot", "Visit"] },
+  { "id": "Measurement", "parentIds": ["Assay", "Visit"] },
+  { "id": "Document", "parentIds": ["ResearchStudy", "Visit"] },
+  { "id": "Questionnaire", "parentIds": ["Document"] },
+  { "id": "Response", "parentIds": ["Questionnaire", "Participant"] }
+]
