@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest'
 import { fromParentIds } from '../src/dag/constructors'
 import { attachRecords } from '../src/dag/records'
 import { subgraph } from '../src/dag/subgraph'
+import { supergroup } from '../src/group'
+import { groupBySequence } from '../src/sequence'
 import { DAG_ITEMS } from './fixtures'
 
 describe('subgraph', () => {
@@ -22,5 +24,29 @@ describe('subgraph', () => {
     expect(sub.select(['B'])[0]!.rollup().count).toBe(1)
     expect(sg.nodes).toHaveLength(7)                          // source intact
     expect(sg.select(['D'])[0]!.parents).toHaveLength(2)
+  })
+
+  it('subgraph keeps synthetic flag and collection root', () => {
+    const recs = [{ a: 'x' }, { a: 'y' }]
+    const sg = supergroup(recs, ['a'], { root: 'synthetic' })
+    const sub = subgraph(sg, ['(root)', 'x'])
+    expect(sub.root).toBeDefined()
+    expect(sub.root!.synthetic).toBe(true)
+    expect(sub.root!.children.map(n => n.label)).toEqual(['x'])
+    expect(sub.roots).toHaveLength(0)          // root is not doubled into roots
+    expect(sub.nodes.map(n => n.id)).toEqual(['(root)', 'x'])
+  })
+
+  it('subgraph keeps node direction (backward paths stay reversed)', () => {
+    type Evt = { name: string; prev?: Evt }
+    const e1: Evt = { name: 'start' }
+    const e2: Evt = { name: 'end', prev: e1 }
+    const sg = groupBySequence([e2], { key: 'name', prev: e => e.prev, direction: 'backward' })
+    const leaf = sg.nodes.find(n => n.label === 'start')!
+    expect(leaf.namePath()).toBe('start/end')  // reversed because backward
+    const sub = subgraph(sg, sg.nodes.map(n => n.id))
+    const subLeaf = sub.nodes.find(n => n.label === 'start')!
+    expect(subLeaf.direction).toBe('backward')
+    expect(subLeaf.namePath()).toBe('start/end')
   })
 })

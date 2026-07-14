@@ -11,7 +11,8 @@ export function subgraph<R>(sg: Supergroup<R>, ids: Iterable<string>): Supergrou
   for (const n of sg.nodes) {
     if (!keep.has(n.id)) continue
     clone.set(n.id, new SGNode<R>({
-      id: n.id, key: n.key, label: n.label, dim: n.dim, records: [...n.records], ctx,
+      id: n.id, key: n.key, label: n.label, dim: n.dim,
+      records: [...n.records], synthetic: n.synthetic, direction: n.direction, ctx,
     }))
   }
   for (const n of sg.nodes) {
@@ -25,11 +26,11 @@ export function subgraph<R>(sg: Supergroup<R>, ids: Iterable<string>): Supergrou
   const backedges = sg.backedges
     .filter(e => keep.has(e.parent.id) && keep.has(e.child.id))
     .map(e => ({ parent: clone.get(e.parent.id)!, child: clone.get(e.child.id)! }))
-  const roots = [...clone.values()].filter(n => !n.parents.length)
-  // min-depth BFS over kept edges
-  assignMinDepths(roots)
+  const root = sg.root ? clone.get(sg.root.id) : undefined
+  const roots = [...clone.values()].filter(n => !n.parents.length && n !== root)
+  assignMinDepths(root ? [root, ...roots] : roots)
   ctx.totalRecords = recordsFor([...clone.values()]).length
-  const sub = new Supergroup<R>(roots, { backedges, ctx })
+  const sub = new Supergroup<R>(roots, { root, backedges, ctx })
   computeMetrics(sub)
   return sub
 }
