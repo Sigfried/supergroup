@@ -14,6 +14,7 @@
     "supergroup/sequence": "./vendor/supergroup/sequence/index.js",
     "supergroup/compare": "./vendor/supergroup/compare/index.js",
     "supergroup/adapters": "./vendor/supergroup/adapters/index.js",
+    "supergroup/formatting": "./vendor/supergroup/formatting/index.js",
     "d3": "https://esm.sh/d3@7",
     "codemirror": "https://esm.sh/codemirror@6.0.1",
     "@codemirror/lang-javascript": "https://esm.sh/@codemirror/lang-javascript@6",
@@ -51,112 +52,127 @@ href="data/">data/</a> and all attached to <code>window</code> once loaded:</p>
 <ul>
 <li><a href="data/OlympicAthletes.csv">athletes</a> — Olympic athletes by
 country/sport/year (public Olympics dataset).</li>
+<div class="dataset" data-name="athletes"></div>
 <li><a href="data/fake-patient_data.csv">patients</a> — a small synthetic
 hospital-visit CSV (fabricated, not real patient data).</li>
+<div class="dataset" data-name="patients"></div>
 <li><a href="data/diffExample.csv">budgets</a> — a two-year department
 budget table, made up for the compare examples.</li>
+<div class="dataset" data-name="budgets"></div>
 <li><a href="data/hurricane.csv">hurricanes</a> — HURDAT2 Atlantic
 hurricane best-track status events.</li>
+<div class="dataset" data-name="hurricanes"></div>
 <li><a href="data/fips.csv">fips</a> — U.S. state/county FIPS codes.</li>
+<div class="dataset" data-name="fips"></div>
 <li><a href="data/containment.json">containment</a> — a small hand-written
 specimen/study parent-id taxonomy, for DAG examples.</li>
+<div class="dataset" data-name="containment"></div>
 <li><a href="data/synthea-conditions.csv">conditions</a>, <a
 href="data/synthea-drugs.csv">drugs</a>, <a
 href="data/synthea-persons.csv">persons</a> — a synthea 1k-patient
 synthetic-patient OMOP extract (public S3), joined to OMOP vocabulary
 (SNOMED/RxNorm/ATC concept names).</li>
+<div class="dataset" data-name="conditions"></div>
+<div class="dataset" data-name="drugs"></div>
+<div class="dataset" data-name="persons"></div>
 <li><a href="data/drug-classes.json">drugClasses</a> — the ATC + RxNorm
 classification closure over the drugs this cohort used, built from the
 same OMOP vocabulary; <code>fromParentIds</code>-ready. See <a
 href="data/curation/README.md">data/curation/README.md</a> for how it's
 built.</li>
+<div class="dataset" data-name="drugClasses"></div>
 </ul>
 
 <h2>Quick start / core</h2>
 <p>Start with flat records — rows from a CSV file, a SQL query, an AJAX
 call. An array of plain objects renders as a table (first 50 rows):</p>
 
-<pre class="cell autorun">
+<pre class="cell">
 // some very fake hospital data, loaded from a CSV file
-return patients
+toTable(patients, { maxRows: 10 })
 </pre>
 
-<pre class="cell autorun">
+<pre class="cell">
 // group by country, sport, year — every level keeps its records
-const sg = supergroup(athletes, ['Country', 'Sport', 'Year'])
-return sg
+sg = supergroup(athletes, ['Country', 'Sport', 'Year'])
+summary(sg)
 </pre>
 
-<pre class="cell autorun">
+<pre class="cell">
+// same collection, shown as a tree (depth- and breadth-limited)
+prettyPrint(sg, { maxDepth: 2, maxChildren: 8 })
+</pre>
+
+<pre class="cell">
 // navigation: node lookup by path, paths, parents
-const sg = supergroup(athletes, ['Country', 'Sport', 'Year'])
-const n = sg.node(['United States', 'Swimming'])
-return {
+sg = supergroup(athletes, ['Country', 'Sport', 'Year'])
+n = sg.node(['United States', 'Swimming'])
+;({
   label: n.label, dim: n.dim, depth: n.depth,
   namePath: n.namePath(), records: n.records.length,
   children: n.children.map(String),
-}
+})
 </pre>
 
-<pre class="cell autorun">
+<pre class="cell">
 // aggregates: agg over an accessor; union-safe rollup
-const sg = supergroup(athletes, ['Country', 'Sport'])
-const us = sg.node(['United States'])
-return {
+sg = supergroup(athletes, ['Country', 'Sport'])
+us = sg.node(['United States'])
+;({
   medals: us.agg(r => r['Total Medals']),
   rollup: us.rollup(r => r['Total Medals']),
   pctOfAllRecords: us.pct().toFixed(3),
-}
+})
 </pre>
 
 <p>The same hospital-visit CSV that appears throughout this codebase's
 history: grouping by physician and unit, then rolling up charges.</p>
 
-<pre class="cell autorun">
+<pre class="cell">
 // hospital visits grouped by physician, then unit
-const sg = supergroup(patients, ['Physician', 'Unit'])
-const adams = sg.node(['Adams'])
-return {
+sg = supergroup(patients, ['Physician', 'Unit'])
+adams = sg.node(['Adams'])
+;({
   physicians: sg.roots.map(String),
   adamsUnits: adams.children.map(String),
   adamsRecords: adams.records.length,
   adamsCharge: adams.rollup(r => r.Charge),
-}
+})
 </pre>
 
-<pre class="cell autorun">
+<pre class="cell">
 // lookup + namePath on a deeper path
-const sg = supergroup(patients, ['Physician', 'Unit', 'Patient'])
-const n = sg.node(['Adams', 'preop'])
-return { namePath: n.namePath(), patients: n.children.map(String), records: n.records.length }
+sg = supergroup(patients, ['Physician', 'Unit', 'Patient'])
+n = sg.node(['Adams', 'preop'])
+;({ namePath: n.namePath(), patients: n.children.map(String), records: n.records.length })
 </pre>
 
 <p>Multi-valued dims split a record into more than one group without
 duplicating it in the record set; the <code>Insurance</code> column here is
 semicolon-delimited (a patient can carry more than one plan).</p>
 
-<pre class="cell autorun">
+<pre class="cell">
 // multi-valued dims (Insurance: "Aetna PPO;Medicare") and Date keys
-const sg = supergroup(patients, [
+sg = supergroup(patients, [
   { by: r => r.Insurance.split(';'), name: 'Insurance', multi: true },
   'Date',
 ])
-return { plans: sg.roots.map(String), recordsTotal: sg.nodes.reduce((n, x) => n + (x.children.length ? 0 : x.records.length), 0) }
+;({ plans: sg.roots.map(String), recordsTotal: sg.nodes.reduce((n, x) => n + (x.children.length ? 0 : x.records.length), 0) })
 </pre>
 
 <p><code>d3.group</code> returns nested <code>Map</code>s: fast, but each
 node is just a key and a value — no path, no parent, no aggregate. The same
 grouping via supergroup keeps records at every level and adds navigation.</p>
 
-<pre class="cell autorun">
+<pre class="cell">
 // same grouping, two shapes: d3.group vs supergroup
-const grouped = d3.group(athletes, r => r.Country, r => r.Sport)
-const sg = supergroup(athletes, ['Country', 'Sport'])
-return {
+grouped = d3.group(athletes, r => r.Country, r => r.Sport)
+sg = supergroup(athletes, ['Country', 'Sport'])
+;({
   d3group: [...grouped.get('United States').keys()].slice(0, 5),
   supergroup: sg.node(['United States']).children.map(String).slice(0, 5),
   notice: 'the Map has no records, no parent, no path — just nested keys',
-}
+})
 </pre>
 
 <h2>DAG module + interactive browser</h2>
@@ -164,43 +180,43 @@ return {
 builds a DAG: nodes can have multiple parents, and cycles are detected and
 reported as backedges rather than causing infinite recursion.</p>
 
-<pre class="cell autorun">
+<pre class="cell">
 // parent-id data → DAG; multi-parent nodes appear once, cycles become backedges
-const g = fromParentIds(containment)
-return {
+g = fromParentIds(containment)
+;({
   roots: g.roots.map(String),
   multiParent: g.nodes.filter(n => n.parents.length > 1).map(String),
   backedges: g.backedges.map(e => `${e.parent} ⟲ ${e.child}`),
-}
+})
 </pre>
 
-<pre class="cell autorun">
+<pre class="cell">
 // records meet the DAG: attach by node id, then union-safe rollups
-const g = fromParentIds(containment, {
+g = fromParentIds(containment, {
   records: [
     { entity: 'Specimen', n: 12 }, { entity: 'Aliquot', n: 30 },
     { entity: 'Assay', n: 7 }, { entity: 'Response', n: 55 },
   ],
   recordKey: r => r.entity,
 })
-const visit = g.nodes.find(n => n.id === 'Visit')
+visit = g.nodes.find(n => n.id === 'Visit')
 // union-then-sum: shared descendants counted once, never per-path
-return { under: visit.rollup(r => r.n), induced: subgraph(g, ['Visit', 'Specimen', 'Aliquot']).nodes.map(String) }
+;({ under: visit.rollup(r => r.n), induced: subgraph(g, ['Visit', 'Specimen', 'Aliquot']).nodes.map(String) })
 </pre>
 
 <p><code>fromParentChild</code> builds the same kind of DAG straight from a
 flat parent/child row table — no pre-shaped id list required.</p>
 
-<pre class="cell autorun">
+<pre class="cell">
 // fromParentChild: a taxonomy expressed as plain parent/child rows
-const rows = [
+rows = [
   { parent: 'Animal', child: 'Vertebrate' },
   { parent: 'Animal', child: 'Invertebrate' },
   { parent: 'Vertebrate', child: 'Mammal' },
   { parent: 'Vertebrate', child: 'Bird' },
 ]
-const g = fromParentChild(rows, { parent: 'parent', child: 'child' })
-return { roots: g.roots.map(String), nodes: g.nodes.map(String) }
+g = fromParentChild(rows, { parent: 'parent', child: 'child' })
+;({ roots: g.roots.map(String), nodes: g.nodes.map(String) })
 </pre>
 
 <p>The interactive browser below (<a
@@ -209,15 +225,18 @@ takes the adapter's output directly — no reshaping.</p>
 
 <pre class="cell">
 // interactive: dag-browser-widget over the containment DAG (self-loop → backedge marker)
-const { createElement } = await import('react')
-const { createRoot } = await import('react-dom/client')
-const { DagBrowser } = await import('dag-browser-widget')
-const nodes = toDagBrowserNodes(fromParentIds(containment))
-const div = document.createElement('div')
-div.style.height = '360px'
-div.style.overflow = 'auto'
-createRoot(div).render(createElement(DagBrowser, { nodes, levelsExpanded: 2 }))
-return div
+// top-level await isn't available in cells; an async IIFE's promise is awaited before rendering
+(async () => {
+  const { createElement } = await import('react')
+  const { createRoot } = await import('react-dom/client')
+  const { DagBrowser } = await import('dag-browser-widget')
+  const nodes = toDagBrowserNodes(fromParentIds(containment))
+  const div = document.createElement('div')
+  div.style.height = '360px'
+  div.style.overflow = 'auto'
+  createRoot(div).render(createElement(DagBrowser, { nodes, levelsExpanded: 2 }))
+  return div
+})()
 </pre>
 
 <h3>Real classification data: ATC + RxNorm drug classes</h3>
@@ -226,27 +245,27 @@ machinery over real data: <code>drugClasses</code> is the ATC/RxNorm
 classification closure for every drug this synthetic patient cohort used,
 attached to the <code>drugs</code> records by concept id.</p>
 
-<pre class="cell autorun">
+<pre class="cell">
 // real drug classification: ATC + RxNorm over the drugs this cohort used
-const g = fromParentIds(drugClasses, { records: drugs, recordKey: r => String(r.concept_id) })
-return { nodes: g.nodes.length, roots: g.roots.length,
+g = fromParentIds(drugClasses, { records: drugs, recordKey: r => String(r.concept_id) })
+;({ nodes: g.nodes.length, roots: g.roots.length,
   multiParent: g.nodes.filter(n => n.parents.length > 1).length,
-  sampleMultiParent: g.nodes.find(n => n.parents.length > 1)?.label }
+  sampleMultiParent: g.nodes.find(n => n.parents.length > 1)?.label })
 </pre>
 
-<pre class="cell autorun">
+<pre class="cell">
 // union-then-sum: distinct patients under each ATC class (not sum-over-paths)
-const g = fromParentIds(drugClasses, { records: drugs, recordKey: r => String(r.concept_id) })
-const patientsUnder = n => new Set(recordsUnder([n]).map(r => r.person_id)).size
-return g.roots.filter(n => n.children.length)
+g = fromParentIds(drugClasses, { records: drugs, recordKey: r => String(r.concept_id) })
+patientsUnder = n => new Set(recordsUnder([n]).map(r => r.person_id)).size
+g.roots.filter(n => n.children.length)
   .map(n => `${n.label}: ${patientsUnder(n)} patients`).join('\n')
 </pre>
 
-<pre class="cell autorun">
+<pre class="cell">
 // same rollup as a bar chart: top ATC classes by distinct-patient count
-const g = fromParentIds(drugClasses, { records: drugs, recordKey: r => String(r.concept_id) })
-const patientsUnder = n => new Set(recordsUnder([n]).map(r => r.person_id)).size
-const rows = g.roots.filter(n => n.children.length)
+g = fromParentIds(drugClasses, { records: drugs, recordKey: r => String(r.concept_id) })
+patientsUnder = n => new Set(recordsUnder([n]).map(r => r.person_id)).size
+rows = g.roots.filter(n => n.children.length)
   .map(n => ({ label: n.label, patients: patientsUnder(n) }))
   .sort((a, b) => b.patients - a.patients)
   .slice(0, 10)
@@ -257,20 +276,23 @@ const g2 = svg.selectAll('g').data(rows).join('g').attr('transform', (d, i) => `
 g2.append('rect').attr('width', d => x(d.patients)).attr('height', barH - 4).attr('fill', '#2456a4')
 g2.append('text').attr('x', d => x(d.patients) + 6).attr('y', 15).attr('font-size', 12).text(d => d.patients)
 g2.append('text').attr('x', 4).attr('y', 15).attr('font-size', 12).attr('fill', '#fff').text(d => d.label)
-return svg.node()
+svg.node()
 </pre>
 
 <pre class="cell">
 // interactive: dag-browser-widget over the real drug-class DAG
-const { createElement } = await import('react')
-const { createRoot } = await import('react-dom/client')
-const { DagBrowser } = await import('dag-browser-widget')
-const nodes = toDagBrowserNodes(fromParentIds(drugClasses))
-const div = document.createElement('div')
-div.style.height = '360px'
-div.style.overflow = 'auto'
-createRoot(div).render(createElement(DagBrowser, { nodes, levelsExpanded: 1 }))
-return div
+// top-level await isn't available in cells; an async IIFE's promise is awaited before rendering
+(async () => {
+  const { createElement } = await import('react')
+  const { createRoot } = await import('react-dom/client')
+  const { DagBrowser } = await import('dag-browser-widget')
+  const nodes = toDagBrowserNodes(fromParentIds(drugClasses))
+  const div = document.createElement('div')
+  div.style.height = '360px'
+  div.style.overflow = 'auto'
+  createRoot(div).render(createElement(DagBrowser, { nodes, levelsExpanded: 1 }))
+  return div
+})()
 </pre>
 
 <h2>Sequence trees</h2>
@@ -278,33 +300,33 @@ return div
 predecessor), <code>groupBySequence</code> groups by a key at each step and
 builds a tree of what-happens-next (or what-happened-before, or both).</p>
 
-<pre class="cell autorun">
+<pre class="cell">
 // link each storm's events into next/prev chains; keep each storm's first event
-const byStorm = d3.group(hurricanes, r => r.hur_id)
+byStorm = d3.group(hurricanes, r => r.hur_id)
 for (const evts of byStorm.values()) {
   evts.sort((a, b) => d3.ascending(a.date, b.date))
   evts.forEach((e, i) => { e.next = evts[i + 1] ?? null; e.prev = evts[i - 1] ?? null })
 }
-Object.assign(window, { hurricaneStarts: [...byStorm.values()].map(e => e[0]) })
-return `${byStorm.size} storms linked`
+hurricaneStarts = [...byStorm.values()].map(e => e[0])
+;`${byStorm.size} storms linked`
 </pre>
 
-<pre class="cell autorun">
+<pre class="cell">
 // what sequences of statuses do storms move through?
-return groupBySequence(hurricaneStarts, { key: 'status', next: e => e.next, direction: 'forward', maxDepth: 3 })
+groupBySequence(hurricaneStarts, { key: 'status', next: e => e.next, direction: 'forward', maxDepth: 3 })
 </pre>
 
-<pre class="cell autorun">
+<pre class="cell">
 // anchored-both: align every storm on its first Hurricane event, look both ways
-const anchors = hurricaneStarts
+anchors = hurricaneStarts
   .map(e => { let x = e; while (x && x.status !== 'Hurricane') x = x.next; return x })
   .filter(Boolean)
-return groupBySequence(anchors, { key: 'status', next: e => e.next, prev: e => e.prev, direction: 'both', maxDepth: 2 })
+groupBySequence(anchors, { key: 'status', next: e => e.next, prev: e => e.prev, direction: 'both', maxDepth: 2 })
 </pre>
 
-<pre class="cell autorun">
+<pre class="cell">
 // toD3 + d3.partition: sequence tree as an icicle
-const seq = groupBySequence(hurricaneStarts, { key: 'status', next: e => e.next, direction: 'forward', maxDepth: 4 })
+seq = groupBySequence(hurricaneStarts, { key: 'status', next: e => e.next, direction: 'forward', maxDepth: 4 })
 const root = d3.hierarchy(toD3(seq)).sum(d => (d.children ? 0 : d.records.length))
 d3.partition().size([320, 640])(root)
 const color = d3.scaleOrdinal(d3.schemeTableau10)
@@ -317,7 +339,7 @@ cell.append('rect')
 cell.filter(d => d.x1 - d.x0 > 14).append('text')
   .attr('x', 4).attr('y', 13).attr('font-size', 11)
   .text(d => `${d.data.name} (${d.value})`)
-return svg.node()
+svg.node()
 </pre>
 
 <p>A full LifeFlow-style temporal flow visualization of this data — the
@@ -328,10 +350,10 @@ lifeflow/timelines rewrite lands.</p>
 list in a single synthetic root so it could feed a d3 hierarchy layout. In
 v2 that's a <code>{root: 'synthetic'}</code> option plus <code>toD3</code>:</p>
 
-<pre class="cell autorun">
+<pre class="cell">
 // v1's asRootVal(), in v2: a synthetic root wrapping a flat grouping
-const sg = supergroup(athletes, 'Sport', { root: 'synthetic' })
-return toD3(sg)
+sg = supergroup(athletes, 'Sport', { root: 'synthetic' })
+toD3(sg)
 </pre>
 
 <h3>Real sequence data: condition histories</h3>
@@ -339,31 +361,31 @@ return toD3(sg)
 "No matching concept"); the linking cell below filters those out before
 building sequences.</p>
 
-<pre class="cell autorun">
+<pre class="cell">
 // link each patient's conditions into a chain; keep each patient's first diagnosis
-const mapped = conditions.filter(r => r.concept_id !== 0)
-const byPerson = d3.group(mapped, r => r.person_id)
+mapped = conditions.filter(r => r.concept_id !== 0)
+byPerson = d3.group(mapped, r => r.person_id)
 for (const evts of byPerson.values()) {
   evts.sort((a, b) => d3.ascending(a.start_date, b.start_date))
   evts.forEach((e, i) => { e.next = evts[i + 1] ?? null; e.prev = evts[i - 1] ?? null })
 }
-Object.assign(window, { firstConditions: [...byPerson.values()].map(e => e[0]) })
-return `${byPerson.size} patients linked (${conditions.length - mapped.length} unmapped rows dropped)`
+firstConditions = [...byPerson.values()].map(e => e[0])
+;`${byPerson.size} patients linked (${conditions.length - mapped.length} unmapped rows dropped)`
 </pre>
 
-<pre class="cell autorun">
+<pre class="cell">
 // what conditions tend to follow a patient's first diagnosis?
-return groupBySequence(firstConditions, { key: 'condition', next: e => e.next, direction: 'forward', maxDepth: 3 })
+groupBySequence(firstConditions, { key: 'condition', next: e => e.next, direction: 'forward', maxDepth: 3 })
 </pre>
 
-<pre class="cell autorun">
+<pre class="cell">
 // anchored-both: align every patient on their first diagnosis of the most common condition
-const counts = d3.rollup(firstConditions, v => v.length, r => r.condition)
+counts = d3.rollup(firstConditions, v => v.length, r => r.condition)
 const [commonCondition] = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]
-const anchors = firstConditions
+anchors = firstConditions
   .map(e => { let x = e; while (x && x.condition !== commonCondition) x = x.next; return x })
   .filter(Boolean)
-return groupBySequence(anchors, { key: 'condition', next: e => e.next, prev: e => e.prev, direction: 'both', maxDepth: 2 })
+groupBySequence(anchors, { key: 'condition', next: e => e.next, prev: e => e.prev, direction: 'both', maxDepth: 2 })
 </pre>
 
 <h2>Compare</h2>
@@ -371,11 +393,12 @@ return groupBySequence(anchors, { key: 'condition', next: e => e.next, prev: e =
 a merged tree where every node carries <code>cmp.in</code> (<code>'a'</code>,
 <code>'b'</code>, or <code>'both'</code>) and <code>cmp.countDelta</code>.</p>
 
-<pre class="cell autorun">
+<pre class="cell">
 // same hierarchy, two years of budgets — where did counts move?
-const y2010 = supergroup(budgets.filter(r => r.Year === 2010), 'Dept')
-const y2011 = supergroup(budgets.filter(r => r.Year === 2011), 'Dept')
-return compare(y2010, y2011)
+y2010 = supergroup(budgets.filter(r => r.Year === 2010), 'Dept')
+y2011 = supergroup(budgets.filter(r => r.Year === 2011), 'Dept')
+diffBudgets = compare(y2010, y2011)
+prettyPrint(diffBudgets)
 </pre>
 
 <p>Each node's summary line shows <code>cmp.in</code> and, when nonzero,
@@ -383,14 +406,14 @@ return compare(y2010, y2011)
 needs <code>{ by: 'id' }</code> — a node's identity is its DAG id, not its
 tree path.</p>
 
-<pre class="cell autorun">
+<pre class="cell">
 // cohort comparison over one classification: women vs men, by node id
-const gender = new Map(persons.map(p => [p.person_id, p.gender]))
-const cohort = g => fromParentIds(drugClasses,
+gender = new Map(persons.map(p => [p.person_id, p.gender]))
+cohort = g => fromParentIds(drugClasses,
   { records: drugs.filter(r => gender.get(r.person_id) === g), recordKey: r => String(r.concept_id) })
-const diff = compare(cohort('F'), cohort('M'), { by: 'id' })
-const interesting = diff.nodes.filter(n => n.cmp && Math.abs(n.cmp.countDelta) > 25)
-return interesting.map(n => `${n.label}: ${n.cmp.in} Δ${n.cmp.countDelta}`).join('\n')
+diff = compare(cohort('F'), cohort('M'), { by: 'id' })
+interesting = diff.nodes.filter(n => n.cmp && Math.abs(n.cmp.countDelta) > 25)
+interesting.map(n => `${n.label}: ${n.cmp.in} Δ${n.cmp.countDelta}`).join('\n')
 </pre>
 
 <h2>v1 → v2 migration</h2>

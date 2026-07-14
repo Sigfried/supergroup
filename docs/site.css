@@ -15,8 +15,11 @@ th, td { border: 1px solid var(--line); padding: .3rem .6rem; text-align: left; 
 .cell-bar button { font: inherit; padding: .1rem .8rem; cursor: pointer; }
 .cell-out { padding: .5rem .8rem; border-top: 1px solid var(--line); max-height: 24rem; overflow: auto; }
 .cell-out pre { margin: 0; white-space: pre-wrap; }
-.cell-out details { padding-left: 1rem; }
-.sg-leaf { padding-left: 1rem; }
 .cell-error { color: #a02020; }
 .table-caption { margin: 0 0 .4rem; font-size: .85em; color: #666; }
 .cell-out table { font-size: .9em; }
+.cell-placeholder { color: #999; font-style: italic; }
+.cell-bar { display: flex; gap: .6rem; align-items: baseline; }
+.cell-published { color: #667; font-size: 13px; font-family: ui-monospace, Menlo, Consolas, monospace; margin-left: auto; }
+.dataset-card { margin: 1rem 0; padding: .5rem .8rem; background: var(--soft); border: 1px solid var(--line); border-radius: 6px; font-size: 15px; }
+.dataset-card table { font-size: 13px; margin-top: .4rem; }

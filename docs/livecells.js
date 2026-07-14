@@ -3,6 +3,7 @@ import * as dagMod from 'supergroup/dag'
 import * as seqMod from 'supergroup/sequence'
 import * as cmpMod from 'supergroup/compare'
 import * as adapters from 'supergroup/adapters'
+import * as fmtMod from 'supergroup/formatting'
 import * as d3 from 'd3'
 import { basicSetup, EditorView } from 'codemirror'
 import { javascript } from '@codemirror/lang-javascript'
@@ -10,109 +11,73 @@ import { javascript } from '@codemirror/lang-javascript'
 const csv = async (name) => d3.csvParse(await (await fetch(`data/${name}`)).text(), d3.autoType)
 const json = async (name) => (await fetch(`data/${name}`)).json()
 
-const data = {
-  athletes: await csv('OlympicAthletes.csv'),
-  patients: await csv('fake-patient_data.csv'),
-  budgets: await csv('diffExample.csv'),
-  hurricanes: await csv('hurricane.csv'),
-  fips: await csv('fips.csv'),
-  containment: await json('containment.json'),
-  conditions: await csv('synthea-conditions.csv'),
-  drugs: await csv('synthea-drugs.csv'),
-  persons: await csv('synthea-persons.csv'),
-  drugClasses: await json('drug-classes.json'),
+const files = {
+  athletes: 'OlympicAthletes.csv', patients: 'fake-patient_data.csv',
+  budgets: 'diffExample.csv', hurricanes: 'hurricane.csv', fips: 'fips.csv',
+  containment: 'containment.json', conditions: 'synthea-conditions.csv',
+  drugs: 'synthea-drugs.csv', persons: 'synthea-persons.csv',
+  drugClasses: 'drug-classes.json',
 }
+const data = Object.fromEntries(await Promise.all(Object.entries(files).map(
+  async ([k, f]) => [k, await (f.endsWith('.json') ? json(f) : csv(f))])))
 
-const scope = { ...core, ...dagMod, ...seqMod, ...cmpMod, ...adapters, d3, ...data }
-Object.assign(window, scope)   // devtools escape hatch
+const scope = { ...core, ...dagMod, ...seqMod, ...cmpMod, ...adapters, ...fmtMod, d3, ...data }
+Object.assign(window, scope) // cells and the devtools console share one namespace
 
-// --- result rendering -----------------------------------------------------
-const isSGNode = (v) => !!v && typeof v === 'object'
-  && 'label' in v && 'records' in v && 'children' in v && 'parents' in v
-const isCollection = (v) => !!v && typeof v === 'object' && 'roots' in v && 'nodes' in v
-
-function nodeSummary(n) {
-  let s = `${n.label} (${n.records.length} recs)`
-  if (n.cmp) s += `  [${n.cmp.in}${n.cmp.countDelta ? ` Δ${n.cmp.countDelta}` : ''}]`
-  return s
-}
-
-function renderNode(n, depth = 0) {
-  if (!n.children.length || depth > 8) {
-    const div = document.createElement('div')
-    div.className = 'sg-leaf'
-    div.textContent = nodeSummary(n)
-    return div
-  }
-  const det = document.createElement('details')
-  det.open = depth < 2
-  const sum = document.createElement('summary')
-  sum.textContent = nodeSummary(n)
-  det.append(sum)
-  for (const c of n.children) det.append(renderNode(c, depth + 1))
-  return det
-}
-
-const isPlainRecord = (v) => !!v && typeof v === 'object' && !Array.isArray(v) && !(v instanceof Date) && !isSGNode(v)
-
-function renderTable(records, out) {
-  const cols = Object.keys(records[0])
-  const table = document.createElement('table')
-  const thead = document.createElement('thead')
-  const headRow = document.createElement('tr')
-  for (const c of cols) { const th = document.createElement('th'); th.textContent = c; headRow.append(th) }
-  thead.append(headRow)
-  table.append(thead)
-  const tbody = document.createElement('tbody')
-  for (const r of records.slice(0, 50)) {
-    const tr = document.createElement('tr')
-    for (const c of cols) {
-      const td = document.createElement('td')
-      const v = r[c]
-      td.textContent = v instanceof Date ? v.toISOString().slice(0, 10) : String(v)
-      tr.append(td)
+// --- result rendering: DOM passes through, strings are pre-formatted, ---
+// --- everything else is JSON. No library-aware display logic here.    ---
+function safeJson(v) {
+  const seen = new WeakSet()
+  const out = JSON.stringify(v, (k, val) => {
+    if (typeof val === 'object' && val !== null) {
+      if (seen.has(val)) return '[Circular]'
+      seen.add(val)
     }
-    tbody.append(tr)
-  }
-  table.append(tbody)
-  const caption = document.createElement('p')
-  caption.className = 'table-caption'
-  caption.textContent = records.length > 50
-    ? `showing 50 of ${records.length} rows`
-    : `${records.length} row${records.length === 1 ? '' : 's'}`
-  out.append(caption, table)
+    return val
+  }, 2)
+  return out === undefined ? String(v) : out
 }
 
 function render(result, out) {
   out.replaceChildren()
   if (result instanceof Node) { out.append(result); return }
-  if (isCollection(result)) result = result.root ? [result.root] : result.roots
-  if (isSGNode(result)) result = [result]
-  if (Array.isArray(result) && result.length && result.every(isSGNode)) {
-    for (const n of result) out.append(renderNode(n))
-    return
-  }
-  if (Array.isArray(result) && result.length && result.every(isPlainRecord)) {
-    renderTable(result, out)
-    return
-  }
   const pre = document.createElement('pre')
-  pre.textContent = typeof result === 'string' ? result
-    : JSON.stringify(result, (k, v) => (isSGNode(v) ? `<SGNode ${v.label}>` : v), 2)
+  pre.textContent = typeof result === 'string' ? result : safeJson(result)
   out.append(pre)
 }
 
-// --- cells ------------------------------------------------------------------
-const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor
-const names = Object.keys(scope)
-const values = names.map((k) => scope[k])
+const placeholder = () => {
+  const span = document.createElement('span')
+  span.className = 'cell-placeholder'
+  span.textContent = '▶ Run to evaluate'
+  return span
+}
 
-async function runCell(getCode, out, status) {
+// --- cells -----------------------------------------------------------------
+// Sloppy-mode direct eval: the last statement's value is the output, and
+// bare assignments (`sg = …`) create window globals cells publish for
+// console use. `await` is unavailable inside eval'd code; a thenable
+// result is awaited before rendering.
+const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor
+const evalCell = new AsyncFunction('__code', 'return eval(__code)')
+
+const published = new Map() // name -> value at last publish, across all cells
+
+async function runCell(cell) {
+  const { view, out, status, btn, pub } = cell
+  btn.disabled = true
+  status.textContent = ' …'
+  const before = new Set(Object.keys(window))
+  const prior = new Map([...published.keys()].map((k) => [k, window[k]]))
+  const t0 = performance.now()
   try {
-    status.textContent = ' …'
-    const fn = new AsyncFunction(...names, getCode())
-    render(await fn(...values), out)
-    status.textContent = ''
+    const result = await evalCell(view.state.doc.toString())
+    render(result, out)
+    const names = Object.keys(window).filter((k) => !before.has(k))
+    for (const [k, v] of prior) if (window[k] !== v) names.push(k)
+    for (const k of names) { published.set(k, window[k]); cell.published.add(k) }
+    pub.textContent = cell.published.size ? `→ window: ${[...cell.published].join(', ')}` : ''
+    status.textContent = ` ✓ ${Math.round(performance.now() - t0)}ms`
     return true
   } catch (e) {
     out.replaceChildren()
@@ -122,7 +87,17 @@ async function runCell(getCode, out, status) {
     out.append(pre)
     status.textContent = ' ✗'
     return false
+  } finally {
+    btn.disabled = false
   }
+}
+
+function clearCell(cell) {
+  for (const name of cell.published) { delete window[name]; published.delete(name) }
+  cell.published.clear()
+  cell.pub.textContent = ''
+  cell.status.textContent = ''
+  cell.out.replaceChildren(placeholder())
 }
 
 const cells = []
@@ -137,21 +112,71 @@ for (const pre of document.querySelectorAll('pre.cell')) {
   bar.className = 'cell-bar'
   const btn = document.createElement('button')
   btn.textContent = 'Run'
+  const clearBtn = document.createElement('button')
+  clearBtn.textContent = 'Clear'
   const status = document.createElement('span')
-  bar.append(btn, status)
+  const pub = document.createElement('span')
+  pub.className = 'cell-published'
+  bar.append(btn, clearBtn, status, pub)
   const out = document.createElement('div')
   out.className = 'cell-out'
+  out.append(placeholder())
   wrap.append(editorHost, bar, out)
   const view = new EditorView({ doc: code, parent: editorHost, extensions: [basicSetup, javascript()] })
-  const cell = {
-    run: () => runCell(() => view.state.doc.toString(), out, status),
-    autorun: pre.classList.contains('autorun'),
-  }
+  const cell = { view, out, status, btn, pub, published: new Set() }
+  cell.run = () => runCell(cell)
   btn.addEventListener('click', cell.run)
+  clearBtn.addEventListener('click', () => clearCell(cell))
+  editorHost.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && e.shiftKey) { e.preventDefault(); e.stopPropagation(); cell.run() }
+  }, true)
   cells.push(cell)
 }
 
+// --- dataset preview cards (site furniture, not cell output) ---------------
+function htmlTable(records, cols) {
+  const table = document.createElement('table')
+  const thead = document.createElement('thead')
+  const headRow = document.createElement('tr')
+  for (const c of cols) { const th = document.createElement('th'); th.textContent = c; headRow.append(th) }
+  thead.append(headRow)
+  table.append(thead)
+  const tbody = document.createElement('tbody')
+  for (const r of records) {
+    const tr = document.createElement('tr')
+    for (const c of cols) {
+      const td = document.createElement('td')
+      const v = r[c]
+      td.textContent = v instanceof Date ? v.toISOString().slice(0, 10) : String(v ?? '')
+      tr.append(td)
+    }
+    tbody.append(tr)
+  }
+  table.append(tbody)
+  return table
+}
+
+for (const el of document.querySelectorAll('div.dataset')) {
+  const name = el.dataset.name
+  const records = data[name]
+  if (!records?.length) continue
+  const cols = Object.keys(records[0])
+  const head = document.createElement('div')
+  head.className = 'dataset-head'
+  const link = document.createElement('a')
+  link.href = `data/${files[name]}`
+  link.download = ''
+  link.textContent = files[name]
+  head.append(`${name} — ${records.length.toLocaleString('en-US')} rows × ${cols.length} cols · `, link)
+  const det = document.createElement('details')
+  const sum = document.createElement('summary')
+  sum.textContent = 'preview'
+  det.append(sum, htmlTable(records.slice(0, 8), cols))
+  el.append(head, det)
+  el.classList.add('dataset-card')
+}
+
+// --- run controls: nothing runs on load ------------------------------------
 const runAll = async () => { for (const c of cells) await c.run() }
 document.querySelector('#run-all')?.addEventListener('click', runAll)
 if (new URLSearchParams(location.search).has('runall')) await runAll()
-else for (const c of cells) if (c.autorun) await c.run()
