@@ -50,7 +50,7 @@ async function init(localCsvText) {
 let ready
 export function initDuckdb(localCsvText) {
   ready ??= init(localCsvText).catch((e) => {
-    setStatus(`failed: ${e?.message ?? e}`)
+    setStatus(`failed: ${e?.message ?? e} — reload to retry`)
     throw e
   })
   return ready

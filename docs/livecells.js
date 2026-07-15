@@ -30,7 +30,7 @@ const data = Object.fromEntries(await Promise.all(Object.entries(files).map(
 
 // fire-and-forget: the page never blocks on duckdb; sql() awaits readiness
 initDuckdb(Object.fromEntries(Object.entries(files)
-  .filter(([, f]) => f.endsWith('.csv')).map(([k, f]) => [k, rawCsv[f]])))
+  .filter(([, f]) => f.endsWith('.csv')).map(([k, f]) => [k, rawCsv[f]]))).catch(() => {})
 
 const scope = { ...core, ...dagMod, ...seqMod, ...cmpMod, ...adapters, ...fmtMod, d3, sql, ...data }
 Object.assign(window, scope) // cells and the devtools console share one namespace
@@ -40,6 +40,9 @@ Object.assign(window, scope) // cells and the devtools console share one namespa
 function safeJson(v) {
   const seen = new WeakSet()
   const out = JSON.stringify(v, (k, val) => {
+    if (typeof val === 'bigint')
+      return (val <= BigInt(Number.MAX_SAFE_INTEGER) && val >= -BigInt(Number.MAX_SAFE_INTEGER))
+        ? Number(val) : String(val)
     if (typeof val === 'object' && val !== null) {
       if (seen.has(val)) return '[Circular]'
       seen.add(val)
@@ -148,6 +151,16 @@ async function runCell(cell) {
     status.textContent = ` ✓ ${Math.round(performance.now() - t0)}ms`
     return true
   } catch (e) {
+    // `evalCell` is itself async, so `return eval(__code)` on a thenable
+    // (e.g. `rows = sql('bad sql')`) makes the implicit return-await reject
+    // straight through `await evalCell(...)` above — before the resolve
+    // loop runs. That leaves any newly-assigned-but-unresolved thenable
+    // sitting on window, untracked in `published`. Sweep it away here so a
+    // later rerun (after the visitor fixes the code) is re-detected as a
+    // fresh publish instead of finding the name already on `window` and
+    // skipping it forever.
+    for (const k of Object.keys(window))
+      if (!before.has(k) && !prior.has(k) && window[k] && typeof window[k].then === 'function') delete window[k]
     out.replaceChildren()
     const pre = document.createElement('pre')
     pre.className = 'cell-error'
