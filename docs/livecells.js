@@ -8,7 +8,14 @@ import * as d3 from 'd3'
 import { basicSetup, EditorView } from 'codemirror'
 import { javascript } from '@codemirror/lang-javascript'
 
-const csv = async (name) => d3.csvParse(await (await fetch(`data/${name}`)).text(), d3.autoType)
+import { initDuckdb, sql } from './duckdb.js'
+
+const rawCsv = {}
+const csv = async (name) => {
+  const text = await (await fetch(`data/${name}`)).text()
+  rawCsv[name] = text
+  return d3.csvParse(text, d3.autoType)
+}
 const json = async (name) => (await fetch(`data/${name}`)).json()
 
 const files = {
@@ -21,7 +28,11 @@ const files = {
 const data = Object.fromEntries(await Promise.all(Object.entries(files).map(
   async ([k, f]) => [k, await (f.endsWith('.json') ? json(f) : csv(f))])))
 
-const scope = { ...core, ...dagMod, ...seqMod, ...cmpMod, ...adapters, ...fmtMod, d3, ...data }
+// fire-and-forget: the page never blocks on duckdb; sql() awaits readiness
+initDuckdb(Object.fromEntries(Object.entries(files)
+  .filter(([, f]) => f.endsWith('.csv')).map(([k, f]) => [k, rawCsv[f]])))
+
+const scope = { ...core, ...dagMod, ...seqMod, ...cmpMod, ...adapters, ...fmtMod, d3, sql, ...data }
 Object.assign(window, scope) // cells and the devtools console share one namespace
 
 // --- result rendering: DOM passes through, strings are pre-formatted, ---

@@ -20,7 +20,8 @@
     "@codemirror/lang-javascript": "https://esm.sh/@codemirror/lang-javascript@6",
     "react": "https://esm.sh/react@18.3.1",
     "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
-    "dag-browser-widget": "https://esm.sh/dag-browser-widget@0.2.0?deps=react@18.3.1,react-dom@18.3.1"
+    "dag-browser-widget": "https://esm.sh/dag-browser-widget@0.2.0?deps=react@18.3.1,react-dom@18.3.1",
+    "@duckdb/duckdb-wasm": "https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.29.0/+esm"
   }
 }
 </script>
@@ -32,6 +33,7 @@
 every code cell below is editable; press Run. Everything in cell scope is
 also on <code>window</code> for devtools experimentation.</p>
 <p><button id="run-all">Run all cells</button></p>
+<p id="duckdb-status">duckdb: not started</p>
 
 <h2>What it is</h2>
 <p>supergroup groups flat record collections — CSV rows, query results,
