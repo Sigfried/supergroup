@@ -78,12 +78,6 @@ synthetic-patient OMOP extract (public S3), joined to OMOP vocabulary
 <div class="dataset" data-name="conditions"></div>
 <div class="dataset" data-name="drugs"></div>
 <div class="dataset" data-name="persons"></div>
-<li><a href="data/drug-classes.json">drugClasses</a> — the ATC + RxNorm
-classification closure over the drugs this cohort used, built from the
-same OMOP vocabulary; <code>fromParentIds</code>-ready. See <a
-href="data/curation/README.md">data/curation/README.md</a> for how it's
-built.</li>
-<div class="dataset" data-name="drugClasses"></div>
 </ul>
 
 <h2>Quick start / core</h2>
@@ -269,60 +263,81 @@ takes the adapter's output directly — no reshaping.</p>
 })()
 </pre>
 
-<h3>Real classification data: ATC + RxNorm drug classes</h3>
-<p>The containment DAG above is small and hand-written. The same
-machinery over real data: <code>drugClasses</code> is the ATC/RxNorm
-classification closure for every drug this synthetic patient cohort used,
-attached to the <code>drugs</code> records by concept id.</p>
+<h3>Real classification data: ATC + RxNorm, derived live</h3>
+<p>No prepared hierarchy file: the cell below walks the OMOP vocabulary's
+direct-edge table upward from the drug concepts this cohort actually
+used — a recursive query over 320k+ concepts, in the browser. The
+NULL-parent rows carry each node's name (roots included);
+<code>fromParentChild</code> consumes the edge rows directly.</p>
 
-<pre class="cell">
-// real drug classification: ATC + RxNorm over the drugs this cohort used
-g = fromParentIds(drugClasses, { records: drugs, recordKey: r => String(r.concept_id) })
-;({ nodes: g.nodes.length, roots: g.roots.length,
-  multiParent: g.nodes.filter(n => n.parents.length > 1).length,
-  sampleMultiParent: g.nodes.find(n => n.parents.length > 1)?.label })
+<pre class="cell sql" data-name="classEdges">
+WITH RECURSIVE up AS (
+  SELECT DISTINCT drug_concept_id AS concept_id FROM drug_era
+  UNION
+  SELECT e.parent_id FROM concept_edge e JOIN up ON e.child_id = up.concept_id
+)
+SELECT NULL AS parent_id, u.concept_id AS child_id, c.concept_name
+FROM up u JOIN concept c ON c.concept_id = u.concept_id
+UNION ALL
+SELECT e.parent_id, e.child_id, c.concept_name
+FROM concept_edge e
+JOIN up p ON p.concept_id = e.parent_id
+JOIN up ch ON ch.concept_id = e.child_id
+JOIN concept c ON c.concept_id = e.child_id
 </pre>
 
-<pre class="cell">
-// union-then-sum: distinct patients under each ATC class (not sum-over-paths)
-g = fromParentIds(drugClasses, { records: drugs, recordKey: r => String(r.concept_id) })
-patientsUnder = n => new Set(recordsUnder([n]).map(r => r.person_id)).size
-g.roots.filter(n => n.children.length)
-  .map(n => `${n.label}: ${patientsUnder(n)} patients`).join('\n')
+<pre class="cell sql" data-name="drugEras">
+SELECT person_id, drug_concept_id, drug_era_start_date,
+       drug_era_end_date, drug_exposure_count
+FROM drug_era
 </pre>
 
-<pre class="cell">
-// same rollup as a bar chart: top ATC classes by distinct-patient count
-g = fromParentIds(drugClasses, { records: drugs, recordKey: r => String(r.concept_id) })
-patientsUnder = n => new Set(recordsUnder([n]).map(r => r.person_id)).size
-rows = g.roots.filter(n => n.children.length)
-  .map(n => ({ label: n.label, patients: patientsUnder(n) }))
-  .sort((a, b) => b.patients - a.patients)
-  .slice(0, 10)
-const width = 640, barH = 22, height = rows.length * barH
-const x = d3.scaleLinear().domain([0, d3.max(rows, d => d.patients)]).range([0, 420])
-const svg = d3.create('svg').attr('width', width).attr('height', height)
-const g2 = svg.selectAll('g').data(rows).join('g').attr('transform', (d, i) => `translate(0,${i * barH})`)
-g2.append('rect').attr('width', d => x(d.patients)).attr('height', barH - 4).attr('fill', '#2456a4')
-g2.append('text').attr('x', d => x(d.patients) + 6).attr('y', 15).attr('font-size', 12).text(d => d.patients)
-g2.append('text').attr('x', 4).attr('y', 15).attr('font-size', 12).attr('fill', '#fff').text(d => d.label)
-svg.node()
-</pre>
+<p>SQL did the joins and the traversal; supergroup does what SQL can't
+express cleanly — union-then-aggregate rollups over a multi-parent DAG,
+where a record reachable by several paths counts once:</p>
 
 <pre class="cell">
-// interactive: dag-browser-widget over the real drug-class DAG
-// top-level await isn't available in cells; an async IIFE's promise is awaited before rendering
-(async () => {
+// edges → DAG; attach drug records by concept id; count per node
+atc = fromParentChild(classEdges, { parent: 'parent_id', child: 'child_id', label: 'concept_name' })
+attach = attachRecords(atc, drugEras, r => String(r.drug_concept_id))
+for (const n of atc.nodes) {
+  ru = n.rollup({ distinct: r => r.person_id })
+  n.label = `${n.label} — ${ru.distinct} pts · ${ru.count} rx`
+}
+;(async () => {
   const { createElement } = await import('react')
   const { createRoot } = await import('react-dom/client')
   const { DagBrowser } = await import('dag-browser-widget')
-  const nodes = toDagBrowserNodes(fromParentIds(drugClasses))
   const div = document.createElement('div')
-  div.style.height = '360px'
-  div.style.overflow = 'auto'
-  createRoot(div).render(createElement(DagBrowser, { nodes, levelsExpanded: 1 }))
+  div.append(`${attach.matched} of ${drugEras.length} drug records attached; `
+    + `${atc.nodes.length} nodes, ${atc.roots.length} roots`)
+  const inner = document.createElement('div')
+  inner.style.height = '360px'
+  inner.style.overflow = 'auto'
+  createRoot(inner).render(createElement(DagBrowser,
+    { nodes: toDagBrowserNodes(atc), levelsExpanded: 1 }))
+  div.append(inner)
   return div
 })()
+</pre>
+
+<p>Change who is being counted and the whole hierarchy re-rolls — the
+cohort knob is a SQL <code>WHERE</code> clause:</p>
+
+<pre class="cell sql" data-name="womenEras">
+SELECT d.person_id, d.drug_concept_id
+FROM drug_era d JOIN person p USING (person_id)
+WHERE p.gender_concept_id = 8532 AND p.year_of_birth &lt; 1960
+</pre>
+
+<pre class="cell">
+// same tree, women born before 1960 only
+atc = fromParentChild(classEdges, { parent: 'parent_id', child: 'child_id', label: 'concept_name' })
+attachRecords(atc, womenEras, r => String(r.drug_concept_id))
+atc.roots.filter(n => n.rollup().count)
+  .map(n => { ru = n.rollup({ distinct: r => r.person_id })
+    return `${n.label}: ${ru.distinct} pts · ${ru.count} rx` })
+  .join('\n')
 </pre>
 
 <h2>Sequence trees</h2>
@@ -438,10 +453,10 @@ tree path.</p>
 
 <pre class="cell">
 // cohort comparison over one classification: women vs men, by node id
-gender = new Map(persons.map(p => [p.person_id, p.gender]))
-cohort = g => fromParentIds(drugClasses,
-  { records: drugs.filter(r => gender.get(r.person_id) === g), recordKey: r => String(r.concept_id) })
-diff = compare(cohort('F'), cohort('M'), { by: 'id' })
+cohort = ids => { const g = fromParentChild(classEdges, { parent: 'parent_id', child: 'child_id', label: 'concept_name' })
+  attachRecords(g, drugEras.filter(r => ids.has(r.person_id)), r => String(r.drug_concept_id)); return g }
+byGender = g => new Set(persons.filter(p => p.gender === g).map(p => p.person_id))
+diff = compare(cohort(byGender('F')), cohort(byGender('M')), { by: 'id' })
 interesting = diff.nodes.filter(n => n.cmp && Math.abs(n.cmp.countDelta) > 25)
 interesting.map(n => `${n.label}: ${n.cmp.in} Δ${n.cmp.countDelta}`).join('\n')
 </pre>

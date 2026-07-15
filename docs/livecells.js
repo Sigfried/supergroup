@@ -24,7 +24,6 @@ const files = {
   budgets: 'diffExample.csv', hurricanes: 'hurricane.csv', fips: 'fips.csv',
   containment: 'containment.json', conditions: 'synthea-conditions.csv',
   drugs: 'synthea-drugs.csv', persons: 'synthea-persons.csv',
-  drugClasses: 'drug-classes.json',
 }
 const data = Object.fromEntries(await Promise.all(Object.entries(files).map(
   async ([k, f]) => [k, await (f.endsWith('.json') ? json(f) : csv(f))])))
