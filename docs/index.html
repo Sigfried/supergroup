@@ -18,6 +18,7 @@
     "d3": "https://esm.sh/d3@7",
     "codemirror": "https://esm.sh/codemirror@6.0.1",
     "@codemirror/lang-javascript": "https://esm.sh/@codemirror/lang-javascript@6",
+    "@codemirror/lang-sql": "https://esm.sh/@codemirror/lang-sql@6",
     "react": "https://esm.sh/react@18.3.1",
     "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
     "dag-browser-widget": "https://esm.sh/dag-browser-widget@0.2.0?deps=react@18.3.1,react-dom@18.3.1",
@@ -175,6 +176,33 @@ sg = supergroup(athletes, ['Country', 'Sport'])
   supergroup: sg.node(['United States']).children.map(String).slice(0, 5),
   notice: 'the Map has no records, no parent, no path — just nested keys',
 })
+</pre>
+
+<h2>SQL on the page: DuckDB</h2>
+<p>The page runs <a
+href="https://duckdb.org/docs/api/wasm/overview">duckdb-wasm</a> — a full
+SQL engine in the browser, no server. Remote parquet (an OMOP vocabulary
+cut and a 1,000-patient synthetic OMOP dataset, read over HTTP range
+requests) is registered as views; the CSV datasets above are registered
+as tables. SQL cells run through <code>sql()</code>, which is also in
+cell scope and on <code>window</code>. A cell's published names are
+resolved before they land on <code>window</code> — so a name assigned
+from <code>sql(…)</code> in one cell holds plain rows by the time the
+next cell (or the console) reads it. Within a single cell, a
+<code>sql(…)</code> value is still a promise — chain with
+<code>.then(…)</code> or use it as the cell's last statement.</p>
+
+<pre class="cell sql" data-name="vocabCounts">
+SELECT vocabulary_id, domain_id, count(*) AS concepts
+FROM concept GROUP BY ALL ORDER BY concepts DESC
+</pre>
+
+<p>Published SQL results are plain records — everything on this page
+composes with them:</p>
+
+<pre class="cell">
+// vocabCounts was published by the SQL cell above
+toTable(vocabCounts)
 </pre>
 
 <h2>DAG module + interactive browser</h2>

@@ -7,6 +7,7 @@ import * as fmtMod from 'supergroup/formatting'
 import * as d3 from 'd3'
 import { basicSetup, EditorView } from 'codemirror'
 import { javascript } from '@codemirror/lang-javascript'
+import { sql as sqlLang } from '@codemirror/lang-sql'
 
 import { initDuckdb, sql } from './duckdb.js'
 
@@ -78,6 +79,43 @@ const showPub = (cell) => {
   cell.pub.textContent = cell.published.size ? `→ window: ${[...cell.published].join(', ')}` : ''
 }
 
+function htmlTable(records, cols) {
+  const table = document.createElement('table')
+  const thead = document.createElement('thead')
+  const headRow = document.createElement('tr')
+  for (const c of cols) { const th = document.createElement('th'); th.textContent = c; headRow.append(th) }
+  thead.append(headRow)
+  table.append(thead)
+  const tbody = document.createElement('tbody')
+  for (const r of records) {
+    const tr = document.createElement('tr')
+    for (const c of cols) {
+      const td = document.createElement('td')
+      const v = r[c]
+      td.textContent = v instanceof Date ? v.toISOString().slice(0, 10) : String(v ?? '')
+      tr.append(td)
+    }
+    tbody.append(tr)
+  }
+  table.append(tbody)
+  return table
+}
+
+const SQL_PREVIEW_ROWS = 50
+function sqlResult(rows) {
+  const div = document.createElement('div')
+  if (!rows.length) { div.textContent = '0 rows'; return div }
+  const cols = Object.keys(rows[0])
+  div.append(htmlTable(rows.slice(0, SQL_PREVIEW_ROWS), cols))
+  const note = document.createElement('div')
+  note.className = 'cell-placeholder'
+  note.textContent = rows.length > SQL_PREVIEW_ROWS
+    ? `showing first ${SQL_PREVIEW_ROWS} of ${rows.length.toLocaleString('en-US')} rows`
+    : `${rows.length.toLocaleString('en-US')} rows`
+  div.append(note)
+  return div
+}
+
 async function runCell(cell) {
   const { view, out, status, btn } = cell
   btn.disabled = true
@@ -86,10 +124,20 @@ async function runCell(cell) {
   const prior = new Map([...published.keys()].map((k) => [k, window[k]]))
   const t0 = performance.now()
   try {
-    const result = await evalCell(view.state.doc.toString())
-    render(result, out)
+    let result
+    if (cell.isSql) {
+      result = await sql(view.state.doc.toString())
+      if (cell.dataName) window[cell.dataName] = result
+    } else {
+      result = await evalCell(view.state.doc.toString())
+    }
     const names = Object.keys(window).filter((k) => !before.has(k))
     for (const [k, v] of prior) if (window[k] !== v) names.push(k)
+    // resolve published thenables: `rows = sql(…)` publishes rows, not a
+    // promise (await is unavailable in eval'd cell code)
+    for (const k of names)
+      if (window[k] && typeof window[k].then === 'function') window[k] = await window[k]
+    render(cell.isSql ? sqlResult(result) : result, out)
     for (const k of names) {
       // republished name: ownership moves to this cell (last write wins),
       // so each name has exactly one owning cell and one Clear that removes it
@@ -143,8 +191,11 @@ for (const pre of document.querySelectorAll('pre.cell')) {
   out.className = 'cell-out'
   out.append(placeholder())
   wrap.append(editorHost, bar, out)
-  const view = new EditorView({ doc: code, parent: editorHost, extensions: [basicSetup, javascript()] })
-  const cell = { view, out, status, btn, pub, published: new Set() }
+  const isSql = pre.classList.contains('sql')
+  const dataName = pre.dataset.name
+  const view = new EditorView({ doc: code, parent: editorHost,
+    extensions: [basicSetup, isSql ? sqlLang() : javascript()] })
+  const cell = { view, out, status, btn, pub, published: new Set(), isSql, dataName }
   cell.run = () => runCell(cell)
   btn.addEventListener('click', cell.run)
   clearBtn.addEventListener('click', () => clearCell(cell))
@@ -155,28 +206,6 @@ for (const pre of document.querySelectorAll('pre.cell')) {
 }
 
 // --- dataset preview cards (site furniture, not cell output) ---------------
-function htmlTable(records, cols) {
-  const table = document.createElement('table')
-  const thead = document.createElement('thead')
-  const headRow = document.createElement('tr')
-  for (const c of cols) { const th = document.createElement('th'); th.textContent = c; headRow.append(th) }
-  thead.append(headRow)
-  table.append(thead)
-  const tbody = document.createElement('tbody')
-  for (const r of records) {
-    const tr = document.createElement('tr')
-    for (const c of cols) {
-      const td = document.createElement('td')
-      const v = r[c]
-      td.textContent = v instanceof Date ? v.toISOString().slice(0, 10) : String(v ?? '')
-      tr.append(td)
-    }
-    tbody.append(tr)
-  }
-  table.append(tbody)
-  return table
-}
-
 for (const el of document.querySelectorAll('div.dataset')) {
   const name = el.dataset.name
   const records = data[name]
