@@ -10,6 +10,10 @@ export interface Agg {
     min: number;
     max: number;
 }
+export interface RollupOpts<R> {
+    value?: (r: R) => number;
+    distinct?: (r: R) => unknown;
+}
 export interface CmpInfo<R> {
     in: 'a' | 'b' | 'both';
     a?: SGNode<R>;
@@ -58,9 +62,14 @@ export declare class SGNode<R> {
      * and unmatched records still count in the denominator.
      */
     pct(): number;
-    /** union-then-aggregate over this node and all descendants; never sum-over-paths */
-    rollup(accessor?: (r: R) => number): {
+    /**
+     * union-then-aggregate over this node and all descendants; never
+     * sum-over-paths. `distinct` counts unique key values over the same
+     * deduped union.
+     */
+    rollup(arg?: ((r: R) => number) | RollupOpts<R>): {
         count: number;
+        distinct?: number;
     } & Partial<Agg>;
     groupChildren(dim: DimInput<R>, opts?: GroupOpts<R>): SGNode<R>[];
 }

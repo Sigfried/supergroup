@@ -25,4 +25,9 @@ describe('aggregates and selection', () => {
     expect(rx.rollup(r => r.cost)).toEqual({ count: 3, sum: 62, mean: 62 / 3, min: 2, max: 50 })
     expect(rx.rollup()).toEqual({ count: 3 })
   })
+  it('rollup distinct counts unique key values over the union', () => {
+    expect(rx.rollup({ distinct: r => r.cost })).toEqual({ count: 3, distinct: 3 })
+    expect(rx.rollup({ value: r => r.cost, distinct: r => r.cost }))
+      .toEqual({ count: 3, sum: 62, mean: 62 / 3, min: 2, max: 50, distinct: 3 })
+  })
 })

@@ -38,4 +38,15 @@ describe('attachRecords + union rollup', () => {
     expect(sg.select(['D'])[0]!.records).toHaveLength(1)
     expect(sg.select(['A'])[0]!.rollup(r => r.n).sum).toBe(10)
   })
+  it('rollup distinct dedups across multi-parent paths', () => {
+    const sg = fromParentIds<Pt & { person: string }>(DIAMOND)
+    attachRecords(sg, [
+      { concept: 'D', n: 10, person: 'p1' },   // reachable via B AND via C
+      { concept: 'B', n: 5, person: 'p1' },    // same person again
+      { concept: 'C', n: 2, person: 'p2' },
+    ], r => r.concept)
+    const a = sg.select(['A'])[0]!
+    // 3 records under A (D's counted once), but only 2 unique persons
+    expect(a.rollup({ distinct: r => r.person })).toEqual({ count: 3, distinct: 2 })
+  })
 })

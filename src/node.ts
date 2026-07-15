@@ -6,6 +6,11 @@ export interface SGContext { totalRecords: number }
 
 export interface Agg { count: number; sum: number; mean: number; min: number; max: number }
 
+export interface RollupOpts<R> {
+  value?: (r: R) => number
+  distinct?: (r: R) => unknown
+}
+
 export interface CmpInfo<R> {
   in: 'a' | 'b' | 'both'
   a?: SGNode<R>
@@ -122,10 +127,18 @@ export class SGNode<R> {
    */
   pct(): number { return this.records.length / this.ctx.totalRecords }
 
-  /** union-then-aggregate over this node and all descendants; never sum-over-paths */
-  rollup(accessor?: (r: R) => number): { count: number } & Partial<Agg> {
+  /**
+   * union-then-aggregate over this node and all descendants; never
+   * sum-over-paths. `distinct` counts unique key values over the same
+   * deduped union.
+   */
+  rollup(arg?: ((r: R) => number) | RollupOpts<R>): { count: number; distinct?: number } & Partial<Agg> {
     const recs = recordsUnder([this])
-    return accessor ? aggregate(recs, accessor) : { count: recs.length }
+    const opts = typeof arg === 'function' ? { value: arg } : arg ?? {}
+    const out: { count: number; distinct?: number } & Partial<Agg> =
+      opts.value ? aggregate(recs, opts.value) : { count: recs.length }
+    if (opts.distinct) out.distinct = new Set(recs.map(opts.distinct)).size
+    return out
   }
 
   groupChildren(dim: DimInput<R>, opts?: GroupOpts<R>): SGNode<R>[] {

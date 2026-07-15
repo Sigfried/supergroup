@@ -94,10 +94,18 @@ export class SGNode {
      * and unmatched records still count in the denominator.
      */
     pct() { return this.records.length / this.ctx.totalRecords; }
-    /** union-then-aggregate over this node and all descendants; never sum-over-paths */
-    rollup(accessor) {
+    /**
+     * union-then-aggregate over this node and all descendants; never
+     * sum-over-paths. `distinct` counts unique key values over the same
+     * deduped union.
+     */
+    rollup(arg) {
         const recs = recordsUnder([this]);
-        return accessor ? aggregate(recs, accessor) : { count: recs.length };
+        const opts = typeof arg === 'function' ? { value: arg } : arg ?? {};
+        const out = opts.value ? aggregate(recs, opts.value) : { count: recs.length };
+        if (opts.distinct)
+            out.distinct = new Set(recs.map(opts.distinct)).size;
+        return out;
     }
     groupChildren(dim, opts) {
         return regroupNode(this, dim, opts);
