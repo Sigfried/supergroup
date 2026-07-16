@@ -74,7 +74,7 @@ specimen/study parent-id taxonomy, for DAG examples.</li>
 href="data/synthea-drugs.csv">drugs</a>, <a
 href="data/synthea-persons.csv">persons</a> — a synthea 1k-patient
 synthetic-patient OMOP extract (public S3), joined to OMOP vocabulary
-(SNOMED/RxNorm/ATC concept names).</li>
+(SNOMED/RxNorm/ATC concept names). Synthea synthetic patient generator data in OMOP Common Data Model was accessed on 2026-07-14 from <a href="https://registry.opendata.aws/synthea-omop">https://registry.opendata.aws/synthea-omop</a>.</li>
 <div class="dataset" data-name="conditions"></div>
 <div class="dataset" data-name="drugs"></div>
 <div class="dataset" data-name="persons"></div>
@@ -479,6 +479,12 @@ href="specs/2026-07-13-supergroup-v2-design.md">the v2 design spec</a> and
 <tr><td><code>_.sgCompare</code> / <code>_.sgDiffList</code></td><td><code>compare</code> (supergroup/compare)</td></tr>
 <tr><td><code>_.stateClass</code> / <code>State</code></td><td>app-owned selection + <code>recordsFor</code>/<code>recordsUnder</code></td></tr>
 <tr><td>boxed String/Number values</td><td>plain <code>SGNode</code> (<code>label</code>, <code>toString()</code>)</td></tr>
+<tr><td><code>list.lookup(path)</code></td><td><code>sg.node(path)</code></td></tr>
+<tr><td><code>list.lookupMany(paths)</code></td><td><code>sg.select(paths)</code></td></tr>
+<tr><td><code>list.flattenTree()</code></td><td><code>sg.flatten()</code> (DFS pre-order, each node once)</td></tr>
+<tr><td><code>list.leafNodes()</code></td><td><code>sg.leaves()</code></td></tr>
+<tr><td><code>list.namePaths()</code> / <code>list.aggregates(...)</code></td><td>plain array ops over <code>sg.nodes</code></td></tr>
+<tr><td><code>val.namePath(opts)</code> / <code>val.dimPath(opts)</code></td><td><code>n.namePath(sep)</code> / <code>n.dimPath(sep)</code></td></tr>
 </tbody>
 </table>
 
