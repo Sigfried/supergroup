@@ -1016,6 +1016,32 @@ Binding rules from the spec:
   the names that cell published.
 - `prettyPrint` emits no summary header — `summary()` is separate.
 
+### Task 9 examples round (amendment, 2026-07-16): Tasks 9c–9e
+
+Feedback bullets 5–8 of `.superpowers/sdd/task-9-feedback.md` plus items
+carried from the mechanics round. Bullet 6 (vocab/joins/duckdb) was
+resolved by the separate duckdb-demo plan
+(`planning/plans/2026-07-14-duckdb-demo.md`, complete). Bullet 8 (DBW
+horizontal-scroll clipping) is handled by SG directly in the
+dag-browser-widget repo (prompt handed over 2026-07-16), not here.
+
+- **Task 9c** — Synthea citation (bullet 5, verbatim sentence in the data
+  section) + v1 viewing-convenience rows in the migration table (bullet 7
+  follow-through). Brief: `.superpowers/sdd/examples-1-brief.md`.
+- **Task 9d** — error-time ASI-join hint + insert-`;`-and-rerun button in
+  the cell runner (replaces the static authoring note SG rejected; SG
+  chose hint + fix-it button, no silent fixing). Brief:
+  `.superpowers/sdd/examples-2-brief.md`.
+- **Task 9e** — `toD3` `recordLeaves` option + live treemap cell +
+  migration-table row for `addRecordsAsChildrenToLeafNodes` (bullet 7
+  resolution; spec "Library additions" amended 2026-07-16). Src change:
+  implement + test, rebuild dist, re-run `build:site` before the cell
+  uses it. Brief: `.superpowers/sdd/examples-3-brief.md`.
+
+Held for the look round (do not fix in these tasks): data-section
+vertical space / possible dataset cuts. Carried minors: throwing-run
+window vars untracked; Shift-Enter still needs a human check.
+
 ## Task 9a: `supergroup/formatting` module + `SGNode.dimPath`
 
 **Files:**

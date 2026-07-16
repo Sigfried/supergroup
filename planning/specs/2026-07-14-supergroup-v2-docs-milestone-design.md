@@ -123,8 +123,19 @@ inventoried against v2 and resolved without new API: `lookup` →
 `node()`, `lookupMany` → `select()`, `flattenTree` → `flatten()` (DFS
 pre-order, each node once), `leafNodes` → `leaves()`, `namePaths`/
 `aggregates` → plain array ops over `nodes` (the migration page
-documents these mappings); `addRecordsAsChildrenToLeafNodes` is
-deliberately deferred to the examples round.
+documents these mappings).
+
+`addRecordsAsChildrenToLeafNodes` (resolved in the examples round,
+2026-07-16): the v1 use — d3 layouts sized per record, e.g. the v1 docs'
+treemap of visit records sized by Charge — is real and stays in the new
+docs. v2 replacement is an adapter option, not core mutation:
+`toD3(x, {recordLeaves: (r, i) => string})`. When set, every childless
+node in the emitted tree gets `children` = its records mapped to
+`{id: `${node.id}/r${i}`, name: recordLeaves(r, i), key: null,
+records: [r]}`. No option → output unchanged. The docs page demonstrates
+it with a live treemap cell (patients by Physician/Unit, synthetic root,
+rects sized by `d.records[0].Charge`), and the migration table maps the
+v1 method to this option.
 
 These are src changes: implement + test, then rebuild the dist and
 re-run `build:site` so the vendored copy carries them before the site
