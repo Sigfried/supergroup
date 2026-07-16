@@ -1,6 +1,6 @@
 import * as duckdb from '@duckdb/duckdb-wasm'
 
-// Static parquet host (see docs/specs/2026-07-14-duckdb-demo-design.md).
+// Static parquet host (see planning/specs/2026-07-14-duckdb-demo-design.md).
 // Local dev: ?data=http://localhost:8124 (npx http-server on the data repo;
 // python http.server won't do — no Range support).
 const DATA_BASE = new URLSearchParams(location.search).get('data')

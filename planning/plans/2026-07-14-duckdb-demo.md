@@ -19,7 +19,7 @@ gains `rollup({ distinct })`.
 `@codemirror/lang-sql` (esm.sh), psql + duckdb CLI for extraction,
 vitest + tsc for the library, headless Chrome for page verification.
 
-**Spec:** `docs/specs/2026-07-14-duckdb-demo-design.md` — read it first.
+**Spec:** `planning/specs/2026-07-14-duckdb-demo-design.md` — read it first.
 
 ## Global Constraints
 
@@ -388,7 +388,7 @@ After the Run-all button paragraph (line 34):
 ```js
 import * as duckdb from '@duckdb/duckdb-wasm'
 
-// Static parquet host (see docs/specs/2026-07-14-duckdb-demo-design.md).
+// Static parquet host (see planning/specs/2026-07-14-duckdb-demo-design.md).
 // Local dev: ?data=http://localhost:8124 (npx http-server on the data repo;
 // python http.server won't do — no Range support).
 const DATA_BASE = new URLSearchParams(location.search).get('data')

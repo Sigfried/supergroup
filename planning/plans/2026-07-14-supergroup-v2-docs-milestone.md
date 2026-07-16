@@ -2148,7 +2148,7 @@ npm run build:site    # build + vendor dist into docs/
 npm run site:serve    # serve the docs site locally
 ```
 
-Design docs: [docs/specs/](docs/specs/). MIT license.
+Design docs: [planning/specs/](planning/specs/). MIT license.
 ````
 
 - [ ] **Step 2: Commit**
@@ -2196,7 +2196,7 @@ The full story of the three divergent v1 lineages is in
 > (ESM/TypeScript, `src/`) shipped; v1 artifacts moved to
 > [legacy/](legacy/). This file remains as the record of the v1
 > divergence and the consumer research that shaped v2 — see
-> [docs/specs/](docs/specs/) for the v2 design.
+> [planning/specs/](planning/specs/) for the v2 design.
 ```
 
 - [ ] **Step 4: Verify nothing broke**
@@ -2294,7 +2294,7 @@ spot (near other library/tooling notes, or at the end):
   cyclic) + a `toDagBrowserNodes` adapter that replaces the hand-written
   containment adapter for the Focus view; also sequence grouping and
   hierarchy compare. Capabilities spec:
-  https://github.com/Sigfried/supergroup/blob/master/docs/specs/2026-07-13-supergroup-v2-design.md
+  https://github.com/Sigfried/supergroup/blob/master/planning/specs/2026-07-13-supergroup-v2-design.md
 ```
 
 - [ ] **Step 2: hub lifeflow README note** — append:

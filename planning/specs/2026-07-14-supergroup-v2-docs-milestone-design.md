@@ -34,7 +34,8 @@ docs/livecells.js            cell runtime (editor, Run, result rendering)
 docs/site.css                styles
 docs/vendor/supergroup/      built dist/, copied in by `npm run build:site`
 docs/data/                   demo datasets (below)
-docs/specs/, docs/plans/     existing planning docs (publicly served, fine)
+planning/specs|plans/        planning docs (moved out of docs/ 2026-07-16
+                             so the Pages flip doesn't publish them)
 ```
 
 Key trick: Pages only serves files under `docs/`, so the site imports a

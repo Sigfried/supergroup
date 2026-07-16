@@ -725,7 +725,7 @@ git commit -m "v2: lock dag compare — id-keyed memo merge, source ids"
 - Create: `src/sequence/` and `src/compare/` need no separate index (they ARE
   index.ts files already)
 - Modify: `test/exports.test.ts`
-- Modify: `docs/specs/2026-07-13-supergroup-v2-design.md` (sync the M2/M3
+- Modify: `planning/specs/2026-07-13-supergroup-v2-design.md` (sync the M2/M3
   sections to the semantics this plan fixed)
 
 **Interfaces:**
@@ -772,7 +772,7 @@ export type { CmpInfo } from './node'
 ```
 
 - [ ] **Step 4: Sync the spec** — in
-`docs/specs/2026-07-13-supergroup-v2-design.md`:
+`planning/specs/2026-07-13-supergroup-v2-design.md`:
 
 1. In the **sequence module (M2)** section, after the existing paragraph,
    append:
@@ -803,7 +803,7 @@ Run: `npx vitest run` → ALL green (expect 68 tests). `npm run typecheck` → 0
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/index.ts src/adapters/index.ts test/exports.test.ts docs/specs/2026-07-13-supergroup-v2-design.md
+git add src/index.ts src/adapters/index.ts test/exports.test.ts planning/specs/2026-07-13-supergroup-v2-design.md
 git commit -m "v2: sequence/compare/toD3 export surfaces; spec sync (M2/M3 semantics)"
 ```
 
