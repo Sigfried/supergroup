@@ -16,6 +16,8 @@ th, td { border: 1px solid var(--line); padding: .3rem .6rem; text-align: left; 
 .cell-out { padding: .5rem .8rem; border-top: 1px solid var(--line); max-height: 24rem; overflow: auto; }
 .cell-out pre { margin: 0; white-space: pre-wrap; }
 .cell-error { color: #a02020; }
+.cell-hint { margin-top: .4rem; color: #888; font-size: .85em; font-style: italic; }
+.cell-hint-fix { font: inherit; font-style: normal; margin-left: .5rem; padding: .05rem .5rem; cursor: pointer; }
 .table-caption { margin: 0 0 .4rem; font-size: .85em; color: #666; }
 .cell-out table { font-size: .9em; }
 .cell-placeholder { color: #999; font-style: italic; }

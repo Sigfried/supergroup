@@ -118,6 +118,28 @@ function sqlResult(rows) {
   return div
 }
 
+// Sloppy-mode eval has no top-level `const`/semicolons, so ASI can join a
+// complete-looking statement with a following line that starts with `(`,
+// `[`, or a backtick — e.g. `x = foo()` then `(y).map(...)` parses as
+// `x = foo()(y).map(...)`. Detect the pattern (not a tokenizer, just a
+// line-based heuristic) so a throwing cell can hint at the likely cause and
+// offer to insert `;` at each offending line. Returns 1-indexed line
+// numbers (matching CodeMirror's line numbering), in ascending order.
+function asiHazard(src) {
+  const lines = src.split('\n')
+  const hits = []
+  let prevStmt = null
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim()
+    if (line === '' || line.startsWith('//')) continue
+    if (/^[(`[]/.test(line) && prevStmt !== null) {
+      if (!/[;,{([=&|+\-*/%<>?:.]$/.test(prevStmt) && !prevStmt.endsWith('=>')) hits.push(i + 1)
+    }
+    prevStmt = line
+  }
+  return hits
+}
+
 async function runCell(cell) {
   const { view, out, status, btn } = cell
   btn.disabled = true
@@ -166,6 +188,27 @@ async function runCell(cell) {
     pre.className = 'cell-error'
     pre.textContent = String(e.stack ?? e)
     out.append(pre)
+    const hazardLines = asiHazard(view.state.doc.toString())
+    if (hazardLines.length) {
+      const hint = document.createElement('div')
+      hint.className = 'cell-hint'
+      hint.textContent = 'hint: a line starting with ( [ or ` is read as continuing the previous ' +
+        'statement — prefix it with ; if it should stand alone'
+      const fixBtn = document.createElement('button')
+      fixBtn.className = 'cell-hint-fix'
+      fixBtn.textContent = 'insert ; and rerun'
+      fixBtn.addEventListener('click', () => {
+        // insert `;` at the start of each hazard line, in the visible editor
+        // (displayed code stays identical to executed code — never fix
+        // silently), highest line first so earlier insert positions don't shift
+        const changes = [...hazardLines].sort((a, b) => b - a)
+          .map((n) => ({ from: view.state.doc.line(n).from, insert: ';' }))
+        view.dispatch({ changes })
+        cell.run()
+      })
+      hint.append(' ', fixBtn)
+      out.append(hint)
+    }
     status.textContent = ' ✗'
     return false
   } finally {
